@@ -1,0 +1,21 @@
+RewriteEngine On
+RewriteBase /file-tracking-system/
+
+# Prevent direct access to sensitive files
+RewriteRule ^config/ - [F,L]
+RewriteRule ^includes/ - [F,L]
+# Block direct access to .php files in actions/ (routing handles non-.php requests)
+RewriteRule ^actions/.*\.php$ - [F,L]
+
+# Allow access to assets
+RewriteCond %{REQUEST_URI} ^/file-tracking-system/assets/
+RewriteRule ^ - [L]
+
+# Allow access to uploads
+RewriteCond %{REQUEST_URI} ^/file-tracking-system/uploads/
+RewriteRule ^ - [L]
+
+# Redirect all requests to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
