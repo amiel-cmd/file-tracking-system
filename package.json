@@ -5,5 +5,8 @@
   "dependencies": {
     "pg": "^8.11.3",
     "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@vercel-community/php": "^0.7.0"
   }
 }
