@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.php",
+      "use": "@vercel/php"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/uploads/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/assests/(.*)",
+      "dest": "/assests/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/(.*\\.(css|js|jpg|jpeg|png|gif|ico|svg|pdf|woff|woff2|ttf|eot))",
+      "dest": "/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.php?route=$1",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      }
+    }
+  ],
+  "env": {
+    "PHP_INI_SCAN_DIR": "/var/task/user.ini"
+  },
+  "functions": {
+    "index.php": {
+      "runtime": "php8.2"
+    }
+  },
+  "regions": ["iad1"]
+}
+

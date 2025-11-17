@@ -1,0 +1,98 @@
+# Environment files - NEVER deploy secrets
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+
+# Node modules - Vercel installs these automatically
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Uploaded files - Should use external storage (S3, etc.)
+uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.zip
+*.rar
+
+# Cache and temporary files
+.cache/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Build artifacts and compiled files
+dist/
+build/
+.next/
+out/
+*.min.js
+*.min.css
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.test.php
+*.spec.js
+*.spec.php
+coverage/
+
+# Documentation
+README.md
+docs/
+*.md
+CHANGELOG.md
+LICENSE
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# PHP specific
+vendor/
+composer.lock
+.phpunit.result.cache
+
+# WIP or temporary projects
+WIP*/
+*.backup
+*.bak
+*~
+

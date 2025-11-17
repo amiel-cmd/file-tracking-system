@@ -6,7 +6,9 @@ require_once dirname(__DIR__) . '/config/config.php';
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_secure', 0);
+    // Set secure cookie for HTTPS (Vercel uses HTTPS)
+    $is_https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' || getenv('VERCEL_URL');
+    ini_set('session.cookie_secure', $is_https ? 1 : 0);
     
     session_start();
 }

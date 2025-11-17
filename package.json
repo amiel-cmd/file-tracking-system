@@ -1,6 +1,16 @@
 {
+  "name": "file-tracking-system",
+  "version": "1.0.0",
+  "description": "File Tracking System for Vercel",
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
-    "mysql2": "^3.15.3"
+    "pg": "^8.11.3"
+  },
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
   }
 }

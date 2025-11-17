@@ -1,10 +1,10 @@
-const mysql = require('mysql2/promise');
+const { Pool, Client } = require('pg');
 require('dotenv').config();
 
 class Database {
     constructor() {
         // Option A: Use the single DATABASE_URL (recommended)
-        this.url = process.env.DATABASE_URL || 'mysql://root@localhost:3306/file_tracking_system';
+        this.url = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/file_tracking_system';
         
         this.conn = null;
         this.pool = null;
@@ -12,8 +12,12 @@ class Database {
 
     async getConnection() {
         try {
-            this.conn = await mysql.createConnection(this.url);
-            await this.conn.ping();
+            this.conn = new Client({ connectionString: this.url });
+            await this.conn.connect();
+            
+            // Test connection with a simple query (PostgreSQL doesn't have ping())
+            await this.conn.query('SELECT NOW()');
+            
             console.log('✅ Database connected!');
             return this.conn;
         } catch (error) {
@@ -24,7 +28,12 @@ class Database {
 
     async getPool() {
         try {
-            this.pool = mysql.createPool(this.url);
+            this.pool = new Pool({ connectionString: this.url });
+
+            // Test pool connection
+            const client = await this.pool.connect();
+            await client.query('SELECT NOW()');
+            client.release();
 
             console.log('✅ Database pool created successfully');
             return this.pool;
@@ -52,16 +61,26 @@ class Database {
         const conn = this.pool || this.conn;
         if (!conn) throw new Error('No database connection available');
 
-        const [results] = await conn.execute(query, params);
-        return results;
+        if (this.pool) {
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } else {
+            const result = await this.conn.query(query, params);
+            return result.rows;
+        }
     }
 
     async query(query, params = []) {
         const conn = this.pool || this.conn;
         if (!conn) throw new Error('No database connection available');
 
-        const [results] = await conn.query(query, params);
-        return results;
+        if (this.pool) {
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } else {
+            const result = await this.conn.query(query, params);
+            return result.rows;
+        }
     }
 }
 
