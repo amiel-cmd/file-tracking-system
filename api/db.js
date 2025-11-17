@@ -1,33 +1,28 @@
-const { Pool, Client } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 class Database {
     constructor() {
-        this.host = process.env.DB_HOST;
-        this.port = process.env.DB_PORT;
-        this.db = process.env.DB_NAME;
-        this.user = process.env.DB_USER;
-        this.pass = process.env.DB_PASSWORD;
+        this.host = process.env.DB_HOST || 'process.env.DB_HOST';
+        this.db_name = process.env.DB_NAME || 'process.env.DB_NAME';
+        this.username = process.env.DB_USER || 'process.env.DB_USER';
+        this.password = process.env.DB_PASSWORD || 'process.env.DB_PASSWORD';
+        this.charset = 'utf8mb4';
         this.conn = null;
         this.pool = null;
     }
 
     async getConnection() {
         try {
-            const client = new Client({
+            this.conn = await mysql.createConnection({
                 host: this.host,
-                port: this.port,
-                database: this.db,
-                user: this.user,
-                password: this.pass
+                database: this.db_name,
+                user: this.username,
+                password: this.password,
+                charset: this.charset
             });
 
-            await client.connect();
-            
-            // Test connection with a simple query
-            await client.query('SELECT NOW()');
-            
-            this.conn = client;
+            await this.conn.ping();
             console.log('Database connected successfully');
             return this.conn;
         } catch (error) {
@@ -38,21 +33,16 @@ class Database {
 
     async getPool() {
         try {
-            this.pool = new Pool({
+            this.pool = mysql.createPool({
                 host: this.host,
-                port: this.port,
-                database: this.db,
-                user: this.user,
-                password: this.pass,
-                max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000
+                database: this.db_name,
+                user: this.username,
+                password: this.password,
+                charset: this.charset,
+                waitForConnections: true,
+                connectionLimit: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
+                queueLimit: 0
             });
-
-            // Test pool connection
-            const client = await this.pool.connect();
-            await client.query('SELECT NOW()');
-            client.release();
 
             console.log('Database pool created successfully');
             return this.pool;
@@ -80,26 +70,16 @@ class Database {
         const conn = this.pool || this.conn;
         if (!conn) throw new Error('No database connection available');
 
-        if (this.pool) {
-            const result = await this.pool.query(query, params);
-            return result.rows;
-        } else {
-            const result = await this.conn.query(query, params);
-            return result.rows;
-        }
+        const [results] = await conn.execute(query, params);
+        return results;
     }
 
     async query(query, params = []) {
         const conn = this.pool || this.conn;
         if (!conn) throw new Error('No database connection available');
 
-        if (this.pool) {
-            const result = await this.pool.query(query, params);
-            return result.rows;
-        } else {
-            const result = await this.conn.query(query, params);
-            return result.rows;
-        }
+        const [results] = await conn.query(query, params);
+        return results;
     }
 }
 
