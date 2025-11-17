@@ -1,15 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "index.php",
-      "use": "@vercel/php"
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
     },
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+    "index.php": {
+      "runtime": "php8.2"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
@@ -21,42 +19,9 @@
       }
     },
     {
-      "src": "/uploads/(.*)",
-      "dest": "/uploads/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/assests/(.*)",
-      "dest": "/assests/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/(.*\\.(css|js|jpg|jpeg|png|gif|ico|svg|pdf|woff|woff2|ttf|eot))",
-      "dest": "/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.php?route=$1",
-      "headers": {
-        "Content-Type": "text/html; charset=utf-8"
-      }
+      "dest": "/index.php?route=$1"
     }
-  ],
-  "env": {
-    "PHP_INI_SCAN_DIR": "/var/task/user.ini"
-  },
-  "functions": {
-    "index.php": {
-      "runtime": "php8.2"
-    }
-  },
-  "regions": ["iad1"]
+  ]
 }
 

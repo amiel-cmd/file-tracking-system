@@ -1,16 +1,9 @@
 {
   "name": "file-tracking-system",
   "version": "1.0.0",
-  "description": "File Tracking System for Vercel",
-  "engines": {
-    "node": ">=18.x"
-  },
+  "main": "api/index.js",
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "pg": "^8.11.3"
-  },
-  "scripts": {
-    "start": "node api/index.js",
-    "dev": "node api/index.js"
+    "pg": "^8.11.3",
+    "dotenv": "^16.4.0"
   }
 }
