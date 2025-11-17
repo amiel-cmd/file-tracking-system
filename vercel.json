@@ -2,10 +2,7 @@
   "version": 2,
   "functions": {
     "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    },
-    "index.php": {
-      "runtime": "php8.2"
+      "runtime": "@vercel/node@20.x"
     }
   },
   "routes": [
