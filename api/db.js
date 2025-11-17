@@ -3,51 +3,33 @@ require('dotenv').config();
 
 class Database {
     constructor() {
-        this.host = process.env.DB_HOST || 'process.env.DB_HOST';
-        this.db_name = process.env.DB_NAME || 'process.env.DB_NAME';
-        this.username = process.env.DB_USER || 'process.env.DB_USER';
-        this.password = process.env.DB_PASSWORD || 'process.env.DB_PASSWORD';
-        this.charset = 'utf8mb4';
+        // Option A: Use the single DATABASE_URL (recommended)
+        this.url = process.env.DATABASE_URL || 'mysql://root@localhost:3306/file_tracking_system';
+        
         this.conn = null;
         this.pool = null;
     }
 
     async getConnection() {
         try {
-            this.conn = await mysql.createConnection({
-                host: this.host,
-                database: this.db_name,
-                user: this.username,
-                password: this.password,
-                charset: this.charset
-            });
-
+            this.conn = await mysql.createConnection(this.url);
             await this.conn.ping();
-            console.log('Database connected successfully');
+            console.log('✅ Database connected!');
             return this.conn;
         } catch (error) {
-            console.error('Connection Error: ' + error.message);
+            console.error('❌ Database connection failed:', error);
             throw error;
         }
     }
 
     async getPool() {
         try {
-            this.pool = mysql.createPool({
-                host: this.host,
-                database: this.db_name,
-                user: this.username,
-                password: this.password,
-                charset: this.charset,
-                waitForConnections: true,
-                connectionLimit: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
-                queueLimit: 0
-            });
+            this.pool = mysql.createPool(this.url);
 
-            console.log('Database pool created successfully');
+            console.log('✅ Database pool created successfully');
             return this.pool;
         } catch (error) {
-            console.error('Connection Error: ' + error.message);
+            console.error('❌ Database pool creation failed:', error);
             throw error;
         }
     }
