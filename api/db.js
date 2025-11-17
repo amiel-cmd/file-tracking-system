@@ -3,9 +3,9 @@ require('dotenv').config();
 
 class Database {
     constructor() {
-        this.host = process.env.DB_HOST || 'localhost';
-        this.db_name = process.env.DB_NAME || 'File_Tracking_System';
-        this.username = process.env.DB_USER || 'root';
+        this.host = process.env.DB_HOST || 'process.env.DB_HOST';
+        this.db_name = process.env.DB_NAME || 'process.env.DB_NAME';
+        this.username = process.env.DB_USER || 'process.env.DB_USER';
         this.password = process.env.DB_PASSWORD || 'process.env.DB_PASSWORD';
         this.charset = 'utf8mb4';
         this.conn = null;
