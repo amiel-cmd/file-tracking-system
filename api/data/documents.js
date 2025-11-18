@@ -1,80 +1,88 @@
-const pool = require('../db');
-const { requireAuth } = require('../utils/auth');
+const pool = require('./db');
+const { requireAuth } = require('./utils/auth');
+const { sanitize, logDocumentHistory, getClientIp } = require('./utils/helpers');
+const { validateDocument, validateRouting } = require('./utils/validation');
 
 module.exports = async function handler(req, res) {
-    // Chain auth middleware
-    await new Promise((resolve, reject) => {
-        requireAuth(req, res, (err) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
-    
-    // Only allow GET
-    if (req.method !== 'GET') {
-        return res.status(405).json({ 
-            success: false, 
-            error: 'Method not allowed' 
-        });
-    }
-    
+    const { method, query, body } = req;
+
     try {
-        const userId = req.user.userId;
-        const userRole = req.user.role;
-        const { status, archived, limit = 50, offset = 0 } = req.query;
-        
-        let query = `SELECT d.*, 
-                    u.full_name as uploaded_by_name,
-                    u.department as uploaded_by_department,
-                    h.full_name as current_holder_name,
-                    h.department as current_holder_department
-                    FROM documents d
-                    LEFT JOIN users u ON d.uploaded_by = u.user_id
-                    LEFT JOIN users h ON d.current_holder = h.user_id
-                    WHERE 1=1`;
-        
-        const params = [];
-        let paramCount = 0;
-        
-        // Filter by archived status
-        if (archived === 'true') {
-            query += ` AND d.is_archived = 1`;
-        } else {
-            query += ` AND d.is_archived = 0`;
+        switch (method) {
+            case 'GET': // View document
+                const documentId = query.id || query.document_id;
+                if (!documentId) {
+                    return res.status(400).json({ success: false, error: 'Document ID is required' });
+                }
+                const viewQuery = 'SELECT file_path, title FROM documents WHERE document_id = $1';
+                const viewResult = await pool.query(viewQuery, [documentId]);
+                if (viewResult.rows.length === 0) {
+                    return res.status(404).json({ success: false, error: 'Document not found' });
+                }
+                return res.status(200).json({ success: true, document: viewResult.rows[0] });
+
+            case 'POST': // Upload document
+                const { title, description, document_type, priority, file } = body;
+                const validationErrors = validateDocument({ title, document_type, priority });
+                if (validationErrors.length > 0) {
+                    return res.status(400).json({ success: false, error: validationErrors.join(', ') });
+                }
+                const sanitizedTitle = sanitize(title);
+                const sanitizedDescription = sanitize(description || '');
+                const sanitizedDocType = sanitize(document_type);
+                const sanitizedPriority = sanitize(priority);
+                const documentNumber = `DOC-${Date.now()}`;
+                const insertQuery = `INSERT INTO documents (document_number, title, description, document_type, priority) 
+                                     VALUES ($1, $2, $3, $4, $5) RETURNING document_id, document_number`;
+                const insertResult = await pool.query(insertQuery, [
+                    documentNumber,
+                    sanitizedTitle,
+                    sanitizedDescription,
+                    sanitizedDocType,
+                    sanitizedPriority,
+                ]);
+                return res.status(201).json({
+                    success: true,
+                    message: 'Document uploaded successfully!',
+                    document: insertResult.rows[0],
+                });
+
+            case 'PUT': // Edit document
+                const { document_id, newTitle, newDescription, newType, newPriority } = body;
+                if (!document_id) {
+                    return res.status(400).json({ success: false, error: 'Document ID is required' });
+                }
+                const updateQuery = `UPDATE documents SET title = $1, description = $2, document_type = $3, priority = $4 
+                                     WHERE document_id = $5 RETURNING document_id, title`;
+                const updateResult = await pool.query(updateQuery, [
+                    sanitize(newTitle),
+                    sanitize(newDescription || ''),
+                    sanitize(newType),
+                    sanitize(newPriority),
+                    document_id,
+                ]);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Document updated successfully!',
+                    document: updateResult.rows[0],
+                });
+
+            case 'DELETE': // Delete document
+                const deleteDocumentId = query.id || body.document_id;
+                if (!deleteDocumentId) {
+                    return res.status(400).json({ success: false, error: 'Document ID is required' });
+                }
+                const deleteQuery = 'DELETE FROM documents WHERE document_id = $1 RETURNING document_id';
+                const deleteResult = await pool.query(deleteQuery, [deleteDocumentId]);
+                if (deleteResult.rows.length === 0) {
+                    return res.status(404).json({ success: false, error: 'Document not found' });
+                }
+                return res.status(200).json({ success: true, message: 'Document deleted successfully!' });
+
+            default:
+                return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
-        
-        // Filter by user role
-        if (userRole !== 'admin') {
-            paramCount++;
-            query += ` AND (d.uploaded_by = $${paramCount} OR d.current_holder = $${paramCount})`;
-            params.push(userId);
-        }
-        
-        // Filter by status
-        if (status) {
-            paramCount++;
-            query += ` AND d.status = $${paramCount}`;
-            params.push(status);
-        }
-        
-        query += ` ORDER BY d.uploaded_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
-        params.push(parseInt(limit), parseInt(offset));
-        
-        const result = await pool.query(query, params);
-        
-        res.status(200).json({
-            success: true,
-            documents: result.rows,
-            count: result.rows.length
-        });
-        
     } catch (error) {
-        console.error('Documents list error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Failed to fetch documents',
-            message: error.message 
-        });
+        console.error('Error handling documents:', error);
+        return res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
     }
 };
-
