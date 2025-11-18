@@ -2,6 +2,9 @@
   "name": "file-tracking-system",
   "version": "1.0.0",
   "main": "api/index.js",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "pg": "^8.11.3",
     "dotenv": "^16.4.0",

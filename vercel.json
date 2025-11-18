@@ -1,10 +1,6 @@
 {
   "version": 2,
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
+  "buildCommand": "echo 'Node.js only - no build required'",
   "routes": [
     {
       "src": "/api/(.*)",
