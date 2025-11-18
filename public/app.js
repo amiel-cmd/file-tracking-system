@@ -51,8 +51,15 @@ const api = {
                 ...options,
                 headers
             });
-            
-            const data = await response.json();
+
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (e) {
+                console.error('Failed to parse JSON from API:', text);
+                throw new Error('Server returned invalid response');
+            }
             
             if (!response.ok) {
                 throw new Error(data.error || 'Request failed');
@@ -163,7 +170,11 @@ const router = {
             const data = Object.fromEntries(formData);
             
             try {
-                const result = await api.post('/auth/login', data);
+                // Use single /auth endpoint with action = 'login'
+                const result = await api.post('/auth', {
+                    action: 'login',
+                    ...data
+                });
                 auth.setToken(result.token);
                 this.navigate('/dashboard');
             } catch (error) {
@@ -218,7 +229,11 @@ const router = {
             const data = Object.fromEntries(formData);
             
             try {
-                const result = await api.post('/auth/register', data);
+                // Use single /auth endpoint with action = 'register'
+                const result = await api.post('/auth', {
+                    action: 'register',
+                    ...data
+                });
                 this.showMessage(result.message, 'success');
                 setTimeout(() => this.navigate('/login'), 2000);
             } catch (error) {
@@ -380,4 +395,3 @@ document.addEventListener('DOMContentLoaded', () => {
 window.router = router;
 window.api = api;
 window.auth = auth;
-

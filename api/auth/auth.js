@@ -41,19 +41,17 @@ module.exports = async function handler(req, res) {
   makeRes(res); // add status() and json()
 
   const { method } = req;
-  const url = req.url || '';
-  // strip query string, normalise path
-  const path = url.split('?')[0];
 
   try {
     const body = await parseBody(req);
     req.body = body || {};
 
-    // helpful log while debugging on Vercel
-    console.log('AUTH route hit:', path, 'method:', method, 'body:', req.body);
+    const { action } = req.body;
 
-    // POST /api/auth/login
-    if (path.endsWith('/auth/login') && method === 'POST') {
+    console.log('AUTH handler:', 'method=', method, 'action=', action, 'body=', req.body);
+
+    // LOGIN: POST /api/auth  with { action: 'login', username, password }
+    if (method === 'POST' && action === 'login') {
       const { username, password } = req.body;
 
       const validationErrors = validateLogin({ username, password });
@@ -99,8 +97,8 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // POST /api/auth/register
-    if (path.endsWith('/auth/register') && method === 'POST') {
+    // REGISTER: POST /api/auth with { action: 'register', ... }
+    if (method === 'POST' && action === 'register') {
       const { full_name, username, email, password, confirm_password } = req.body;
 
       const validationErrors = validateRegistration({
@@ -154,12 +152,12 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // POST /api/auth/logout
-    if (path.endsWith('/auth/logout') && method === 'POST') {
+    // LOGOUT: POST /api/auth with { action: 'logout' }
+    if (method === 'POST' && action === 'logout') {
       return res.status(200).json({ success: true, message: 'Logged out successfully' });
     }
 
-    // If no route matched
+    // If no action matched
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (error) {
     console.error('Auth error:', error);
