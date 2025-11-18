@@ -93,6 +93,10 @@ config/
 includes/
 index.php
 
+# Keep public directory and assets for frontend
+!public/
+!assests/
+
 # WIP or temporary projects
 WIP*/
 *.backup
