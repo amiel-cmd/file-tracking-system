@@ -17,7 +17,7 @@ if (empty($route)) {
 // Define ALL routes
 $routes = [
     // Public routes
-    'login' => 'views/login.php',
+    'login' => 'views/login.register.php',
     'register' => 'views/register.php',
     
     // Protected routes
