@@ -1,30 +1,31 @@
+// api/db.js
 const { Pool } = require('pg');
-require('dotenv').config();
 
 let pool;
 
 if (!pool) {
-    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/file_tracking_system';
+  const connectionString = process.env.DATABASE_URL;
 
-    try {
-        pool = new Pool({
-            connectionString: connectionString,
-            max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
-            idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
-            connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10),
-        });
+  if (!connectionString) {
+    // In a serverless env, fail clearly if env var is missing
+    console.error('DATABASE_URL is not set');
+    throw new Error('DATABASE_URL is not set');
+  }
 
-        // Log successful connection
-        console.log('Database pool created successfully');
-    } catch (error) {
-        console.error('Error creating database pool:', error.message);
-        process.exit(1); // Exit the process if the pool cannot be created
-    }
+  pool = new Pool({
+    connectionString,
+    max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
+    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10),
+    // Most hosted Postgres (Supabase) require SSL
+    ssl: { rejectUnauthorized: false }
+  });
 
-    // Handle pool errors
-    pool.on('error', (err) => {
-        console.error('Unexpected error on idle client:', err.message);
-    });
+  console.log('Database pool created successfully');
+
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle client:', err);
+  });
 }
 
 module.exports = pool;
