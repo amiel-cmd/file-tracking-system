@@ -1,10 +1,15 @@
 {
   "version": 2,
   "outputDirectory": "public",
+  "functions": {
+    "api/index.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1",
+      "dest": "/api/index.js",
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
