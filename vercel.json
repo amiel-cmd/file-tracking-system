@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "echo 'Node.js only - no build required'",
+  "outputDirectory": "public",
   "routes": [
     {
       "src": "/api/(.*)",
