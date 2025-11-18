@@ -1,3 +1,4 @@
+// api/auth.js
 const pool = require('./db');
 const bcrypt = require('bcrypt');
 const { generateToken } = require('./utils/auth');
@@ -37,19 +38,30 @@ function parseBody(req) {
 }
 
 module.exports = async function handler(req, res) {
-  const { method, url } = req;
   makeRes(res); // add status() and json()
+
+  const { method } = req;
+  const url = req.url || '';
+  // strip query string, normalise path
+  const path = url.split('?')[0];
 
   try {
     const body = await parseBody(req);
-    req.body = body;
+    req.body = body || {};
 
-    if (url.endsWith('/login') && method === 'POST') {
+    // helpful log while debugging on Vercel
+    console.log('AUTH route hit:', path, 'method:', method, 'body:', req.body);
+
+    // POST /api/auth/login
+    if (path.endsWith('/auth/login') && method === 'POST') {
       const { username, password } = req.body;
 
       const validationErrors = validateLogin({ username, password });
       if (validationErrors.length > 0) {
-        return res.status(400).json({ success: false, error: validationErrors.join(', ') });
+        return res.status(400).json({
+          success: false,
+          error: validationErrors.join(', '),
+        });
       }
 
       const sanitizedUsername = sanitize(username);
@@ -71,6 +83,7 @@ module.exports = async function handler(req, res) {
       }
 
       const token = generateToken(user);
+
       return res.status(200).json({
         success: true,
         message: 'Login successful',
@@ -86,7 +99,8 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    if (url.endsWith('/register') && method === 'POST') {
+    // POST /api/auth/register
+    if (path.endsWith('/auth/register') && method === 'POST') {
       const { full_name, username, email, password, confirm_password } = req.body;
 
       const validationErrors = validateRegistration({
@@ -104,16 +118,18 @@ module.exports = async function handler(req, res) {
       const sanitizedUsername = sanitize(username);
       const sanitizedEmail = sanitize(email);
 
-      const usernameCheck = await pool.query('SELECT user_id FROM users WHERE username = $1', [
-        sanitizedUsername,
-      ]);
+      const usernameCheck = await pool.query(
+        'SELECT user_id FROM users WHERE username = $1',
+        [sanitizedUsername],
+      );
       if (usernameCheck.rows.length > 0) {
         return res.status(400).json({ success: false, error: 'Username already exists' });
       }
 
-      const emailCheck = await pool.query('SELECT user_id FROM users WHERE email = $1', [
-        sanitizedEmail,
-      ]);
+      const emailCheck = await pool.query(
+        'SELECT user_id FROM users WHERE email = $1',
+        [sanitizedEmail],
+      );
       if (emailCheck.rows.length > 0) {
         return res.status(400).json({ success: false, error: 'Email already registered' });
       }
@@ -138,15 +154,19 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    if (url.endsWith('/logout') && method === 'POST') {
+    // POST /api/auth/logout
+    if (path.endsWith('/auth/logout') && method === 'POST') {
       return res.status(200).json({ success: true, message: 'Logged out successfully' });
     }
 
+    // If no route matched
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (error) {
     console.error('Auth error:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: 'Internal server error', message: error.message });
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message,
+    });
   }
 };
