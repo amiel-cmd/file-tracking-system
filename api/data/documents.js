@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('../db');
 const { requireAuth } = require('./utils/auth');
 const { sanitize, logDocumentHistory, getClientIp } = require('./utils/helpers');
 const { validateDocument, validateRouting } = require('./utils/validation');
