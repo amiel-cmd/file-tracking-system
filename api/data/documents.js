@@ -1,7 +1,7 @@
 const pool = require('../db');
-const { requireAuth } = require('./utils/auth');
-const { sanitize, logDocumentHistory, getClientIp } = require('./utils/helpers');
-const { validateDocument, validateRouting } = require('./utils/validation');
+const { requireAuth } = require('../utils/auth');
+const { sanitize, logDocumentHistory, getClientIp } = require('../utils/helpers');
+const { validateDocument, validateRouting } = require('../utils/validation');
 
 module.exports = async function handler(req, res) {
     const { method, query, body } = req;
