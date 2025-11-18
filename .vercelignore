@@ -85,10 +85,13 @@ Thumbs.db
 .DS_Store
 desktop.ini
 
-# PHP specific
-vendor/
-composer.lock
-.phpunit.result.cache
+# PHP specific - Exclude all PHP files since we're using Node.js only
+*.php
+actions/
+views/
+config/
+includes/
+index.php
 
 # WIP or temporary projects
 WIP*/
