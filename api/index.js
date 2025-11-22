@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
   try {
     // AUTH: all auth actions handled by api/auth.js
     if (path === '/api/auth') {
-      const authHandler = require('../auth/auth'); // api/auth.js
+      const authHandler = require('./auth/auth'); // api/auth.js
       return authHandler(req, res);
     }
 
