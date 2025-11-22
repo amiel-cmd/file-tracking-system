@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 const { generateToken } = require('../utils/auth');
 const { sanitize } = require('../utils/helpers');
 const { validateLogin, validateRegistration } = require('../utils/validation');
-
 // Express-like helper for res
 function makeRes(res) {
   res.status = (code) => {
