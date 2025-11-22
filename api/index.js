@@ -1,11 +1,10 @@
 // api/index.js
 // Main API router - central entry for non-static routes
 
-// If you have combined handlers for documents/users, keep these.
-// If not yet combined, you can remove these requires for now.
-const documentsHandler = require('./data/documents');   // adjust if needed
-const usersHandler = require('./api/users/user.js');           // adjust if needed
-const dashboardHandler = require('./data/dashboard');   // used for /data/dashboard
+// Aggregate handlers (paths are RELATIVE to api/index.js)
+const documentsHandler = require('./data/documents');   // api/data/documents.js
+const usersHandler = require('./users/user');           // api/users/user.js
+const dashboardHandler = require('./data/dashboard');   // api/data/dashboard.js
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -30,24 +29,23 @@ module.exports = async function handler(req, res) {
   console.log('Incoming request:', req.method, path);
 
   try {
-    // AUTH: all auth actions handled by api/auth.js (single endpoint)
-    // Frontend calls POST /api/auth with { action: 'login' | 'register' | 'logout', ... }
+    // AUTH: all auth actions handled by api/auth.js
     if (path === '/api/auth') {
       const authHandler = require('./auth'); // api/auth.js
       return authHandler(req, res);
     }
 
-    // DASHBOARD DATA (example)
+    // DASHBOARD DATA
     if (path === '/api/data/dashboard') {
       return dashboardHandler(req, res);
     }
 
-    // DOCUMENTS (if you keep an aggregate handler)
+    // DOCUMENTS
     if (path === '/api/data/documents') {
       return documentsHandler(req, res);
     }
 
-    // USERS (if you keep an aggregate handler)
+    // USERS
     if (path === '/api/data/users') {
       return usersHandler(req, res);
     }
@@ -61,7 +59,7 @@ module.exports = async function handler(req, res) {
           message: 'File Tracking System API',
           status: 'running',
           version: '1.0.0',
-        })
+        }),
       );
     }
 
@@ -73,7 +71,7 @@ module.exports = async function handler(req, res) {
         success: false,
         error: 'Endpoint not found',
         path,
-      })
+      }),
     );
   } catch (error) {
     console.error('Router error:', error);
@@ -84,7 +82,7 @@ module.exports = async function handler(req, res) {
         success: false,
         error: 'Internal server error',
         message: error.message,
-      })
+      }),
     );
   }
 };
