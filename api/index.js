@@ -4,7 +4,7 @@
 // If you have combined handlers for documents/users, keep these.
 // If not yet combined, you can remove these requires for now.
 const documentsHandler = require('./data/documents');   // adjust if needed
-const usersHandler = require('./api/user/user');           // adjust if needed
+const usersHandler = require('./api/users/user.js');           // adjust if needed
 const dashboardHandler = require('./data/dashboard');   // used for /data/dashboard
 
 module.exports = async function handler(req, res) {
