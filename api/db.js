@@ -1,4 +1,4 @@
-// api/db.js
+//upgraded version of db.js
 const { Pool } = require('pg');
 
 let pool;
