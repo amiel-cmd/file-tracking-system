@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('../db');
 const { requireAuth, requireAdmin } = require('./utils/auth');
 const { getAllUsers } = require('./utils/helpers');
 
