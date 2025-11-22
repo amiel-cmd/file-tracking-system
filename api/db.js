@@ -17,7 +17,9 @@ if (!pool) {
     max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
     idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
     connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10),
-    // let the connection string's sslmode control SSL behaviour
+    ssl: {
+      rejectUnauthorized: false  // Allow self-signed certificates (Supabase/Neon/etc.)
+    }
   });
 
   console.log('Database pool created successfully');
