@@ -1,8 +1,8 @@
 // api/auth.js
 const pool = require('../db');
 const bcrypt = require('bcrypt');
-const { generateToken } = require('./utils/auth');
-const { sanitize } = require('./utils/helpers');
+const { generateToken } = require('../utils/auth');
+const { sanitize } = require('../utils/helpers');
 const { validateLogin, validateRegistration } = require('./utils/validation');
 
 // Express-like helper for res
