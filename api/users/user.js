@@ -1,6 +1,6 @@
 const pool = require('../db');
-const { requireAuth, requireAdmin } = require('./utils/auth');
-const { getAllUsers } = require('./utils/helpers');
+const { requireAuth, requireAdmin } = require('../utils/auth');
+const { getAllUsers } = require('../utils/helpers');
 
 module.exports = async function handler(req, res) {
     // Chain auth middleware
