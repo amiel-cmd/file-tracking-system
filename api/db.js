@@ -1,4 +1,4 @@
-//upgraded version of db.js
+// api/db.js
 const { Pool } = require('pg');
 
 let pool;
@@ -17,8 +17,7 @@ if (!pool) {
     max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
     idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
     connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10),
-    // Most hosted Postgres (Supabase) require SSL
-    ssl: { rejectUnauthorized: false }
+    // let the connection string's sslmode control SSL behaviour
   });
 
   console.log('Database pool created successfully');
