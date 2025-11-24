@@ -1,6 +1,7 @@
 // api/db.js
 console.log('Environment variables:', Object.keys(process.env));
 console.log('DATABASE_URL exists?', !!process.env.DATABASE_URL);
+
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
@@ -10,11 +11,12 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set');
 }
 
+// Optimized for Vercel serverless + Supabase pooler
 const pool = new Pool({
   connectionString,
-  max: parseInt(process.env.DB_POOL_LIMIT || '10', 10),
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10),
+  max: 1, // CRITICAL: Vercel serverless should use max 1 connection
+  idleTimeoutMillis: 0, // Disable idle timeout for serverless
+  connectionTimeoutMillis: 10000, // 10 seconds timeout
   ssl: {
     rejectUnauthorized: false
   }
@@ -22,8 +24,13 @@ const pool = new Pool({
 
 console.log('Database pool created successfully');
 
+pool.on('connect', () => {
+  console.log('New database connection established');
+});
+
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client:', err);
+  process.exit(-1);
 });
 
 module.exports = pool;
