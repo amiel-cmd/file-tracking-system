@@ -94,6 +94,44 @@ const api = {
 
   async delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
+  },
+
+  // New method for multipart form data (file uploads)
+  async uploadFile(endpoint, formData) {
+    const token = auth.getToken();
+    const headers = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: formData // Don't set Content-Type, browser will set it with boundary
+      });
+
+      const text = await response.text();
+      console.log('API raw response for', endpoint, ':', text);
+
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error('Failed to parse JSON from API:', text);
+        throw new Error('Server returned invalid response');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
   }
 };
 
@@ -172,7 +210,6 @@ const router = {
       const data = Object.fromEntries(formData);
 
       try {
-        // Use single /auth endpoint with action = 'login'
         const result = await api.post('/auth', {
           action: 'login',
           ...data
@@ -231,7 +268,6 @@ const router = {
       const data = Object.fromEntries(formData);
 
       try {
-        // Use single /auth endpoint with action = 'register'
         const result = await api.post('/auth', {
           action: 'register',
           ...data
@@ -266,7 +302,7 @@ const router = {
         <div class="container" style="padding: var(--space-32) 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24);">
             <h2 style="margin: 0;">My Documents</h2>
-            <button onclick="openUploadModal()" class="btn btn--primary">+ Add Document</button>
+            <button onclick="openUploadModal()" class="btn btn--primary">+ Upload Document</button>
           </div>
           <div id="message"></div>
           <div class="card">
@@ -296,7 +332,7 @@ const router = {
         <div class="empty-state">
           <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No documents found</p>
           <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">Get started by adding your first document</p>
-          <button onclick="openUploadModal()" class="btn btn--primary">Add Document</button>
+          <button onclick="openUploadModal()" class="btn btn--primary">Upload Document</button>
         </div>
       `;
       return;
@@ -377,11 +413,190 @@ function logout() {
 }
 
 function openUploadModal() {
-  alert('Upload modal - to be implemented');
+  // Create modal overlay
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
+  modalOverlay.id = 'uploadModal';
+  
+  modalOverlay.innerHTML = `
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">Upload Document</h3>
+        <button class="modal__close" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="uploadMessage"></div>
+        <form id="uploadForm" enctype="multipart/form-data">
+          <!-- File Upload Area -->
+          <div class="form-group">
+            <label class="form-label">Document File *</label>
+            <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+              <div id="fileUploadText">
+                <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">📁 Click to upload file</p>
+                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                  Supported: PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div class="form-group">
+            <label class="form-label">Document Title *</label>
+            <input type="text" name="title" class="form-control" placeholder="Enter document title" required maxlength="255">
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Enter document description (optional)"></textarea>
+          </div>
+
+          <!-- Document Type -->
+          <div class="form-group">
+            <label class="form-label">Document Type *</label>
+            <select name="document_type" class="form-control" required>
+              <option value="">Select document type</option>
+              <option value="Memo">Memo</option>
+              <option value="Letter">Letter</option>
+              <option value="Report">Report</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Contract">Contract</option>
+              <option value="incoming">Incoming</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Priority -->
+          <div class="form-group">
+            <label class="form-label">Priority *</label>
+            <select name="priority" class="form-control" required>
+              <option value="">Select priority</option>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div style="display: flex; gap: var(--space-12); justify-content: flex-end; margin-top: var(--space-24);">
+            <button type="button" onclick="closeUploadModal()" class="btn btn--outline">Cancel</button>
+            <button type="submit" class="btn btn--primary" id="uploadSubmitBtn">
+              <span id="uploadBtnText">Upload Document</span>
+              <span id="uploadBtnSpinner" style="display: none;">⏳ Uploading...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modalOverlay);
+  
+  // Show modal with animation
+  setTimeout(() => {
+    modalOverlay.classList.add('active');
+  }, 10);
+  
+  // File input change handler
+  const fileInput = document.getElementById('fileInput');
+  const fileUploadArea = document.getElementById('fileUploadArea');
+  const fileUploadText = document.getElementById('fileUploadText');
+  
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        showUploadMessage('File size must be less than 10MB', 'error');
+        fileInput.value = '';
+        return;
+      }
+      
+      fileUploadArea.classList.add('has-file');
+      fileUploadText.innerHTML = `
+        <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">✅ ${file.name}</p>
+        <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+          ${(file.size / 1024 / 1024).toFixed(2)} MB
+        </p>
+      `;
+    }
+  });
+  
+  // Form submit handler
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('uploadSubmitBtn');
+    const btnText = document.getElementById('uploadBtnText');
+    const btnSpinner = document.getElementById('uploadBtnSpinner');
+    
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnSpinner.style.display = 'inline';
+    
+    const formData = new FormData(e.target);
+    const file = fileInput.files[0];
+    
+    // Validate file
+    if (!file) {
+      showUploadMessage('Please select a file', 'error');
+      submitBtn.disabled = false;
+      btnText.style.display = 'inline';
+      btnSpinner.style.display = 'none';
+      return;
+    }
+    
+    try {
+      // Use the uploadFile method for multipart/form-data
+      const result = await api.uploadFile('/document', formData);
+      
+      showUploadMessage(result.message || 'Document uploaded successfully!', 'success');
+      
+      // Close modal and refresh documents after 1.5 seconds
+      setTimeout(() => {
+        closeUploadModal();
+        router.showDashboard(); // Refresh the dashboard
+      }, 1500);
+      
+    } catch (error) {
+      showUploadMessage(error.message || 'Upload failed. Please try again.', 'error');
+      submitBtn.disabled = false;
+      btnText.style.display = 'inline';
+      btnSpinner.style.display = 'none';
+    }
+  });
+  
+  // Close on overlay click
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      closeUploadModal();
+    }
+  });
+}
+
+function closeUploadModal() {
+  const modal = document.getElementById('uploadModal');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.remove();
+    }, 300);
+  }
+}
+
+function showUploadMessage(message, type = 'info') {
+  const messageDiv = document.getElementById('uploadMessage');
+  if (messageDiv) {
+    messageDiv.innerHTML = `<div class="status status--${type}" style="margin-bottom: var(--space-16);">${message}</div>`;
+  }
 }
 
 function viewDocument(id) {
-  window.open(`/api/documents/view?id=${id}`, '_blank');
+  window.open(`/api/document?id=${id}`, '_blank');
 }
 
 function routeDocument(id) {
