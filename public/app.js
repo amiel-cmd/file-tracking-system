@@ -291,7 +291,7 @@ const router = {
             <h1>Document Tracking System</h1>
             <div>
               <span>Welcome, ${user.fullName || user.username}</span>
-              <button onclick="openUploadModal()" class="btn btn--primary btn--sm">+ Add Document</button>
+              <button onclick="openDocumentFormModal()" class="btn btn--primary btn--sm">+ Add Document</button>
               <a href="#" onclick="router.navigate('/archives'); return false;" class="btn btn--secondary btn--sm">Archives</a>
               ${user.role === 'admin' ? '<a href="#" onclick="router.navigate(\'/admin\'); return false;" class="btn btn--secondary btn--sm">Admin Panel</a>' : ''}
               <a href="#" onclick="logout(); return false;" class="btn btn--outline btn--sm">Logout</a>
@@ -301,7 +301,7 @@ const router = {
         <div class="container" style="padding: var(--space-32) 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24);">
             <h2 style="margin: 0;">My Documents</h2>
-            <button onclick="openUploadModal()" class="btn btn--primary">+ Upload Document</button>
+            <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
           </div>
           <div id="message"></div>
           <div class="card">
