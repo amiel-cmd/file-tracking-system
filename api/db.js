@@ -1,4 +1,6 @@
 // api/db.js
+console.log('Environment variables:', Object.keys(process.env));
+console.log('DATABASE_URL exists?', !!process.env.DATABASE_URL);
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
