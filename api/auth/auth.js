@@ -1,20 +1,19 @@
 // api/auth/auth.js
-// Server-side authentication handler
-
 const pool = require('../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+// STRONG default secret for development only! PRODUCTION: set JWT_SECRET in Vercel.
+const JWT_SECRET = process.env.JWT_SECRET || '32b2bda1c0eadb7d25c84c7774e1c82d96d2b19aedbcc240ee187436c66be6de62469740bace2121aefd70b3ec5d289a295497edfc497c10adfb67fe8fb20c01'; // 64 bytes
 
 module.exports = async function handler(req, res) {
   // Only POST allowed
   if (req.method !== 'POST') {
     res.statusCode = 405;
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({ 
-      success: false, 
-      error: 'Method not allowed' 
+    return res.end(JSON.stringify({
+      success: false,
+      error: 'Method not allowed'
     }));
   }
 
@@ -36,9 +35,9 @@ module.exports = async function handler(req, res) {
   } catch (e) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({ 
-      success: false, 
-      error: 'Invalid JSON body' 
+    return res.end(JSON.stringify({
+      success: false,
+      error: 'Invalid JSON body'
     }));
   }
 
@@ -53,9 +52,9 @@ module.exports = async function handler(req, res) {
         console.log('[LOGIN] Missing credentials');
         res.statusCode = 400;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Username and password required' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'Username and password required'
         }));
       }
 
@@ -71,23 +70,23 @@ module.exports = async function handler(req, res) {
         console.log('[LOGIN] No user found');
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Invalid credentials' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'Invalid credentials'
         }));
       }
 
       const user = result.rows[0];
       console.log('[LOGIN] User found:', user.username, 'is_active:', user.is_active);
 
-      // Check if active
-      if (user.is_active === 0) {
+      // Check if active (truthy/falsey and both int/bool are covered)
+      if (!user.is_active || user.is_active === false || user.is_active === 0) {
         console.log('[LOGIN] User is inactive');
         res.statusCode = 403;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Account is inactive' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'Account is inactive'
         }));
       }
 
@@ -100,14 +99,13 @@ module.exports = async function handler(req, res) {
         console.log('[LOGIN] Invalid password');
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Invalid credentials' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'Invalid credentials'
         }));
       }
 
       console.log('[LOGIN] Generating JWT...');
-      // Generate JWT with 365 day expiry (persistent until logout)
       const token = jwt.sign(
         {
           userId: user.user_id,
@@ -118,14 +116,14 @@ module.exports = async function handler(req, res) {
           department: user.department
         },
         JWT_SECRET,
-        { expiresIn: '365d' }  // Token valid for 1 year (until logout)
+        { expiresIn: '365d' }
       );
 
       console.log('[LOGIN] Success! Token generated');
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ 
-        success: true, 
+      return res.end(JSON.stringify({
+        success: true,
         token,
         user: {
           userId: user.user_id,
@@ -140,8 +138,8 @@ module.exports = async function handler(req, res) {
       console.error('[LOGIN] Stack:', error.stack);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ 
-        success: false, 
+      return res.end(JSON.stringify({
+        success: false,
         error: 'Server error during login',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       }));
@@ -157,14 +155,13 @@ module.exports = async function handler(req, res) {
         console.log('[REGISTER] Missing required fields');
         res.statusCode = 400;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'All fields required' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'All fields required'
         }));
       }
 
       console.log('[REGISTER] Checking for existing user...');
-      // Check if username/email exists
       const existing = await pool.query(
         'SELECT * FROM users WHERE username = $1 OR email = $2',
         [username, email]
@@ -174,18 +171,16 @@ module.exports = async function handler(req, res) {
         console.log('[REGISTER] User already exists');
         res.statusCode = 409;
         res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Username or email already exists' 
+        return res.end(JSON.stringify({
+          success: false,
+          error: 'Username or email already exists'
         }));
       }
 
       console.log('[REGISTER] Hashing password...');
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       console.log('[REGISTER] Inserting user...');
-      // Insert user
       const result = await pool.query(
         `INSERT INTO users (username, email, password, full_name, role, is_active) 
          VALUES ($1, $2, $3, $4, 'staff', 1) 
@@ -196,8 +191,8 @@ module.exports = async function handler(req, res) {
       console.log('[REGISTER] Success! User created:', result.rows[0].username);
       res.statusCode = 201;
       res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ 
-        success: true, 
+      return res.end(JSON.stringify({
+        success: true,
         message: 'Registration successful',
         user: result.rows[0]
       }));
@@ -207,8 +202,8 @@ module.exports = async function handler(req, res) {
       console.error('[REGISTER] Stack:', error.stack);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ 
-        success: false, 
+      return res.end(JSON.stringify({
+        success: false,
         error: 'Server error during registration',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       }));
@@ -219,8 +214,8 @@ module.exports = async function handler(req, res) {
   console.log('[AUTH] Unknown action:', action);
   res.statusCode = 400;
   res.setHeader('Content-Type', 'application/json');
-  return res.end(JSON.stringify({ 
-    success: false, 
-    error: 'Unknown action. Use "login" or "register".' 
+  return res.end(JSON.stringify({
+    success: false,
+    error: 'Unknown action. Use "login" or "register".'
   }));
 };
