@@ -1,4 +1,4 @@
-// modal.js - SELF-CONTAINED VERSION (Styles Built-in)
+// modal.js - FINAL FIXED VERSION
 
 // Ensure globals exist
 window.routeModal = null;
@@ -17,106 +17,111 @@ class DocumentModal {
     }
 
     createModal() {
-        if (document.getElementById('routeModal')) document.getElementById('routeModal').remove();
+        const existing = document.getElementById('routeModal');
+        if (existing) existing.remove();
 
-        // 1. Create Overlay with INLINE STYLES
-        const overlay = document.createElement('div');
-        overlay.id = 'routeModal';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); z-index: 2147483647;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
-        `;
-
-        // 2. Create Box with INLINE STYLES
-        const box = document.createElement('div');
-        box.style.cssText = `
-            background: white; width: 90%; max-width: 600px;
-            border-radius: 12px; padding: 24px; position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-        `;
-
-        box.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <h3 style="margin:0; font-size:1.25rem;">Route Document</h3>
-                <button class="modal__close" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        const modalHTML = `
+            <div id="routeModal" class="doc-modal-overlay">
+                <div class="doc-modal-box">
+                    <div class="modal__header">
+                        <h3 class="modal__title">Route Document</h3>
+                        <button class="modal__close">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <form id="routeForm" method="POST">
+                            <input type="hidden" name="document_id" id="modal_document_id">
+                            <div class="form-group">
+                                <label class="form-label">Route To:</label>
+                                <select name="to_user_id" class="form-control" required>
+                                    <option value="">Select User</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Action:</label>
+                                <select name="action_taken" class="form-control" required>
+                                    <option value="forwarded">Forward</option>
+                                    <option value="returned">Return</option>
+                                    <option value="completed">Mark as Completed</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Remarks:</label>
+                                <textarea name="remarks" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn--outline modal-cancel">Cancel</button>
+                                <button type="submit" class="btn btn--primary">Route Document</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <form id="routeForm">
-                <input type="hidden" name="document_id" id="modal_document_id">
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Route To:</label>
-                    <select name="to_user_id" class="form-control" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
-                        <option value="">Select User</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Action:</label>
-                    <select name="action_taken" class="form-control" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
-                        <option value="forwarded">Forward</option>
-                        <option value="returned">Return</option>
-                        <option value="completed">Mark as Completed</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Remarks:</label>
-                    <textarea name="remarks" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required></textarea>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button type="button" class="modal-cancel" style="padding:8px 16px; border:1px solid #ccc; background:white; border-radius:4px; cursor:pointer;">Cancel</button>
-                    <button type="submit" style="padding:8px 16px; background:#2563eb; color:white; border:none; border-radius:4px; cursor:pointer;">Route Document</button>
-                </div>
-            </form>
         `;
 
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        this.modal = overlay;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        this.modal = document.getElementById('routeModal');
     }
 
     attachEventListeners() {
         const closeBtn = this.modal.querySelector('.modal__close');
         const cancelBtn = this.modal.querySelector('.modal-cancel');
+        const closeModal = () => this.close();
         
-        const close = () => this.close();
-        closeBtn.onclick = close;
-        cancelBtn.onclick = close;
-
-        this.modal.onclick = (e) => { if(e.target === this.modal) close(); };
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
 
         const form = this.modal.querySelector('#routeForm');
-        form.onsubmit = async (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
             try {
-                const result = await api.post('/route', Object.fromEntries(formData));
-                alert(result.message || 'Success!');
+                const result = await api.post('/route', data);
+                alert(result.message || 'Document routed successfully!');
                 this.close();
-                if(window.router) window.router.showDashboard();
-            } catch(err) { alert(err.message); }
-        };
+                if (typeof router !== 'undefined') router.showDashboard();
+            } catch (error) {
+                alert(error.message || 'Failed to route document');
+            }
+        });
+
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.close();
+        });
     }
 
     open(documentId, users) {
         document.getElementById('modal_document_id').value = documentId;
         const select = this.modal.querySelector('select[name="to_user_id"]');
         select.innerHTML = '<option value="">Select User</option>';
-        users.forEach(u => {
-            const opt = document.createElement('option');
-            opt.value = u.user_id;
-            opt.text = `${u.full_name} (${u.department || 'N/A'})`;
-            select.appendChild(opt);
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.user_id;
+            const dept = user.department || 'N/A';
+            option.textContent = `${user.full_name} (${dept})`;
+            select.appendChild(option);
         });
+        this.showModal();
+    }
+
+    showModal() {
+        this.modal.classList.add('active');
+        // Force correct styles in case CSS is cached/lagging
         this.modal.style.display = 'flex';
+        this.modal.style.visibility = 'visible';
+        this.modal.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
     }
 
     close() {
+        this.modal.classList.remove('active');
         this.modal.style.display = 'none';
+        document.body.style.overflow = '';
         this.modal.querySelector('form').reset();
     }
 }
 
-// ========== Document Upload Modal ==========
+// ========== Document Upload/Edit Modal ==========
 class DocumentFormModal {
     constructor() {
         this.modal = null;
@@ -129,188 +134,220 @@ class DocumentFormModal {
     }
 
     createModal() {
-        if (document.getElementById('documentFormModal')) document.getElementById('documentFormModal').remove();
+        const existing = document.getElementById('documentFormModal');
+        if (existing) existing.remove();
 
-        // 1. Create Overlay with INLINE STYLES
-        const overlay = document.createElement('div');
-        overlay.id = 'documentFormModal';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); z-index: 2147483647;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
-        `;
-
-        // 2. Create Box with INLINE STYLES
-        const box = document.createElement('div');
-        box.style.cssText = `
-            background: white; width: 90%; max-width: 600px;
-            border-radius: 12px; padding: 24px; position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            max-height: 90vh; overflow-y: auto;
-        `;
-
-        box.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <h3 id="documentFormTitle" style="margin:0; font-size:1.25rem;">Upload Document</h3>
-                <button class="modal__close" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        const modalHTML = `
+            <div id="documentFormModal" class="doc-modal-overlay">
+                <div class="doc-modal-box">
+                    <div class="modal__header">
+                        <h3 class="modal__title" id="documentFormTitle">Upload Document</h3>
+                        <button class="modal__close">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <div id="uploadMessage"></div>
+                        <form id="documentForm" enctype="multipart/form-data">
+                            <input type="hidden" name="document_id" id="form_document_id">
+                            
+                            <div class="form-group" id="fileUploadGroup">
+                                <label class="form-label">Document File *</label>
+                                <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+                                    <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                                    <div id="fileUploadText">
+                                        <p>📁 Click to upload file</p>
+                                        <p style="font-size: 0.8rem; color: #666;">Supported: PDF, DOC, JPG, PNG</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Document Title *</label>
+                                <input type="text" name="title" id="form_title" class="form-control" placeholder="Enter document title" required maxlength="255">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" id="form_description" class="form-control" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Document Type *</label>
+                                <select name="document_type" id="form_document_type" class="form-control" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Memo">Memo</option>
+                                    <option value="Letter">Letter</option>
+                                    <option value="Report">Report</option>
+                                    <option value="Invoice">Invoice</option>
+                                    <option value="Contract">Contract</option>
+                                    <option value="incoming">Incoming</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Priority *</label>
+                                <select name="priority" id="form_priority" class="form-control" required>
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                            
+                            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn--outline modal-cancel">Cancel</button>
+                                <button type="submit" class="btn btn--primary" id="formSubmitBtn">
+                                    <span id="uploadBtnText">Upload Document</span>
+                                    <span id="uploadBtnSpinner" style="display: none;">⏳ Uploading...</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div id="uploadMessage"></div>
-            <form id="documentForm" enctype="multipart/form-data">
-                <input type="hidden" name="document_id" id="form_document_id">
-                
-                <div id="fileUploadGroup" style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Document File *</label>
-                    <div id="fileUploadArea" onclick="document.getElementById('fileInput').click()" 
-                         style="border:2px dashed #ccc; padding:20px; text-align:center; cursor:pointer; border-radius:8px;">
-                        <input type="file" id="fileInput" name="file" style="display:none;" accept=".pdf,.doc,.docx,.jpg,.png" required>
-                        <div id="fileUploadText">📁 Click to upload file</div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Title *</label>
-                    <input type="text" name="title" id="form_title" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
-                </div>
-
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Description</label>
-                    <textarea name="description" id="form_description" rows="2" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-                    <div>
-                        <label style="display:block; margin-bottom:5px; font-weight:500;">Type *</label>
-                        <select name="document_type" id="form_document_type" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
-                            <option value="">Select...</option>
-                            <option value="Memo">Memo</option>
-                            <option value="Letter">Letter</option>
-                            <option value="Report">Report</option>
-                            <option value="Invoice">Invoice</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; margin-bottom:5px; font-weight:500;">Priority *</label>
-                        <select name="priority" id="form_priority" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button type="button" class="modal-cancel" style="padding:8px 16px; border:1px solid #ccc; background:white; border-radius:4px; cursor:pointer;">Cancel</button>
-                    <button type="submit" id="formSubmitBtn" style="padding:8px 16px; background:#2563eb; color:white; border:none; border-radius:4px; cursor:pointer;">
-                        <span id="uploadBtnText">Upload</span>
-                        <span id="uploadBtnSpinner" style="display:none;">⏳</span>
-                    </button>
-                </div>
-            </form>
         `;
 
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        this.modal = overlay;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        this.modal = document.getElementById('documentFormModal');
     }
 
     attachEventListeners() {
         const closeBtn = this.modal.querySelector('.modal__close');
         const cancelBtn = this.modal.querySelector('.modal-cancel');
+        const closeModal = () => this.close();
         
-        const close = () => this.close();
-        closeBtn.onclick = close;
-        cancelBtn.onclick = close;
-        this.modal.onclick = (e) => { if(e.target === this.modal) close(); };
-
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        
         const fileInput = document.getElementById('fileInput');
-        fileInput.onchange = (e) => {
-            if(e.target.files[0]) document.getElementById('fileUploadText').innerHTML = `✅ ${e.target.files[0].name}`;
-        };
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileUploadArea.style.borderColor = '#10b981';
+                fileUploadArea.innerHTML = `<p>✅ ${file.name}</p>`;
+            }
+        });
 
         const form = this.modal.querySelector('#documentForm');
-        form.onsubmit = async (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('formSubmitBtn');
-            btn.disabled = true;
+            const submitBtn = document.getElementById('formSubmitBtn');
+            const btnText = document.getElementById('uploadBtnText');
+            const btnSpinner = document.getElementById('uploadBtnSpinner');
             
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline';
+
             const formData = new FormData(form);
-            const id = document.getElementById('form_document_id').value;
+            const documentId = document.getElementById('form_document_id').value;
             
             try {
-                let res;
-                if(id) {
-                    res = await api.put('/document', {
-                        document_id: id,
+                let result;
+                if (documentId) {
+                    const data = {
+                        document_id: documentId,
                         newTitle: formData.get('title'),
                         newDescription: formData.get('description'),
                         newType: formData.get('document_type'),
                         newPriority: formData.get('priority')
-                    });
+                    };
+                    result = await api.put('/document', data);
                 } else {
-                    if(!fileInput.files[0]) throw new Error("File required");
-                    res = await api.uploadFile('/document', formData);
+                    const file = fileInput.files[0];
+                    if (!file) {
+                        alert('Please select a file');
+                        submitBtn.disabled = false;
+                        btnText.style.display = 'inline';
+                        btnSpinner.style.display = 'none';
+                        return;
+                    }
+                    result = await api.uploadFile('/document', formData);
                 }
-                alert(res.message || 'Success!');
+                
+                alert(result.message || 'Success!');
                 this.close();
-                window.location.reload();
-            } catch(err) {
-                alert(err.message);
-                btn.disabled = false;
+                if (typeof router !== 'undefined') router.showDashboard();
+                else location.reload();
+            } catch (error) {
+                alert(error.message || 'Operation failed');
+                submitBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnSpinner.style.display = 'none';
             }
-        };
+        });
+
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.close();
+        });
     }
 
     open(docData = null) {
-        const title = document.getElementById('documentFormTitle');
-        const btn = document.getElementById('uploadBtnText');
-        const group = document.getElementById('fileUploadGroup');
-        const input = document.getElementById('fileInput');
-
-        if(docData) {
-            title.innerText = 'Edit Document';
-            btn.innerText = 'Update';
+        const form = this.modal.querySelector('#documentForm');
+        const titleEl = document.getElementById('documentFormTitle');
+        const btnText = document.getElementById('uploadBtnText');
+        const fileGroup = document.getElementById('fileUploadGroup');
+        const fileInput = document.getElementById('fileInput');
+        
+        if (docData) {
+            titleEl.textContent = 'Edit Document';
+            btnText.textContent = 'Update Document';
             document.getElementById('form_document_id').value = docData.document_id;
             document.getElementById('form_title').value = docData.title || '';
-            document.getElementById('form_description').value = docData.description || '';
             document.getElementById('form_document_type').value = docData.document_type || '';
             document.getElementById('form_priority').value = docData.priority || 'medium';
-            group.style.display = 'none';
-            input.removeAttribute('required');
+            document.getElementById('form_description').value = docData.description || '';
+            fileGroup.style.display = 'none';
+            fileInput.removeAttribute('required');
         } else {
-            title.innerText = 'Upload Document';
-            btn.innerText = 'Upload';
+            titleEl.textContent = 'Upload Document';
+            btnText.textContent = 'Upload Document';
             document.getElementById('form_document_id').value = '';
-            this.modal.querySelector('form').reset();
-            group.style.display = 'block';
-            input.setAttribute('required', 'true');
-            document.getElementById('fileUploadText').innerText = '📁 Click to upload file';
+            form.reset();
+            fileGroup.style.display = 'block';
+            fileInput.setAttribute('required', 'required');
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            fileUploadArea.innerHTML = `<p>📁 Click to upload file</p><p style="font-size: 0.8rem; color: #666;">Supported: PDF, DOC, JPG, PNG</p>`;
         }
         
+        this.showModal();
+    }
+
+    showModal() {
+        this.modal.classList.add('active');
         this.modal.style.display = 'flex';
-        console.log("Modal Force Opened via Inline Styles");
+        this.modal.style.visibility = 'visible';
+        this.modal.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
     }
 
     close() {
+        this.modal.classList.remove('active');
         this.modal.style.display = 'none';
+        document.body.style.overflow = '';
+        this.modal.querySelector('form').reset();
     }
 }
 
-// Init
+// Initialize
 function initModals() {
     window.routeModal = new DocumentModal();
     window.documentFormModal = new DocumentFormModal();
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initModals);
-else initModals();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModals);
+} else {
+    initModals();
+}
 
-// Globals
+// Global Helpers
 window.openUploadModal = () => window.documentFormModal && window.documentFormModal.open(null);
 window.openRouteModal = (id, users) => window.routeModal && window.routeModal.open(id, users);
 window.openDocumentFormModal = (id) => {
-    if(id && window.api) api.get(`/document?id=${id}`).then(r => window.documentFormModal.open(r.document));
-    else if(window.documentFormModal) window.documentFormModal.open(null);
+    if (!window.documentFormModal) return;
+    if (id && typeof api !== 'undefined') api.get(`/document?id=${id}`).then(res => window.documentFormModal.open(res.document));
+    else window.documentFormModal.open(null);
 };
