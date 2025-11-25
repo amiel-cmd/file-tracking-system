@@ -2,9 +2,16 @@
 // Main API router - central entry for non-static routes
 
 // Aggregate handlers (paths are RELATIVE to api/index.js)
-const documentsHandler = require('./data/documents');   // api/data/documents.js
-const usersHandler = require('./users/user');           // api/users/user.js
-const dashboardHandler = require('./data/dashboard');   // api/data/dashboard.js
+// These require() calls may return either a function directly (CommonJS)
+// or an object like { default: fn, config: {...} } (ESM-transpiled).
+const documentsModule = require('./data/documents');      // api/data/documents.js
+const usersModule = require('./users/user');              // api/users/user.js
+const dashboardModule = require('./data/dashboard');      // api/data/dashboard.js
+
+// Normalize to actual handler functions (support both CJS and ESM default export)
+const documentsHandler = documentsModule.default || documentsModule;
+const usersHandler = usersModule.default || usersModule;
+const dashboardHandler = dashboardModule.default || dashboardModule;
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -31,7 +38,8 @@ module.exports = async function handler(req, res) {
   try {
     // AUTH: all auth actions handled by api/auth.js
     if (path === '/api/auth') {
-      const authHandler = require('./auth/auth'); // api/auth.js
+      const authHandlerModule = require('./auth/auth'); // api/auth.js
+      const authHandler = authHandlerModule.default || authHandlerModule;
       return authHandler(req, res);
     }
 
