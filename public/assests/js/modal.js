@@ -1,4 +1,4 @@
-// modal.js - FULLY PATCHED VERSION
+// modal.js - FINAL FIXED VERSION
 
 // Ensure globals exist
 window.routeModal = null;
@@ -17,11 +17,9 @@ class DocumentModal {
     }
 
     createModal() {
-        // Remove existing to prevent duplicates
         const existing = document.getElementById('routeModal');
         if (existing) existing.remove();
 
-        // USE NEW CLASS NAMES: doc-modal-overlay, doc-modal-box
         const modalHTML = `
             <div id="routeModal" class="doc-modal-overlay">
                 <div class="doc-modal-box">
@@ -32,14 +30,12 @@ class DocumentModal {
                     <div class="modal__body">
                         <form id="routeForm" method="POST">
                             <input type="hidden" name="document_id" id="modal_document_id">
-                            
                             <div class="form-group">
                                 <label class="form-label">Route To:</label>
                                 <select name="to_user_id" class="form-control" required>
                                     <option value="">Select User</option>
                                 </select>
                             </div>
-                            
                             <div class="form-group">
                                 <label class="form-label">Action:</label>
                                 <select name="action_taken" class="form-control" required>
@@ -48,12 +44,10 @@ class DocumentModal {
                                     <option value="completed">Mark as Completed</option>
                                 </select>
                             </div>
-                            
                             <div class="form-group">
                                 <label class="form-label">Remarks:</label>
                                 <textarea name="remarks" class="form-control" rows="3" required></textarea>
                             </div>
-                            
                             <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
                                 <button type="button" class="btn btn--outline modal-cancel">Cancel</button>
                                 <button type="submit" class="btn btn--primary">Route Document</button>
@@ -81,14 +75,11 @@ class DocumentModal {
             e.preventDefault();
             const formData = new FormData(form);
             const data = Object.fromEntries(formData);
-            
             try {
                 const result = await api.post('/route', data);
                 alert(result.message || 'Document routed successfully!');
                 this.close();
-                if (typeof router !== 'undefined') {
-                    router.showDashboard();
-                }
+                if (typeof router !== 'undefined') router.showDashboard();
             } catch (error) {
                 alert(error.message || 'Failed to route document');
             }
@@ -97,20 +88,12 @@ class DocumentModal {
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();
         });
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
-                this.close();
-            }
-        });
     }
 
     open(documentId, users) {
         document.getElementById('modal_document_id').value = documentId;
-        
         const select = this.modal.querySelector('select[name="to_user_id"]');
         select.innerHTML = '<option value="">Select User</option>';
-        
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.user_id;
@@ -118,19 +101,21 @@ class DocumentModal {
             option.textContent = `${user.full_name} (${dept})`;
             select.appendChild(option);
         });
-        
         this.showModal();
     }
 
     showModal() {
-        this.modal.style.display = 'flex';
         this.modal.classList.add('active');
+        // Force correct styles in case CSS is cached/lagging
+        this.modal.style.display = 'flex';
+        this.modal.style.visibility = 'visible';
+        this.modal.style.opacity = '1';
         document.body.style.overflow = 'hidden';
     }
 
     close() {
-        this.modal.style.display = 'none';
         this.modal.classList.remove('active');
+        this.modal.style.display = 'none';
         document.body.style.overflow = '';
         this.modal.querySelector('form').reset();
     }
@@ -149,11 +134,9 @@ class DocumentFormModal {
     }
 
     createModal() {
-        // Remove existing to prevent duplicates
         const existing = document.getElementById('documentFormModal');
         if (existing) existing.remove();
 
-        // USE NEW CLASS NAMES: doc-modal-overlay, doc-modal-box
         const modalHTML = `
             <div id="documentFormModal" class="doc-modal-overlay">
                 <div class="doc-modal-box">
@@ -171,10 +154,8 @@ class DocumentFormModal {
                                 <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
                                     <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
                                     <div id="fileUploadText">
-                                        <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">📁 Click to upload file</p>
-                                        <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
-                                            Supported: PDF, DOC, DOCX, JPG, PNG (Max 10MB)
-                                        </p>
+                                        <p>📁 Click to upload file</p>
+                                        <p style="font-size: 0.8rem; color: #666;">Supported: PDF, DOC, JPG, PNG</p>
                                     </div>
                                 </div>
                             </div>
@@ -186,13 +167,13 @@ class DocumentFormModal {
                             
                             <div class="form-group">
                                 <label class="form-label">Description</label>
-                                <textarea name="description" id="form_description" class="form-control" rows="3" placeholder="Enter document description (optional)"></textarea>
+                                <textarea name="description" id="form_description" class="form-control" rows="3"></textarea>
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label">Document Type *</label>
                                 <select name="document_type" id="form_document_type" class="form-control" required>
-                                    <option value="">Select document type</option>
+                                    <option value="">Select Type</option>
                                     <option value="Memo">Memo</option>
                                     <option value="Letter">Letter</option>
                                     <option value="Report">Report</option>
@@ -206,7 +187,6 @@ class DocumentFormModal {
                             <div class="form-group">
                                 <label class="form-label">Priority *</label>
                                 <select name="priority" id="form_priority" class="form-control" required>
-                                    <option value="">Select priority</option>
                                     <option value="low">Low</option>
                                     <option value="medium" selected>Medium</option>
                                     <option value="high">High</option>
@@ -214,7 +194,7 @@ class DocumentFormModal {
                                 </select>
                             </div>
                             
-                            <div style="display: flex; gap: var(--space-12); justify-content: flex-end; margin-top: var(--space-24);">
+                            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
                                 <button type="button" class="btn btn--outline modal-cancel">Cancel</button>
                                 <button type="submit" class="btn btn--primary" id="formSubmitBtn">
                                     <span id="uploadBtnText">Upload Document</span>
@@ -241,31 +221,18 @@ class DocumentFormModal {
         
         const fileInput = document.getElementById('fileInput');
         const fileUploadArea = document.getElementById('fileUploadArea');
-        const fileUploadText = document.getElementById('fileUploadText');
         
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                if (file.size > 10 * 1024 * 1024) {
-                    this.showMessage('File size must be less than 10MB', 'error');
-                    fileInput.value = '';
-                    return;
-                }
-                
-                fileUploadArea.classList.add('has-file');
-                fileUploadText.innerHTML = `
-                    <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">✅ ${file.name}</p>
-                    <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
-                        ${(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                `;
+                fileUploadArea.style.borderColor = '#10b981';
+                fileUploadArea.innerHTML = `<p>✅ ${file.name}</p>`;
             }
         });
-        
+
         const form = this.modal.querySelector('#documentForm');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const submitBtn = document.getElementById('formSubmitBtn');
             const btnText = document.getElementById('uploadBtnText');
             const btnSpinner = document.getElementById('uploadBtnSpinner');
@@ -273,7 +240,7 @@ class DocumentFormModal {
             submitBtn.disabled = true;
             btnText.style.display = 'none';
             btnSpinner.style.display = 'inline';
-            
+
             const formData = new FormData(form);
             const documentId = document.getElementById('form_document_id').value;
             
@@ -291,7 +258,7 @@ class DocumentFormModal {
                 } else {
                     const file = fileInput.files[0];
                     if (!file) {
-                        this.showMessage('Please select a file', 'error');
+                        alert('Please select a file');
                         submitBtn.disabled = false;
                         btnText.style.display = 'inline';
                         btnSpinner.style.display = 'none';
@@ -300,43 +267,23 @@ class DocumentFormModal {
                     result = await api.uploadFile('/document', formData);
                 }
                 
-                this.showMessage(result.message || 'Success!', 'success');
-                
-                setTimeout(() => {
-                    this.close();
-                    if (typeof router !== 'undefined') {
-                        router.showDashboard();
-                    } else {
-                        location.reload();
-                    }
-                }, 1500);
-                
+                alert(result.message || 'Success!');
+                this.close();
+                if (typeof router !== 'undefined') router.showDashboard();
+                else location.reload();
             } catch (error) {
-                this.showMessage(error.message || 'Operation failed. Please try again.', 'error');
+                alert(error.message || 'Operation failed');
                 submitBtn.disabled = false;
                 btnText.style.display = 'inline';
                 btnSpinner.style.display = 'none';
             }
         });
-        
+
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();
         });
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
-                this.close();
-            }
-        });
     }
-    
-    showMessage(message, type = 'info') {
-        const messageDiv = document.getElementById('uploadMessage');
-        if (messageDiv) {
-            messageDiv.innerHTML = `<div class="status status--${type}" style="margin-bottom: var(--space-16);">${message}</div>`;
-        }
-    }
-    
+
     open(docData = null) {
         const form = this.modal.querySelector('#documentForm');
         const titleEl = document.getElementById('documentFormTitle');
@@ -361,92 +308,46 @@ class DocumentFormModal {
             form.reset();
             fileGroup.style.display = 'block';
             fileInput.setAttribute('required', 'required');
-            
             const fileUploadArea = document.getElementById('fileUploadArea');
-            const fileUploadText = document.getElementById('fileUploadText');
-            fileUploadArea.classList.remove('has-file');
-            fileUploadText.innerHTML = `
-                <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">📁 Click to upload file</p>
-                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
-                    Supported: PDF, DOC, DOCX, JPG, PNG (Max 10MB)
-                </p>
-            `;
+            fileUploadArea.innerHTML = `<p>📁 Click to upload file</p><p style="font-size: 0.8rem; color: #666;">Supported: PDF, DOC, JPG, PNG</p>`;
         }
         
         this.showModal();
     }
 
     showModal() {
-        this.modal.style.display = 'flex';
         this.modal.classList.add('active');
+        this.modal.style.display = 'flex';
+        this.modal.style.visibility = 'visible';
+        this.modal.style.opacity = '1';
         document.body.style.overflow = 'hidden';
-        console.log('Modal opened, display:', this.modal.style.display);
     }
-    
+
     close() {
-        this.modal.style.display = 'none';
         this.modal.classList.remove('active');
+        this.modal.style.display = 'none';
         document.body.style.overflow = '';
         this.modal.querySelector('form').reset();
-        document.getElementById('uploadMessage').innerHTML = '';
     }
 }
 
-// Initialize modals
-let routeModal;
-let documentFormModal;
+// Initialize
+function initModals() {
+    window.routeModal = new DocumentModal();
+    window.documentFormModal = new DocumentFormModal();
+}
 
-// Make sure DOM is fully loaded before initializing
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initModals);
 } else {
     initModals();
 }
 
-function initModals() {
-    console.log('Initializing modals...');
-    routeModal = new DocumentModal();
-    documentFormModal = new DocumentFormModal();
-    console.log('Modals initialized:', { routeModal, documentFormModal });
-}
-
-// Global function to open upload modal
-window.openUploadModal = function() {
-    console.log('openUploadModal called');
-    if (documentFormModal) {
-        documentFormModal.open(null);
-    } else {
-        console.error('documentFormModal not initialized yet!');
-        alert('Modal system not ready. Please refresh the page.');
-    }
-}
-
-// Function to open route modal
-window.openRouteModal = function(documentId, users) {
-    console.log('openRouteModal called');
-    if (routeModal) {
-        routeModal.open(documentId, users);
-    } else {
-        console.error('routeModal not initialized yet!');
-    }
-}
-
-// Function to open document form modal for editing
-window.openDocumentFormModal = function(documentId = null) {
-    console.log('openDocumentFormModal called');
-    if (documentFormModal) {
-        if (documentId && typeof api !== 'undefined') {
-            api.get(`/document?id=${documentId}`)
-                .then(response => {
-                    documentFormModal.open(response.document);
-                })
-                .catch(error => {
-                    alert('Failed to load document: ' + error.message);
-                });
-        } else {
-            documentFormModal.open(null);
-        }
-    } else {
-        console.error('documentFormModal not initialized yet!');
-    }
-}
+// Global Helpers
+window.openUploadModal = () => window.documentFormModal && window.documentFormModal.open(null);
+window.openRouteModal = (id, users) => window.routeModal && window.routeModal.open(id, users);
+window.openDocumentFormModal = (id) => {
+    if (!window.documentFormModal) return;
+    if (id && typeof api !== 'undefined') api.get(`/document?id=${id}`).then(res => window.documentFormModal.open(res.document));
+    else window.documentFormModal.open(null);
+};
