@@ -82,7 +82,7 @@ class DocumentModal {
         cancelBtn.onclick = () => this.close();
 
         this.modal.onclick = (e) => { 
-            if(e.target === this.modal) this.close(); 
+            if (e.target === this.modal) this.close(); 
         };
 
         const form = this.modal.querySelector('#routeForm');
@@ -93,8 +93,8 @@ class DocumentModal {
                 const result = await api.post('/route', Object.fromEntries(formData));
                 alert(result.message || 'Success!');
                 this.close();
-                if(window.router) window.router.showDashboard();
-            } catch(err) { 
+                if (window.router) window.router.showDashboard();
+            } catch (err) { 
                 alert(err.message || 'Failed to route document'); 
             }
         };
@@ -231,7 +231,7 @@ class DocumentFormModal {
         cancelBtn.onclick = () => this.close();
         
         this.modal.onclick = (e) => { 
-            if(e.target === this.modal) this.close(); 
+            if (e.target === this.modal) this.close(); 
         };
 
         // File upload click handler
@@ -244,11 +244,11 @@ class DocumentFormModal {
 
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
-            if(file) {
+            if (file) {
                 const uploadText = this.modal.querySelector('#fileUploadText');
                 const sizeInMB = (file.size / 1024 / 1024).toFixed(2);
                 
-                if(file.size > 10 * 1024 * 1024) {
+                if (file.size > 10 * 1024 * 1024) {
                     alert('File size must be less than 10MB');
                     fileInput.value = '';
                     return;
@@ -276,8 +276,9 @@ class DocumentFormModal {
             
             try {
                 let res;
-                if(id) {
-                    res = await api.put('/document', {
+                if (id) {
+                    // EDIT existing document -> same handler at /api/data/documents
+                    res = await api.put('/data/documents', {
                         document_id: id,
                         newTitle: formData.get('title'),
                         newDescription: formData.get('description'),
@@ -285,19 +286,20 @@ class DocumentFormModal {
                         newPriority: formData.get('priority')
                     });
                 } else {
-                    if(!fileInput.files[0]) {
+                    // CREATE new document -> upload to /api/data/documents
+                    if (!fileInput.files[0]) {
                         throw new Error("Please select a file");
                     }
-                    res = await api.uploadFile('data/documents', formData);
+                    res = await api.uploadFile('/data/documents', formData);
                 }
                 
                 alert(res.message || 'Success!');
                 this.close();
                 
-                if(window.router) window.router.showDashboard();
+                if (window.router) window.router.showDashboard();
                 else location.reload();
                 
-            } catch(err) {
+            } catch (err) {
                 alert(err.message || 'Operation failed');
                 btn.disabled = false;
                 btnText.style.display = 'inline';
@@ -314,7 +316,7 @@ class DocumentFormModal {
         const fileUploadArea = this.modal.querySelector('#fileUploadArea');
         const fileUploadText = this.modal.querySelector('#fileUploadText');
 
-        if(docData) {
+        if (docData) {
             // Edit mode
             title.innerText = 'Edit Document';
             btnText.innerText = 'Update';
@@ -346,7 +348,7 @@ class DocumentFormModal {
         this.modal.style.display = 'none';
         document.body.style.overflow = '';
         const msg = this.modal.querySelector('#uploadMessage');
-        if(msg) msg.innerHTML = '';
+        if (msg) msg.innerHTML = '';
     }
 }
 
@@ -364,20 +366,24 @@ if (document.readyState === 'loading') {
 
 // Global Helpers
 window.openUploadModal = () => {
-    if(window.documentFormModal) window.documentFormModal.open(null);
+    if (window.documentFormModal) window.documentFormModal.open(null);
 };
 
 window.openRouteModal = (id, users) => {
-    if(window.routeModal) window.routeModal.open(id, users);
+    if (window.routeModal) window.routeModal.open(id, users);
 };
 
 window.openDocumentFormModal = (id) => {
-    if(!window.documentFormModal) return;
-    if(id && window.api) {
-        api.get(`/document?id=${id}`)
+    if (!window.documentFormModal) return;
+    if (id && window.api) {
+        // View/edit document via same /data/documents handler
+        api.get(`/data/documents?id=${id}`)
             .then(r => window.documentFormModal.open(r.document))
             .catch(err => alert('Failed to load document: ' + err.message));
     } else {
         window.documentFormModal.open(null);
     }
 };
+        const startIdx = (this.currentPage - 1) * this.rowsPerPage;
+        const endIdx = startIdx + this.rowsPerPage;
+        const rowsToShow = this.filteredData.slice(startIdx, endIdx);   
