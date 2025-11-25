@@ -288,7 +288,7 @@ class DocumentFormModal {
                     if(!fileInput.files[0]) {
                         throw new Error("Please select a file");
                     }
-                    res = await api.uploadFile('/document', formData);
+                    res = await api.uploadFile('data/documents', formData);
                 }
                 
                 alert(res.message || 'Success!');
