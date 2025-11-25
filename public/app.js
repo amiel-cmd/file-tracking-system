@@ -412,8 +412,9 @@ function logout() {
 }
 
 function viewDocument(id) {
-  window.open(`/api/document?id=${id}`, '_blank');
+  window.open(`/api/data/documents?id=${id}`, '_blank');
 }
+
 
 function routeDocument(id) {
   api.get('/users')
