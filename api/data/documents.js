@@ -1,7 +1,7 @@
-const pool = require('./db');
-const { requireAuth } = require('./utils/auth');
-const { sanitize, logDocumentHistory, getClientIp } = require('./utils/helpers');
-const { validateDocument, validateRouting } = require('./utils/validation');
+const pool = require('../db');
+const { requireAuth } = require('../utils/auth');
+const { sanitize, logDocumentHistory, getClientIp } = require('../utils/helpers');
+const { validateDocument, validateRouting } = require('../utils/validation');
 const formidable = require('formidable');
 const fs = require('fs');
 const path = require('path');
