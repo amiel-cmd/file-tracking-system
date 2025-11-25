@@ -1,6 +1,6 @@
 // api/data/documents.js - FULLY FIXED ES MODULE VERSION
 
-import pool from '../../db.js';
+import pool from '../db.js';
 import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
