@@ -1,19 +1,30 @@
-// Modal functionality
+// modal.js - FULLY PATCHED VERSION
+
+// Ensure globals exist
+window.routeModal = null;
+window.documentFormModal = null;
+
+// ========== Route Document Modal ==========
 class DocumentModal {
     constructor() {
         this.modal = null;
         this.init();
     }
-    
+
     init() {
         this.createModal();
         this.attachEventListeners();
     }
-    
+
     createModal() {
+        // Remove existing to prevent duplicates
+        const existing = document.getElementById('routeModal');
+        if (existing) existing.remove();
+
+        // USE NEW CLASS NAMES: doc-modal-overlay, doc-modal-box
         const modalHTML = `
-            <div id="routeModal" class="modal-overlay">
-                <div class="modal">
+            <div id="routeModal" class="doc-modal-overlay">
+                <div class="doc-modal-box">
                     <div class="modal__header">
                         <h3 class="modal__title">Route Document</h3>
                         <button class="modal__close">&times;</button>
@@ -43,7 +54,7 @@ class DocumentModal {
                                 <textarea name="remarks" class="form-control" rows="3" required></textarea>
                             </div>
                             
-                            <div style="display: flex; gap: var(--space-12); justify-content: flex-end; margin-top: var(--space-24);">
+                            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
                                 <button type="button" class="btn btn--outline modal-cancel">Cancel</button>
                                 <button type="submit" class="btn btn--primary">Route Document</button>
                             </div>
@@ -52,18 +63,19 @@ class DocumentModal {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.modal = document.getElementById('routeModal');
     }
-    
+
     attachEventListeners() {
         const closeBtn = this.modal.querySelector('.modal__close');
-        closeBtn.addEventListener('click', () => this.close());
-        
         const cancelBtn = this.modal.querySelector('.modal-cancel');
-        cancelBtn.addEventListener('click', () => this.close());
+        const closeModal = () => this.close();
         
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
         const form = this.modal.querySelector('#routeForm');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -81,20 +93,18 @@ class DocumentModal {
                 alert(error.message || 'Failed to route document');
             }
         });
-        
+
         this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.close();
-            }
+            if (e.target === this.modal) this.close();
         });
         
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
                 this.close();
             }
         });
     }
-    
+
     open(documentId, users) {
         document.getElementById('modal_document_id').value = documentId;
         
@@ -109,12 +119,15 @@ class DocumentModal {
             select.appendChild(option);
         });
         
+        this.showModal();
+    }
+
+    showModal() {
         this.modal.style.display = 'flex';
-        this.modal.style.zIndex = '9999';
         this.modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
-    
+
     close() {
         this.modal.style.display = 'none';
         this.modal.classList.remove('active');
@@ -123,22 +136,27 @@ class DocumentModal {
     }
 }
 
-// Document Upload/Edit Modal
+// ========== Document Upload/Edit Modal ==========
 class DocumentFormModal {
     constructor() {
         this.modal = null;
         this.init();
     }
-    
+
     init() {
         this.createModal();
         this.attachEventListeners();
     }
-    
+
     createModal() {
+        // Remove existing to prevent duplicates
+        const existing = document.getElementById('documentFormModal');
+        if (existing) existing.remove();
+
+        // USE NEW CLASS NAMES: doc-modal-overlay, doc-modal-box
         const modalHTML = `
-            <div id="documentFormModal" class="modal-overlay">
-                <div class="modal">
+            <div id="documentFormModal" class="doc-modal-overlay">
+                <div class="doc-modal-box">
                     <div class="modal__header">
                         <h3 class="modal__title" id="documentFormTitle">Upload Document</h3>
                         <button class="modal__close">&times;</button>
@@ -208,17 +226,18 @@ class DocumentFormModal {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.modal = document.getElementById('documentFormModal');
     }
-    
+
     attachEventListeners() {
         const closeBtn = this.modal.querySelector('.modal__close');
-        closeBtn.addEventListener('click', () => this.close());
-        
         const cancelBtn = this.modal.querySelector('.modal-cancel');
-        cancelBtn.addEventListener('click', () => this.close());
+        const closeModal = () => this.close();
+        
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
         
         const fileInput = document.getElementById('fileInput');
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -301,13 +320,11 @@ class DocumentFormModal {
         });
         
         this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.close();
-            }
+            if (e.target === this.modal) this.close();
         });
         
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
                 this.close();
             }
         });
@@ -323,7 +340,6 @@ class DocumentFormModal {
     open(docData = null) {
         const form = this.modal.querySelector('#documentForm');
         const titleEl = document.getElementById('documentFormTitle');
-        const submitBtn = document.getElementById('formSubmitBtn');
         const btnText = document.getElementById('uploadBtnText');
         const fileGroup = document.getElementById('fileUploadGroup');
         const fileInput = document.getElementById('fileInput');
@@ -357,12 +373,13 @@ class DocumentFormModal {
             `;
         }
         
-        // FORCE DISPLAY WITH INLINE STYLES
+        this.showModal();
+    }
+
+    showModal() {
         this.modal.style.display = 'flex';
-        this.modal.style.zIndex = '9999';
         this.modal.classList.add('active');
         document.body.style.overflow = 'hidden';
-        
         console.log('Modal opened, display:', this.modal.style.display);
     }
     
@@ -395,7 +412,7 @@ function initModals() {
 
 // Global function to open upload modal
 window.openUploadModal = function() {
-    console.log('openUploadModal called, documentFormModal:', documentFormModal);
+    console.log('openUploadModal called');
     if (documentFormModal) {
         documentFormModal.open(null);
     } else {
