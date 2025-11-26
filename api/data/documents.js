@@ -1,4 +1,4 @@
-// api/data/documents.js - FIXED: Correct MEGA file retrieval
+// api/data/documents.js - FULL CRUD + Archive Support
 
 // Core imports
 const pool = require('../db');
@@ -228,6 +228,35 @@ module.exports = async function handler(req, res) {
       }
 
       case 'POST': {
+        // Check for special actions in query
+        if (query.action === 'archive') {
+          const body = await parseJsonBody(req);
+          const { document_id } = body;
+
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          const archiveQuery = `
+            UPDATE documents 
+            SET is_archived = 1, archived_at = NOW(), archived_by = $1 
+            WHERE document_id = $2 
+            RETURNING document_id, title, is_archived
+          `;
+
+          const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
+
+          if (archiveResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+
+          return res.status(200).json({
+            success: true,
+            message: 'Document archived successfully!',
+            document: archiveResult.rows[0],
+          });
+        }
+
         // File upload using formidable + MEGA
         const form = formidable({
           maxFileSize: 10 * 1024 * 1024, // 10MB
@@ -295,8 +324,8 @@ module.exports = async function handler(req, res) {
 
         const insertQuery = `
           INSERT INTO documents 
-          (document_number, title, description, document_type, priority, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, uploaded_at) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'pending', NOW()) 
+          (document_number, title, description, document_type, priority, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, is_archived, uploaded_at) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'pending', 0, NOW()) 
           RETURNING document_id, document_number, title, document_type, priority, status, uploaded_at
         `;
 
@@ -354,7 +383,7 @@ module.exports = async function handler(req, res) {
 
       case 'PUT': {
         const body = await parseJsonBody(req);
-        const { document_id, newTitle, newDescription, newType, newPriority } = body;
+        const { document_id, title, description, document_type, priority } = body;
 
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
@@ -368,10 +397,10 @@ module.exports = async function handler(req, res) {
         `;
 
         const updateResult = await pool.query(updateQuery, [
-          sanitize(newTitle),
-          sanitize(newDescription || ''),
-          sanitize(newType),
-          sanitize(newPriority),
+          sanitize(title),
+          sanitize(description || ''),
+          sanitize(document_type),
+          sanitize(priority),
           document_id,
         ]);
 

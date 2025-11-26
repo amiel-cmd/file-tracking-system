@@ -64,7 +64,8 @@ module.exports = async function handler(req, res) {
                         COUNT(*) FILTER (WHERE is_archived = 0) as total_documents,
                         COUNT(*) FILTER (WHERE status = 'pending' AND is_archived = 0) as pending,
                         COUNT(*) FILTER (WHERE status = 'in_progress' AND is_archived = 0) as in_progress,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed
+                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed,
+                        COUNT(*) FILTER (WHERE is_archived = 1) as archived
                         FROM documents`;
             statsParams = [];
         } else {
@@ -72,7 +73,8 @@ module.exports = async function handler(req, res) {
                         COUNT(*) FILTER (WHERE is_archived = 0) as total_documents,
                         COUNT(*) FILTER (WHERE status = 'pending' AND is_archived = 0) as pending,
                         COUNT(*) FILTER (WHERE status = 'in_progress' AND is_archived = 0) as in_progress,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed
+                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed,
+                        COUNT(*) FILTER (WHERE is_archived = 1) as archived
                         FROM documents
                         WHERE uploaded_by = $1 OR current_holder = $1`;
             statsParams = [userId];
@@ -95,4 +97,3 @@ module.exports = async function handler(req, res) {
         });
     }
 };
-

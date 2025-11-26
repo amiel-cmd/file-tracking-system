@@ -1,5 +1,5 @@
 // Main Application JavaScript
-// Handles routing and API calls
+// Handles routing and API calls with full CRUD operations
 
 const API_BASE = '/api';
 
@@ -134,16 +134,87 @@ const api = {
   }
 };
 
+// Edit Document Modal
+const editModal = {
+  open(documentData, onSave) {
+    const modalHtml = `
+      <div id="editModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
+          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem;">Edit Document</h2>
+          <form id="editDocumentForm">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Title</label>
+              <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
+              <textarea id="editDescription" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">${documentData.description || ''}</textarea>
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Document Type</label>
+              <input type="text" id="editType" class="form-control" value="${documentData.document_type}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
+              <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="low" ${documentData.priority === 'low' ? 'selected' : ''}>Low</option>
+                <option value="medium" ${documentData.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                <option value="high" ${documentData.priority === 'high' ? 'selected' : ''}>High</option>
+                <option value="urgent" ${documentData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+              <button type="button" id="editCancelBtn" class="btn btn--secondary">Cancel</button>
+              <button type="submit" class="btn btn--primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay = document.getElementById('editModalOverlay');
+    const form = document.getElementById('editDocumentForm');
+    const cancelBtn = document.getElementById('editCancelBtn');
+
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const updatedData = {
+        document_id: documentData.document_id,
+        title: document.getElementById('editTitle').value,
+        description: document.getElementById('editDescription').value,
+        document_type: document.getElementById('editType').value,
+        priority: document.getElementById('editPriority').value
+      };
+      onSave(updatedData);
+      overlay.remove();
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+};
+
 // View Document Modal
 const viewModal = {
   open(documentId, documentData) {
     const fileExtension = documentData.file_path.split('.').pop().toLowerCase();
     const isPDF = fileExtension === 'pdf';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
-    const isViewable = isPDF || isImage;
+    const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension);
+    const isViewable = isPDF || isImage || isOffice;
 
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
+    
+    // Use Google Docs Viewer for Office documents
+    const previewUrl = isOffice 
+      ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
+      : viewUrl;
 
     const modalHtml = `
       <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -158,7 +229,7 @@ const viewModal = {
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <a href="${downloadUrl}" download class="btn btn--sm btn--primary" style="text-decoration: none;">
+              <a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">
                 📥 Download
               </a>
               <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">
@@ -168,8 +239,8 @@ const viewModal = {
           </div>
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
             ${isViewable ? `
-              ${isPDF ? `
-                <iframe src="${viewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
+              ${isPDF || isOffice ? `
+                <iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
               ` : `
                 <img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">
               `}
@@ -178,7 +249,7 @@ const viewModal = {
                 <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
                 <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${documentData.file_path}</p>
                 <p style="color: #666; margin-bottom: 1.5rem;">Preview not available for this file type</p>
-                <a href="${downloadUrl}" download class="btn btn--primary">Download to View</a>
+                <a href="${downloadUrl}" class="btn btn--primary">Download to View</a>
               </div>
             `}
           </div>
@@ -217,18 +288,12 @@ const viewModal = {
     const overlay = document.getElementById('viewModalOverlay');
     const closeBtn = document.getElementById('viewCloseBtn');
 
-    closeBtn.addEventListener('click', () => {
-      overlay.remove();
-    });
+    closeBtn.addEventListener('click', () => overlay.remove());
 
-    // Close modal when clicking outside
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
+      if (e.target === overlay) overlay.remove();
     });
 
-    // Close on ESC key
     const escHandler = (e) => {
       if (e.key === 'Escape') {
         overlay.remove();
@@ -274,9 +339,7 @@ const routeModal = {
     const cancelBtn = document.getElementById('routeCancelBtn');
     const confirmBtn = document.getElementById('routeConfirmBtn');
 
-    cancelBtn.addEventListener('click', () => {
-      overlay.remove();
-    });
+    cancelBtn.addEventListener('click', () => overlay.remove());
 
     confirmBtn.addEventListener('click', () => {
       const selectedUserId = userSelect.value;
@@ -288,11 +351,8 @@ const routeModal = {
       }
     });
 
-    // Close modal when clicking outside
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
+      if (e.target === overlay) overlay.remove();
     });
   }
 };
@@ -502,7 +562,7 @@ const router = {
         <div class="empty-state">
           <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No documents found</p>
           <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">Get started by adding your first document</p>
-          <button onclick="openUploadModal()" class="btn btn--primary">Upload Document</button>
+          <button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>
         </div>
       `;
       return;
@@ -533,9 +593,12 @@ const router = {
               <td>${doc.uploaded_by_name || 'N/A'}</td>
               <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
               <td>
-                <div style="display: flex; gap: var(--space-8); flex-wrap: wrap;">
-                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm">👁️ View</button>
-                  <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary">Route</button>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
+                  <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
+                  <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route">📤</button>
+                  <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white;">📦</button>
+                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white;">🗑️</button>
                 </div>
               </td>
             </tr>
@@ -550,7 +613,8 @@ const router = {
       'pending': '<span class="status status--warning">Pending</span>',
       'in_progress': '<span class="status status--info">In Progress</span>',
       'completed': '<span class="status status--success">Completed</span>',
-      'archived': '<span class="status">Archived</span>'
+      'archived': '<span class="status">Archived</span>',
+      'routed': '<span class="status status--info">Routed</span>'
     };
     return badges[status] || `<span class="status">${status}</span>`;
   },
@@ -576,7 +640,7 @@ const router = {
   }
 };
 
-// Global functions
+// Global CRUD functions
 function logout() {
   auth.removeToken();
   router.navigate('/login');
@@ -584,7 +648,6 @@ function logout() {
 
 async function viewDocument(id) {
   try {
-    // Fetch document metadata first
     const response = await api.get(`/data/documents?id=${id}`);
     if (response.success && response.document) {
       viewModal.open(id, response.document);
@@ -593,6 +656,27 @@ async function viewDocument(id) {
     }
   } catch (error) {
     alert('Error viewing document: ' + error.message);
+  }
+}
+
+async function editDocument(id) {
+  try {
+    const response = await api.get(`/data/documents?id=${id}`);
+    if (response.success && response.document) {
+      editModal.open(response.document, async (updatedData) => {
+        try {
+          const result = await api.put('/data/documents', updatedData);
+          alert(result.message || 'Document updated successfully!');
+          router.showDashboard();
+        } catch (error) {
+          alert('Failed to update document: ' + error.message);
+        }
+      });
+    } else {
+      alert('Failed to load document details');
+    }
+  } catch (error) {
+    alert('Error loading document: ' + error.message);
   }
 }
 
@@ -625,15 +709,52 @@ function routeDocument(documentId) {
     });
 }
 
+async function archiveDocument(id) {
+  if (!confirm('Are you sure you want to archive this document?')) {
+    return;
+  }
+
+  try {
+    const result = await api.post('/data/documents?action=archive', {
+      document_id: id
+    });
+    alert(result.message || 'Document archived successfully!');
+    router.showDashboard();
+  } catch (error) {
+    alert('Failed to archive document: ' + error.message);
+  }
+}
+
+async function deleteDocument(id, title) {
+  if (!confirm(`Are you sure you want to permanently delete "${title}"?\n\nThis will also delete the file from MEGA storage and cannot be undone!`)) {
+    return;
+  }
+
+  try {
+    const result = await api.delete(`/data/documents?id=${id}`);
+    alert(result.message || 'Document deleted successfully!');
+    router.showDashboard();
+  } catch (error) {
+    alert('Failed to delete document: ' + error.message);
+  }
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
   router.init();
 });
 
-// Make router accessible globally
+// Make everything accessible globally
 window.router = router;
 window.api = api;
 window.auth = auth;
 window.routeModal = routeModal;
 window.viewModal = viewModal;
+window.editModal = editModal;
 window.formatFileSize = formatFileSize;
+window.viewDocument = viewDocument;
+window.editDocument = editDocument;
+window.routeDocument = routeDocument;
+window.archiveDocument = archiveDocument;
+window.deleteDocument = deleteDocument;
+window.logout = logout;
