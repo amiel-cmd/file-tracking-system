@@ -1,4 +1,3 @@
-// api/index.js
 // Main API router - central entry for non-static routes
 
 // Aggregate handlers (paths are RELATIVE to api/index.js)
@@ -54,8 +53,8 @@ module.exports = async function handler(req, res) {
     }
 
     // USERS
-    if (path === '/api/data/users') {
-      return usersHandler(req, res);
+    if (path.startsWith('/api/users')) {
+      return usersHandler(req, res); // Route all /api/users requests to usersHandler
     }
 
     // Root API endpoint
