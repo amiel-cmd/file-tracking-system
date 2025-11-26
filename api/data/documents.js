@@ -1,4 +1,4 @@
-// api/data/documents.js - COMMONJS VERSION with MEGA Storage
+// api/data/documents.js - COMMONJS VERSION with MEGA Storage + View/Preview
 
 // Core imports
 const pool = require('../db');
@@ -47,6 +47,31 @@ const parseJsonBody = async (req) => {
   });
 };
 
+// Helper to detect MIME type from filename
+const getMimeType = (filename) => {
+  const ext = filename.toLowerCase().split('.').pop();
+  const mimeTypes = {
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'ppt': 'application/vnd.ms-powerpoint',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'txt': 'text/plain',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'zip': 'application/zip',
+    'rar': 'application/x-rar-compressed',
+    'csv': 'text/csv',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+};
+
 // Simple sanitization
 const sanitize = (str) => (str ? String(str).replace(/[<>]/g, '') : '');
 
@@ -74,7 +99,37 @@ module.exports = async function handler(req, res) {
       case 'GET': {
         const documentId = query.id || query.document_id;
         
-        // If download=true, fetch from MEGA and return file
+        // If view=true, fetch from MEGA and display inline (for preview)
+        if (query.view === 'true') {
+          if (!documentId) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+          
+          const docResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
+          if (docResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          const doc = docResult.rows[0];
+          
+          // View/Preview from MEGA
+          try {
+            const storage = await getMegaStorage();
+            const file = storage.file(doc.mega_file_id);
+            const buffer = await file.downloadBuffer();
+            
+            const mimeType = getMimeType(doc.file_path);
+            
+            res.setHeader('Content-Type', mimeType);
+            res.setHeader('Content-Disposition', `inline; filename="${doc.file_path}"`);
+            return res.send(buffer);
+          } catch (error) {
+            console.error('MEGA view failed:', error);
+            return res.status(500).json({ success: false, error: 'Failed to view file from MEGA' });
+          }
+        }
+        
+        // If download=true, fetch from MEGA and return file for download
         if (query.download === 'true') {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
@@ -93,10 +148,13 @@ module.exports = async function handler(req, res) {
             const file = storage.file(doc.mega_file_id);
             const buffer = await file.downloadBuffer();
             
-            res.setHeader('Content-Type', 'application/octet-stream');
-            res.setHeader('Content-Disposition', `attachment; filename="${doc.title}"`);
+            const mimeType = getMimeType(doc.file_path);
+            
+            res.setHeader('Content-Type', mimeType);
+            res.setHeader('Content-Disposition', `attachment; filename="${doc.file_path}"`);
             return res.send(buffer);
           } catch (error) {
+            console.error('MEGA download failed:', error);
             return res.status(500).json({ success: false, error: 'Failed to download from MEGA' });
           }
         }

@@ -134,6 +134,111 @@ const api = {
   }
 };
 
+// View Document Modal
+const viewModal = {
+  open(documentId, documentData) {
+    const fileExtension = documentData.file_path.split('.').pop().toLowerCase();
+    const isPDF = fileExtension === 'pdf';
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
+    const isViewable = isPDF || isImage;
+
+    const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
+    const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
+
+    const modalHtml = `
+      <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
+          <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="margin: 0; font-size: 1.5rem;">${documentData.title}</h2>
+              <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
+                Document #${documentData.document_number} | 
+                ${documentData.document_type} | 
+                Priority: ${documentData.priority}
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <a href="${downloadUrl}" download class="btn btn--sm btn--primary" style="text-decoration: none;">
+                📥 Download
+              </a>
+              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">
+                ✕
+              </button>
+            </div>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
+            ${isViewable ? `
+              ${isPDF ? `
+                <iframe src="${viewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
+              ` : `
+                <img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">
+              `}
+            ` : `
+              <div style="text-align: center; padding: 2rem;">
+                <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
+                <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${documentData.file_path}</p>
+                <p style="color: #666; margin-bottom: 1.5rem;">Preview not available for this file type</p>
+                <a href="${downloadUrl}" download class="btn btn--primary">Download to View</a>
+              </div>
+            `}
+          </div>
+          <div style="padding: 1rem 1.5rem; border-top: 1px solid #ddd; background: #f9f9f9;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              <div>
+                <strong style="color: #666; font-size: 0.875rem;">Status:</strong>
+                <p style="margin: 0.25rem 0 0 0;">${documentData.status}</p>
+              </div>
+              <div>
+                <strong style="color: #666; font-size: 0.875rem;">Uploaded By:</strong>
+                <p style="margin: 0.25rem 0 0 0;">${documentData.uploaded_by_name || 'N/A'}</p>
+              </div>
+              <div>
+                <strong style="color: #666; font-size: 0.875rem;">Date:</strong>
+                <p style="margin: 0.25rem 0 0 0;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <strong style="color: #666; font-size: 0.875rem;">File Size:</strong>
+                <p style="margin: 0.25rem 0 0 0;">${formatFileSize(documentData.file_size)}</p>
+              </div>
+            </div>
+            ${documentData.description ? `
+              <div style="margin-top: 1rem;">
+                <strong style="color: #666; font-size: 0.875rem;">Description:</strong>
+                <p style="margin: 0.25rem 0 0 0;">${documentData.description}</p>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay = document.getElementById('viewModalOverlay');
+    const closeBtn = document.getElementById('viewCloseBtn');
+
+    closeBtn.addEventListener('click', () => {
+      overlay.remove();
+    });
+
+    // Close modal when clicking outside
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+
+    // Close on ESC key
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+};
+
 // Route Modal
 const routeModal = {
   open(documentId, users, onSelect) {
@@ -191,6 +296,14 @@ const routeModal = {
     });
   }
 };
+
+// Utility function to format file size
+function formatFileSize(bytes) {
+  if (!bytes) return 'N/A';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
 
 // Router
 const router = {
@@ -421,7 +534,7 @@ const router = {
               <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
               <td>
                 <div style="display: flex; gap: var(--space-8); flex-wrap: wrap;">
-                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm">View</button>
+                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm">👁️ View</button>
                   <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary">Route</button>
                 </div>
               </td>
@@ -469,9 +582,18 @@ function logout() {
   router.navigate('/login');
 }
 
-function viewDocument(id) {
-    // Point to the new file serving endpoint
-    window.open(`/api/file?id=${id}`, '_blank');
+async function viewDocument(id) {
+  try {
+    // Fetch document metadata first
+    const response = await api.get(`/data/documents?id=${id}`);
+    if (response.success && response.document) {
+      viewModal.open(id, response.document);
+    } else {
+      alert('Failed to load document details');
+    }
+  } catch (error) {
+    alert('Error viewing document: ' + error.message);
+  }
 }
 
 function routeDocument(documentId) {
@@ -513,3 +635,5 @@ window.router = router;
 window.api = api;
 window.auth = auth;
 window.routeModal = routeModal;
+window.viewModal = viewModal;
+window.formatFileSize = formatFileSize;
