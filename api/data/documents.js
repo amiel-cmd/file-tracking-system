@@ -1,8 +1,10 @@
-// api/data/documents.js - COMMONJS VERSION (fixed formidable)
+// api/data/documents.js - COMMONJS VERSION with MEGA Storage
 
 // Core imports
 const pool = require('../db');
 const jwt = require('jsonwebtoken');
+const { Storage } = require('megajs');
+const fs = require('fs').promises;
 
 // Formidable v3 is ESM-only; require() returns an object with .default
 const formidableModule = require('formidable');
@@ -13,6 +15,20 @@ exports.config = {
   api: {
     bodyParser: false,
   },
+};
+
+// Helper: Initialize MEGA storage
+const getMegaStorage = async () => {
+  try {
+    const storage = await new Storage({
+      email: process.env.MEGA_EMAIL,
+      password: process.env.MEGA_PASSWORD
+    }).ready;
+    return storage;
+  } catch (error) {
+    console.error('MEGA login failed:', error);
+    throw new Error('Failed to connect to MEGA storage');
+  }
 };
 
 // Helper to parse JSON body manually (because bodyParser is disabled)
@@ -57,6 +73,35 @@ module.exports = async function handler(req, res) {
     switch (method) {
       case 'GET': {
         const documentId = query.id || query.document_id;
+        
+        // If download=true, fetch from MEGA and return file
+        if (query.download === 'true') {
+          if (!documentId) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+          
+          const docResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
+          if (docResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          const doc = docResult.rows[0];
+          
+          // Download from MEGA
+          try {
+            const storage = await getMegaStorage();
+            const file = storage.file(doc.mega_file_id);
+            const buffer = await file.downloadBuffer();
+            
+            res.setHeader('Content-Type', 'application/octet-stream');
+            res.setHeader('Content-Disposition', `attachment; filename="${doc.title}"`);
+            return res.send(buffer);
+          } catch (error) {
+            return res.status(500).json({ success: false, error: 'Failed to download from MEGA' });
+          }
+        }
+        
+        // Otherwise return document metadata
         if (!documentId) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
@@ -68,7 +113,7 @@ module.exports = async function handler(req, res) {
       }
 
       case 'POST': {
-        // File upload using formidable
+        // File upload using formidable + MEGA
         const form = formidable({
           maxFileSize: 10 * 1024 * 1024, // 10MB
           uploadDir: '/tmp',             // Vercel temp dir
@@ -101,15 +146,42 @@ module.exports = async function handler(req, res) {
 
         const fileName = uploadedFile.originalFilename || uploadedFile.newFilename;
         const fileSize = uploadedFile.size;
-        // NOTE: On Vercel this is just a logical path. Real storage should be S3/Supabase/etc.
-        const filePath = `uploads/documents/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+        // Upload to MEGA
+        let megaFileId, megaLink;
+        try {
+          const storage = await getMegaStorage();
+          
+          // Read file from temp location
+          const fileBuffer = await fs.readFile(uploadedFile.filepath);
+          
+          // Upload to MEGA
+          const uploadedMegaFile = await storage.upload({
+            name: fileName,
+            size: fileBuffer.length
+          }, fileBuffer).complete;
+          
+          megaFileId = uploadedMegaFile.nodeId; // MEGA's unique file ID
+          megaLink = uploadedMegaFile.link(); // Public download link (optional)
+          
+          // Clean up temp file
+          await fs.unlink(uploadedFile.filepath).catch(() => {});
+          
+        } catch (error) {
+          console.error('MEGA upload failed:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to upload to MEGA storage',
+            message: error.message
+          });
+        }
 
         const documentNumber = `DOC-${Date.now()}`;
 
         const insertQuery = `
           INSERT INTO documents 
-          (document_number, title, description, document_type, priority, file_path, file_size, uploaded_by, current_holder, status, uploaded_at) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, 'pending', NOW()) 
+          (document_number, title, description, document_type, priority, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, uploaded_at) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'pending', NOW()) 
           RETURNING document_id, document_number, title, document_type, priority, status, uploaded_at
         `;
 
@@ -119,16 +191,20 @@ module.exports = async function handler(req, res) {
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
-          filePath,
+          fileName, // Store original filename in file_path
+          megaFileId, // MEGA node ID
+          megaLink || null, // MEGA public link (optional)
           fileSize,
           userId,
         ]);
 
         return res.status(201).json({
           success: true,
-          message: 'Document uploaded successfully!',
+          message: 'Document uploaded to MEGA successfully!',
           document: insertResult.rows[0],
-          file_path: filePath,
+          file_name: fileName,
+          file_size: fileSize,
+          storage: 'MEGA'
         });
       }
 
@@ -206,18 +282,32 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
 
+        // Get document info first to delete from MEGA
+        const docResult = await pool.query('SELECT mega_file_id FROM documents WHERE document_id = $1', [deleteId]);
+        
+        if (docResult.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+
+        // Delete from MEGA
+        try {
+          const storage = await getMegaStorage();
+          const file = storage.file(docResult.rows[0].mega_file_id);
+          await file.delete();
+        } catch (error) {
+          console.error('MEGA deletion failed:', error);
+          // Continue with DB deletion even if MEGA fails
+        }
+
+        // Delete from database
         const deleteResult = await pool.query(
           'DELETE FROM documents WHERE document_id = $1 RETURNING document_id',
           [deleteId],
         );
 
-        if (deleteResult.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Document not found' });
-        }
-
         return res.status(200).json({
           success: true,
-          message: 'Document deleted successfully!',
+          message: 'Document deleted from MEGA and database successfully!',
         });
       }
 
