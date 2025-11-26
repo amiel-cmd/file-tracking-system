@@ -132,6 +132,35 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      case 'PATCH': {
+        // Route document to another user
+        const body = await parseJsonBody(req);
+        const { document_id, new_holder } = body;
+
+        if (!document_id || !new_holder) {
+          return res.status(400).json({ success: false, error: 'Document ID and new holder are required' });
+        }
+
+        const routeQuery = `
+          UPDATE documents 
+          SET current_holder = $1, status = 'routed' 
+          WHERE document_id = $2 
+          RETURNING document_id, current_holder, status
+        `;
+
+        const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
+
+        if (routeResult.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Document routed successfully!',
+          document: routeResult.rows[0],
+        });
+      }
+
       case 'PUT': {
         const body = await parseJsonBody(req);
         const { document_id, newTitle, newDescription, newType, newPriority } = body;
