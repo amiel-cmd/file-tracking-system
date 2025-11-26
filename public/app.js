@@ -419,14 +419,11 @@ function viewDocument(id) {
 
 
 function routeDocument(documentId) {
-  // Fetch the list of users to display in the routing modal
-  api.get('/users/list') // Updated endpoint
+  api.get('/users/user') // Updated endpoint
     .then(response => {
       if (response.users && routeModal) {
-        // Open the modal with the list of users
         routeModal.open(documentId, response.users, async (selectedUserId) => {
           try {
-            // Call the PATCH endpoint to route the document
             const result = await api.request(`/data/documents`, {
               method: 'PATCH',
               body: JSON.stringify({
@@ -435,7 +432,6 @@ function routeDocument(documentId) {
               })
             });
 
-            // Show success message and refresh the dashboard
             alert(result.message || 'Document routed successfully!');
             router.showDashboard();
           } catch (error) {
@@ -450,7 +446,6 @@ function routeDocument(documentId) {
       alert('Failed to load users: ' + error.message);
     });
 }
-
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
   router.init();
