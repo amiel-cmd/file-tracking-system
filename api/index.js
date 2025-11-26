@@ -44,17 +44,20 @@ module.exports = async function handler(req, res) {
 
     // DASHBOARD DATA
     if (path === '/api/data/dashboard') {
+      console.log('DEBUG: Routing to dashboardHandler');
       return dashboardHandler(req, res);
     }
 
     // DOCUMENTS
     if (path === '/api/data/documents') {
+      console.log('DEBUG: Routing to documentsHandler');
       return documentsHandler(req, res);
     }
 
-    // USERS
+    // USERS - Route all /api/users* requests to usersHandler
     if (path.startsWith('/api/users')) {
-      return usersHandler(req, res); // Route all /api/users requests to usersHandler
+      console.log('DEBUG: Routing to usersHandler for path:', path);
+      return usersHandler(req, res);
     }
 
     // Root API endpoint
@@ -71,6 +74,7 @@ module.exports = async function handler(req, res) {
     }
 
     // 404 for unknown routes
+    console.log('DEBUG: No route matched for path:', path);
     res.statusCode = 404;
     res.setHeader('Content-Type', 'application/json');
     return res.end(
