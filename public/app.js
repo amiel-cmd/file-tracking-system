@@ -134,6 +134,64 @@ const api = {
   }
 };
 
+// Route Modal
+const routeModal = {
+  open(documentId, users, onSelect) {
+    const userOptions = users.map(user => `
+      <option value="${user.user_id}">${user.full_name || user.username}</option>
+    `).join('');
+
+    const modalHtml = `
+      <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 400px; width: 90%;">
+          <div style="margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; font-size: 1.5rem;">Route Document</h2>
+            <p style="margin: 0.5rem 0 0 0; color: #666;">Select a user to route this document to:</p>
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+            <select id="routeUserSelect" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+              <option value="">-- Select a user --</option>
+              ${userOptions}
+            </select>
+          </div>
+          <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button id="routeCancelBtn" class="btn btn--secondary" style="padding: 0.5rem 1rem; cursor: pointer;">Cancel</button>
+            <button id="routeConfirmBtn" class="btn btn--primary" style="padding: 0.5rem 1rem; cursor: pointer;">Confirm</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay = document.getElementById('routeModalOverlay');
+    const userSelect = document.getElementById('routeUserSelect');
+    const cancelBtn = document.getElementById('routeCancelBtn');
+    const confirmBtn = document.getElementById('routeConfirmBtn');
+
+    cancelBtn.addEventListener('click', () => {
+      overlay.remove();
+    });
+
+    confirmBtn.addEventListener('click', () => {
+      const selectedUserId = userSelect.value;
+      if (selectedUserId) {
+        onSelect(selectedUserId);
+        overlay.remove();
+      } else {
+        alert('Please select a user.');
+      }
+    });
+
+    // Close modal when clicking outside
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+  }
+};
+
 // Router
 const router = {
   currentRoute: '',
@@ -416,10 +474,8 @@ function viewDocument(id) {
     window.open(`/api/file?id=${id}`, '_blank');
 }
 
-
-
 function routeDocument(documentId) {
-  api.get('/users/list') // Updated endpoint
+  api.get('/users/list')
     .then(response => {
       if (response.users && routeModal) {
         routeModal.open(documentId, response.users, async (selectedUserId) => {
@@ -446,6 +502,7 @@ function routeDocument(documentId) {
       alert('Failed to load users: ' + error.message);
     });
 }
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
   router.init();
@@ -455,3 +512,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.router = router;
 window.api = api;
 window.auth = auth;
+window.routeModal = routeModal;
