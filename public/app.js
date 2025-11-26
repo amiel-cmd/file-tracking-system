@@ -420,7 +420,7 @@ function viewDocument(id) {
 
 function routeDocument(documentId) {
   // Fetch the list of users to display in the routing modal
-  api.get('/users/user')
+  api.get('/users/list') // Updated endpoint
     .then(response => {
       if (response.users && routeModal) {
         // Open the modal with the list of users
