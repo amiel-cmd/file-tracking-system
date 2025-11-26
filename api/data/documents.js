@@ -1,4 +1,4 @@
-// api/data/documents.js - COMMONJS VERSION with MEGA Storage + View/Preview (FIXED)
+// api/data/documents.js - FIXED: Correct MEGA file retrieval
 
 // Core imports
 const pool = require('../db');
@@ -29,6 +29,36 @@ const getMegaStorage = async () => {
     console.error('MEGA login failed:', error);
     throw new Error('Failed to connect to MEGA storage');
   }
+};
+
+// Helper: Find file in MEGA by nodeId
+const findMegaFile = async (storage, nodeId) => {
+  // Search through all files in storage
+  const files = storage.root.children || [];
+  
+  for (const file of files) {
+    if (file.nodeId === nodeId) {
+      return file;
+    }
+  }
+  
+  // If not found in root, search recursively
+  const searchInFolder = (folder) => {
+    if (!folder.children) return null;
+    
+    for (const item of folder.children) {
+      if (item.nodeId === nodeId) {
+        return item;
+      }
+      if (item.directory && item.children) {
+        const found = searchInFolder(item);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  
+  return searchInFolder(storage.root);
 };
 
 // Helper to parse JSON body manually (because bodyParser is disabled)
@@ -115,7 +145,13 @@ module.exports = async function handler(req, res) {
           // View/Preview from MEGA
           try {
             const storage = await getMegaStorage();
-            const file = storage.file(doc.mega_file_id);
+            const file = await findMegaFile(storage, doc.mega_file_id);
+            
+            if (!file) {
+              console.error('File not found in MEGA:', doc.mega_file_id);
+              return res.status(404).json({ success: false, error: 'File not found in MEGA storage' });
+            }
+            
             const buffer = await file.downloadBuffer();
             
             const mimeType = getMimeType(doc.file_path);
@@ -135,7 +171,7 @@ module.exports = async function handler(req, res) {
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA view failed:', error);
-            return res.status(500).json({ success: false, error: 'Failed to view file from MEGA' });
+            return res.status(500).json({ success: false, error: 'Failed to view file from MEGA', details: error.message });
           }
         }
         
@@ -155,7 +191,13 @@ module.exports = async function handler(req, res) {
           // Download from MEGA
           try {
             const storage = await getMegaStorage();
-            const file = storage.file(doc.mega_file_id);
+            const file = await findMegaFile(storage, doc.mega_file_id);
+            
+            if (!file) {
+              console.error('File not found in MEGA:', doc.mega_file_id);
+              return res.status(404).json({ success: false, error: 'File not found in MEGA storage' });
+            }
+            
             const buffer = await file.downloadBuffer();
             
             const mimeType = getMimeType(doc.file_path);
@@ -170,7 +212,7 @@ module.exports = async function handler(req, res) {
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA download failed:', error);
-            return res.status(500).json({ success: false, error: 'Failed to download from MEGA' });
+            return res.status(500).json({ success: false, error: 'Failed to download from MEGA', details: error.message });
           }
         }
         
@@ -365,8 +407,11 @@ module.exports = async function handler(req, res) {
         // Delete from MEGA
         try {
           const storage = await getMegaStorage();
-          const file = storage.file(docResult.rows[0].mega_file_id);
-          await file.delete();
+          const file = await findMegaFile(storage, docResult.rows[0].mega_file_id);
+          
+          if (file) {
+            await file.delete();
+          }
         } catch (error) {
           console.error('MEGA deletion failed:', error);
           // Continue with DB deletion even if MEGA fails
@@ -393,6 +438,7 @@ module.exports = async function handler(req, res) {
       success: false,
       error: 'Internal server error',
       message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
