@@ -1,4 +1,4 @@
-// api/data/documents.js - COMMONJS VERSION with MEGA Storage + View/Preview
+// api/data/documents.js - COMMONJS VERSION with MEGA Storage + View/Preview (FIXED)
 
 // Core imports
 const pool = require('../db');
@@ -119,9 +119,19 @@ module.exports = async function handler(req, res) {
             const buffer = await file.downloadBuffer();
             
             const mimeType = getMimeType(doc.file_path);
+            const ext = doc.file_path.toLowerCase().split('.').pop();
             
+            // Set proper headers for inline viewing
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Content-Disposition', `inline; filename="${doc.file_path}"`);
+            res.setHeader('Content-Length', buffer.length);
+            
+            // For Office documents, add CORS headers to allow Google Docs Viewer
+            if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'GET');
+            }
+            
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA view failed:', error);
@@ -150,8 +160,13 @@ module.exports = async function handler(req, res) {
             
             const mimeType = getMimeType(doc.file_path);
             
+            // CRITICAL: Set proper headers for file download
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Content-Disposition', `attachment; filename="${doc.file_path}"`);
+            res.setHeader('Content-Length', buffer.length);
+            res.setHeader('Cache-Control', 'no-cache');
+            
+            // Send raw buffer - DO NOT use res.json() or it converts to JSON!
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA download failed:', error);
