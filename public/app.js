@@ -412,8 +412,10 @@ function logout() {
 }
 
 function viewDocument(id) {
-  window.open(`/api/data/documents?id=${id}`, '_blank');
+    // Point to the new file serving endpoint
+    window.open(`/api/file?id=${id}`, '_blank');
 }
+
 
 
 function routeDocument(id) {
