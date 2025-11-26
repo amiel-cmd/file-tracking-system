@@ -4,7 +4,7 @@
 // These require() calls may return either a function directly (CommonJS)
 // or an object like { default: fn, config: {...} } (ESM-transpiled).
 const documentsModule = require('./data/documents');      // api/data/documents.js
-const usersModule = require('./users/user');              // api/users/user.js
+const usersModule = require('./users/[...route].js');              
 const dashboardModule = require('./data/dashboard');      // api/data/dashboard.js
 
 // Normalize to actual handler functions (support both CJS and ESM default export)
