@@ -419,7 +419,7 @@ function viewDocument(id) {
 
 
 function routeDocument(documentId) {
-  api.get('/users/user') // Updated endpoint
+  api.get('/users/list') // Updated endpoint
     .then(response => {
       if (response.users && routeModal) {
         routeModal.open(documentId, response.users, async (selectedUserId) => {
