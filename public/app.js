@@ -419,7 +419,7 @@ function viewDocument(id) {
 
 
 function routeDocument(id) {
-  api.get('api/users/user')
+  api.get('/users/list')
     .then(response => {
       if (response.users && routeModal) {
         routeModal.open(id, response.users);
