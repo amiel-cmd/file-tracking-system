@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload
+// api/data/documents.js - SECURED VERSION with Optional File Upload (FINAL)
 
 // Core imports
 const pool = require('../db');
@@ -160,6 +160,7 @@ const parseJsonBody = async (req) => {
 
 // Helper to detect MIME type from filename
 const getMimeType = (filename) => {
+  if (!filename) return 'application/octet-stream';
   const ext = filename.toLowerCase().split('.').pop();
   const mimeTypes = {
     'pdf': 'application/pdf',
@@ -263,11 +264,11 @@ module.exports = async function handler(req, res) {
             const buffer = await file.downloadBuffer();
             
             const mimeType = getMimeType(doc.file_path);
-            const ext = doc.file_path.toLowerCase().split('.').pop();
+            const ext = doc.file_path ? doc.file_path.toLowerCase().split('.').pop() : '';
             
             // Set proper headers for inline viewing
             res.setHeader('Content-Type', mimeType);
-            res.setHeader('Content-Disposition', `inline; filename="${doc.file_path}"`);
+            res.setHeader('Content-Disposition', `inline; filename="${doc.file_path || 'document'}"`);
             res.setHeader('Content-Length', buffer.length);
             
             // For Office documents, add CORS headers to allow Google Docs Viewer
@@ -329,7 +330,7 @@ module.exports = async function handler(req, res) {
             
             // CRITICAL: Set proper headers for file download
             res.setHeader('Content-Type', mimeType);
-            res.setHeader('Content-Disposition', `attachment; filename="${doc.file_path}"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${doc.file_path || 'document'}"`);
             res.setHeader('Content-Length', buffer.length);
             res.setHeader('Cache-Control', 'no-cache');
             
