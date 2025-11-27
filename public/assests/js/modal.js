@@ -1,4 +1,4 @@
-// modal.js - FIXED VERSION (Handles Close/Reopen + File Upload)
+// modal.js - PATCHED VERSION (File Upload is Optional)
 
 window.routeModal = null;
 window.documentFormModal = null;
@@ -166,11 +166,10 @@ class DocumentFormModal {
                 <input type="hidden" name="document_id" id="form_document_id">
                 
                 <div id="fileUploadGroup" style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:500;">Document File *</label>
-                    <div id="fileUploadArea" style="border:2px dashed #ccc; padding:20px; text-align:center; cursor:pointer; border-radius:8px; background:#f9f9f9;">
-                        <input type="file" id="fileInput" name="file" style="display:none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
-                        <div id="fileUploadText">📁 Click to upload file<br><small style="color:#666;">PDF, DOC, DOCX, JPG, PNG (Max 10MB)</small></div>
-                    </div>
+                    <label style="display:block; margin-bottom:5px; font-weight:500;">Document File <small style="color:#666;">(Optional)</small></label>
+                    <input type="file" id="fileInput" name="file" style="display:block; width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.875rem;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.csv,.zip,.rar">
+                    <div id="fileInfo" style="margin-top:8px; font-size:0.875rem; color:#666;"></div>
+                    <small style="display:block; margin-top:4px; color:#888; font-size:0.75rem;">Max 10MB. Supported: PDF, Word, Excel, PowerPoint, Images, Text, Archives</small>
                 </div>
 
                 <div style="margin-bottom:15px;">
@@ -211,8 +210,8 @@ class DocumentFormModal {
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
                     <button type="button" class="modal-cancel" style="padding:8px 16px; border:1px solid #ccc; background:white; border-radius:4px; cursor:pointer;">Cancel</button>
                     <button type="submit" id="formSubmitBtn" style="padding:8px 16px; background:#2563eb; color:white; border:none; border-radius:4px; cursor:pointer;">
-                        <span id="uploadBtnText">Upload</span>
-                        <span id="uploadBtnSpinner" style="display:none;">⏳ Uploading...</span>
+                        <span id="uploadBtnText">Create</span>
+                        <span id="uploadBtnSpinner" style="display:none;">⏳ Processing...</span>
                     </button>
                 </div>
             </form>
@@ -234,29 +233,25 @@ class DocumentFormModal {
             if (e.target === this.modal) this.close(); 
         };
 
-        // File upload click handler
-        const fileUploadArea = this.modal.querySelector('#fileUploadArea');
+        // File input change handler - show file info
         const fileInput = this.modal.querySelector('#fileInput');
+        const fileInfo = this.modal.querySelector('#fileInfo');
         
-        fileUploadArea.onclick = () => {
-            fileInput.click();
-        };
-
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                const uploadText = this.modal.querySelector('#fileUploadText');
                 const sizeInMB = (file.size / 1024 / 1024).toFixed(2);
                 
                 if (file.size > 10 * 1024 * 1024) {
                     alert('File size must be less than 10MB');
                     fileInput.value = '';
+                    fileInfo.innerHTML = '';
                     return;
                 }
                 
-                uploadText.innerHTML = `✅ ${file.name}<br><small style="color:#10b981;">${sizeInMB} MB</small>`;
-                fileUploadArea.style.borderColor = '#10b981';
-                fileUploadArea.style.background = '#ecfdf5';
+                fileInfo.innerHTML = `<span style="color:#10b981;">✓ Selected: <strong>${file.name}</strong> (${sizeInMB} MB)</span>`;
+            } else {
+                fileInfo.innerHTML = '';
             }
         };
 
@@ -277,18 +272,19 @@ class DocumentFormModal {
             try {
                 let res;
                 if (id) {
-                    // EDIT existing document -> same handler at /api/data/documents
+                    // EDIT existing document (metadata only)
                     res = await api.put('/data/documents', {
                         document_id: id,
-                        newTitle: formData.get('title'),
-                        newDescription: formData.get('description'),
-                        newType: formData.get('document_type'),
-                        newPriority: formData.get('priority')
+                        title: formData.get('title'),
+                        description: formData.get('description'),
+                        document_type: formData.get('document_type'),
+                        priority: formData.get('priority')
                     });
                 } else {
-                    // CREATE new document -> upload to /api/data/documents
-                    if (!fileInput.files[0]) {
-                        throw new Error("Please select a file");
+                    // CREATE new document (with optional file)
+                    // Remove file from FormData if not selected
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        formData.delete('file');
                     }
                     res = await api.uploadFile('/data/documents', formData);
                 }
@@ -313,11 +309,10 @@ class DocumentFormModal {
         const btnText = this.modal.querySelector('#uploadBtnText');
         const fileGroup = this.modal.querySelector('#fileUploadGroup');
         const fileInput = this.modal.querySelector('#fileInput');
-        const fileUploadArea = this.modal.querySelector('#fileUploadArea');
-        const fileUploadText = this.modal.querySelector('#fileUploadText');
+        const fileInfo = this.modal.querySelector('#fileInfo');
 
         if (docData) {
-            // Edit mode
+            // Edit mode - hide file upload, no file required
             title.innerText = 'Edit Document';
             btnText.innerText = 'Update';
             document.getElementById('form_document_id').value = docData.document_id;
@@ -328,16 +323,14 @@ class DocumentFormModal {
             fileGroup.style.display = 'none';
             fileInput.removeAttribute('required');
         } else {
-            // Upload mode
-            title.innerText = 'Upload Document';
-            btnText.innerText = 'Upload';
+            // Create mode - show file upload, but NOT required
+            title.innerText = 'Create Document';
+            btnText.innerText = 'Create';
             document.getElementById('form_document_id').value = '';
             this.modal.querySelector('form').reset();
             fileGroup.style.display = 'block';
-            fileInput.setAttribute('required', 'true');
-            fileUploadText.innerHTML = '📁 Click to upload file<br><small style="color:#666;">PDF, DOC, DOCX, JPG, PNG (Max 10MB)</small>';
-            fileUploadArea.style.borderColor = '#ccc';
-            fileUploadArea.style.background = '#f9f9f9';
+            fileInput.removeAttribute('required'); // CRITICAL FIX: File is optional
+            fileInfo.innerHTML = '';
         }
         
         this.modal.style.display = 'flex';
@@ -349,6 +342,10 @@ class DocumentFormModal {
         document.body.style.overflow = '';
         const msg = this.modal.querySelector('#uploadMessage');
         if (msg) msg.innerHTML = '';
+        const form = this.modal.querySelector('form');
+        if (form) form.reset();
+        const fileInfo = this.modal.querySelector('#fileInfo');
+        if (fileInfo) fileInfo.innerHTML = '';
     }
 }
 
@@ -384,6 +381,3 @@ window.openDocumentFormModal = (id) => {
         window.documentFormModal.open(null);
     }
 };
-        const startIdx = (this.currentPage - 1) * this.rowsPerPage;
-        const endIdx = startIdx + this.rowsPerPage;
-        const rowsToShow = this.filteredData.slice(startIdx, endIdx);   
