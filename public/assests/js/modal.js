@@ -1,4 +1,4 @@
-// modal.js - PATCHED VERSION (File Upload is Optional)
+// modal.js - FULLY PATCHED VERSION (File Upload Optional + Button Reset Fix)
 
 window.routeModal = null;
 window.documentFormModal = null;
@@ -297,6 +297,7 @@ class DocumentFormModal {
                 
             } catch (err) {
                 alert(err.message || 'Operation failed');
+                // CRITICAL FIX: Reset button state on error
                 btn.disabled = false;
                 btnText.style.display = 'inline';
                 btnSpinner.style.display = 'none';
@@ -305,6 +306,9 @@ class DocumentFormModal {
     }
 
     open(docData = null) {
+        // CRITICAL FIX: Reset button state when opening modal
+        this.resetButtonState();
+        
         const title = this.modal.querySelector('#documentFormTitle');
         const btnText = this.modal.querySelector('#uploadBtnText');
         const fileGroup = this.modal.querySelector('#fileUploadGroup');
@@ -337,15 +341,35 @@ class DocumentFormModal {
         document.body.style.overflow = 'hidden';
     }
 
+    // CRITICAL FIX: New method to reset button state
+    resetButtonState() {
+        const btn = document.getElementById('formSubmitBtn');
+        const btnText = document.getElementById('uploadBtnText');
+        const btnSpinner = document.getElementById('uploadBtnSpinner');
+        
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.style.display = 'inline';
+        if (btnSpinner) btnSpinner.style.display = 'none';
+    }
+
     close() {
         this.modal.style.display = 'none';
         document.body.style.overflow = '';
+        
+        // Reset upload message
         const msg = this.modal.querySelector('#uploadMessage');
         if (msg) msg.innerHTML = '';
+        
+        // Reset form
         const form = this.modal.querySelector('form');
         if (form) form.reset();
+        
+        // Reset file info display
         const fileInfo = this.modal.querySelector('#fileInfo');
         if (fileInfo) fileInfo.innerHTML = '';
+        
+        // CRITICAL FIX: Reset button state when closing
+        this.resetButtonState();
     }
 }
 
