@@ -469,80 +469,105 @@ const router = {
     });
   },
 
-  async showDashboard() {
-    const user = auth.getUser();
+async showDashboard() {
+  const user = auth.getUser();
 
-    try {
-      const data = await api.get('/data/dashboard');
-      this.allDocuments = data.documents || [];
-      this.filteredDocuments = [...this.allDocuments];
+  try {
+    const data = await api.get('/data/dashboard');
+    this.allDocuments = data.documents || [];
+    this.filteredDocuments = [...this.allDocuments];
 
-      document.getElementById('app').innerHTML = `
-        <nav>
-          <div class="container">
-            <h1>Document Tracking System</h1>
-            <div>
-              <span>Welcome, ${user.fullName || user.username}</span>
-              <button onclick="openDocumentFormModal()" class="btn btn--primary btn--sm">+ Add Document</button>
-              <a href="#" onclick="router.navigate('/archives'); return false;" class="btn btn--secondary btn--sm">Archives</a>
-              ${user.role === 'admin' ? '<a href="#" onclick="router.navigate(\'/admin\'); return false;" class="btn btn--secondary btn--sm">Admin Panel</a>' : ''}
-              <a href="#" onclick="logout(); return false;" class="btn btn--outline btn--sm">Logout</a>
-            </div>
+    document.getElementById('app').innerHTML = `
+      <!-- SIDEBAR LAYOUT -->
+      <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h1>📄 DocTrack</h1>
           </div>
-        </nav>
-        <div class="container" style="padding: var(--space-32) 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0;">My Documents</h2>
+          <nav class="sidebar-nav">
+            <a href="#" onclick="router.showDashboard(); return false;" class="sidebar-link active">
+              <span class="sidebar-icon">📋</span>
+              <span>My Documents</span>
+            </a>
+            <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link">
+              <span class="sidebar-icon">📦</span>
+              <span>Archives</span>
+            </a>
+            ${user.role === 'admin' ? `
+            <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
+              <span class="sidebar-icon">⚙️</span>
+              <span>Admin Panel</span>
+            </a>
+            ` : ''}
+          </nav>
+          <div class="sidebar-footer">
+            <div class="user-info">
+              <div class="user-avatar">👤</div>
+              <div class="user-details">
+                <div class="user-name">${user.fullName || user.username}</div>
+                <div class="user-role">${user.role || 'User'}</div>
+              </div>
+            </div>
+            <button onclick="logout()" class="btn-logout">Logout</button>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <div class="content-header">
+            <h2>My Documents</h2>
             <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
           </div>
           
           <!-- Search and Filter Bar -->
-          <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-            <div style="flex: 1; min-width: 250px;">
-              <input type="text" id="searchInput" placeholder="🔍 Search by title, type, or document #..." style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+          <div class="search-filters">
+            <div class="search-box">
+              <input type="text" id="searchInput" placeholder="🔍 Search by title, type, or document #..." class="form-control">
             </div>
-            <select id="statusFilter" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+            <select id="statusFilter" class="form-control filter-select">
               <option value="">All Status</option>
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
               <option value="routed">Routed</option>
               <option value="completed">Completed</option>
             </select>
-            <select id="priorityFilter" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+            <select id="priorityFilter" class="form-control filter-select">
               <option value="">All Priority</option>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
-            <button onclick="router.resetFilters()" class="btn btn--secondary btn--sm">Clear Filters</button>
+            <button onclick="router.resetFilters()" class="btn btn--secondary">Clear Filters</button>
           </div>
           
           <div id="message"></div>
-          <div class="card">
-            <div class="card__body">
-              <div id="documentsList"></div>
-              <div id="pagination" style="margin-top: 1.5rem;"></div>
-            </div>
+          
+          <div class="documents-container">
+            <div id="documentsList"></div>
+            <div id="pagination"></div>
           </div>
-        </div>
-      `;
+        </main>
+      </div>
+    `;
 
-      // Attach search and filter listeners
-      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
-      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+    // Attach search and filter listeners
+    document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+    document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+    document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
 
-      this.renderDocuments();
-    } catch (error) {
-      if (error.message.includes('Authentication')) {
-        auth.removeToken();
-        this.navigate('/login');
-      } else {
-        this.showMessage(error.message, 'error');
-      }
+    this.renderDocuments();
+  } catch (error) {
+    if (error.message.includes('Authentication')) {
+      auth.removeToken();
+      this.navigate('/login');
+    } else {
+      this.showMessage(error.message, 'error');
     }
-  },
+  }
+},
+
 
   handleSearch(searchTerm) {
     this.applyFilters(searchTerm);
