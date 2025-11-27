@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Access Control, Rate Limiting, and File Validation
+// api/data/documents.js - SECURED VERSION with Optional File Upload
 
 // Core imports
 const pool = require('../db');
@@ -233,6 +233,14 @@ module.exports = async function handler(req, res) {
           
           const doc = docResult.rows[0];
           
+          // Check if document has a file
+          if (!doc.mega_file_id) {
+            return res.status(404).json({ 
+              success: false, 
+              error: 'This document has no attached file' 
+            });
+          }
+          
           // STEP 3: Access Control Check
           if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
             console.log(`Access denied: User ${userId} attempted to view document ${documentId}`);
@@ -287,6 +295,14 @@ module.exports = async function handler(req, res) {
           }
           
           const doc = docResult.rows[0];
+          
+          // Check if document has a file
+          if (!doc.mega_file_id) {
+            return res.status(404).json({ 
+              success: false, 
+              error: 'This document has no attached file' 
+            });
+          }
           
           // STEP 3: Access Control Check
           if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
@@ -408,69 +424,77 @@ module.exports = async function handler(req, res) {
         const document_type = Array.isArray(fields.document_type) ? fields.document_type[0] : fields.document_type;
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
 
-        // File
+        // File - NOW OPTIONAL
         const uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
 
-        if (!title || !document_type || !priority || !uploadedFile) {
+        // CHANGED: File is now optional, only require title, type, and priority
+        if (!title || !document_type || !priority) {
           return res.status(400).json({
             success: false,
-            error: 'Title, document type, priority, and file are required',
+            error: 'Title, document type, and priority are required',
           });
         }
 
-        // STEP 6: Validate File Type
-        const validation = validateFile(uploadedFile);
-        if (!validation.valid) {
-          console.log(`File validation failed for user ${userId}: ${validation.error}`);
-          // Clean up uploaded file
-          await fs.unlink(uploadedFile.filepath).catch(() => {});
-          return res.status(400).json({
-            success: false,
-            error: validation.error
-          });
-        }
+        let megaFileId = null;
+        let megaLink = null;
+        let fileName = null;
+        let fileSize = 0;
 
-        const fileName = uploadedFile.originalFilename || uploadedFile.newFilename;
-        const fileSize = uploadedFile.size;
+        // Only upload to MEGA if file is provided
+        if (uploadedFile) {
+          // STEP 6: Validate File Type
+          const validation = validateFile(uploadedFile);
+          if (!validation.valid) {
+            console.log(`File validation failed for user ${userId}: ${validation.error}`);
+            // Clean up uploaded file
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(400).json({
+              success: false,
+              error: validation.error
+            });
+          }
 
-        // Additional size check
-        if (fileSize > 10 * 1024 * 1024) {
-          await fs.unlink(uploadedFile.filepath).catch(() => {});
-          return res.status(400).json({
-            success: false,
-            error: 'File size exceeds 10MB limit'
-          });
-        }
+          fileName = uploadedFile.originalFilename || uploadedFile.newFilename;
+          fileSize = uploadedFile.size;
 
-        // Upload to MEGA
-        let megaFileId, megaLink;
-        try {
-          const storage = await getMegaStorage();
-          
-          // Read file from temp location
-          const fileBuffer = await fs.readFile(uploadedFile.filepath);
-          
+          // Additional size check
+          if (fileSize > 10 * 1024 * 1024) {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(400).json({
+              success: false,
+              error: 'File size exceeds 10MB limit'
+            });
+          }
+
           // Upload to MEGA
-          const uploadedMegaFile = await storage.upload({
-            name: fileName,
-            size: fileBuffer.length
-          }, fileBuffer).complete;
-          
-          megaFileId = uploadedMegaFile.nodeId; // MEGA's unique file ID
-          megaLink = uploadedMegaFile.link(); // Public download link (optional)
-          
-          // Clean up temp file
-          await fs.unlink(uploadedFile.filepath).catch(() => {});
-          
-        } catch (error) {
-          console.error('MEGA upload failed:', error);
-          // Clean up temp file on error
-          await fs.unlink(uploadedFile.filepath).catch(() => {});
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to upload to MEGA storage',
-            message: error.message
-          });
+          try {
+            const storage = await getMegaStorage();
+            
+            // Read file from temp location
+            const fileBuffer = await fs.readFile(uploadedFile.filepath);
+            
+            // Upload to MEGA
+            const uploadedMegaFile = await storage.upload({
+              name: fileName,
+              size: fileBuffer.length
+            }, fileBuffer).complete;
+            
+            megaFileId = uploadedMegaFile.nodeId; // MEGA's unique file ID
+            megaLink = uploadedMegaFile.link(); // Public download link (optional)
+            
+            // Clean up temp file
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            
+          } catch (error) {
+            console.error('MEGA upload failed:', error);
+            // Clean up temp file on error
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to upload to MEGA storage',
+              message: error.message
+            });
+          }
         }
 
         const documentNumber = `DOC-${Date.now()}`;
@@ -488,22 +512,25 @@ module.exports = async function handler(req, res) {
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
-          fileName, // Store original filename in file_path
-          megaFileId, // MEGA node ID
-          megaLink || null, // MEGA public link (optional)
-          fileSize,
+          fileName, // Can be null
+          megaFileId, // Can be null
+          megaLink, // Can be null
+          fileSize, // 0 if no file
           userId,
         ]);
 
-        console.log(`Document uploaded successfully by user ${userId}: ${documentNumber}`);
+        console.log(`Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${documentNumber}`);
 
         return res.status(201).json({
           success: true,
-          message: 'Document uploaded to MEGA successfully!',
+          message: uploadedFile 
+            ? 'Document uploaded to MEGA successfully!' 
+            : 'Document created successfully (no file attached)',
           document: insertResult.rows[0],
           file_name: fileName,
           file_size: fileSize,
-          storage: 'MEGA'
+          storage: uploadedFile ? 'MEGA' : 'None',
+          has_file: !!uploadedFile
         });
       }
 
@@ -606,7 +633,7 @@ module.exports = async function handler(req, res) {
 
         // Get document info first
         const docResult = await pool.query(
-          'SELECT mega_file_id, uploaded_by FROM documents WHERE document_id = $1',
+          'SELECT mega_file_id, uploaded_by, title FROM documents WHERE document_id = $1',
           [deleteId]
         );
         
@@ -623,32 +650,77 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // Delete from MEGA
-        try {
-          const storage = await getMegaStorage();
-          const file = await findMegaFile(storage, doc.mega_file_id);
-          
-          if (file) {
-            await file.delete();
-            console.log(`File deleted from MEGA: ${doc.mega_file_id}`);
+        // CHANGED: Only delete from MEGA if file exists
+        if (doc.mega_file_id) {
+          let megaDeleted = false;
+
+          try {
+            const storage = await getMegaStorage();
+            const file = await findMegaFile(storage, doc.mega_file_id);
+            
+            if (file) {
+              await file.delete();
+              megaDeleted = true;
+              console.log(`✓ File deleted from MEGA: ${doc.mega_file_id}`);
+            } else {
+              // File doesn't exist in MEGA, treat as already deleted
+              console.log(`⚠ File not found in MEGA (may have been deleted already): ${doc.mega_file_id}`);
+              megaDeleted = true; // Allow database deletion
+            }
+          } catch (error) {
+            console.error('✗ MEGA deletion failed:', error);
+            
+            // If MEGA deletion fails, don't delete from database
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to delete file from MEGA storage',
+              details: error.message,
+              message: 'Document was not deleted to maintain data consistency. Please try again or contact support.'
+            });
           }
-        } catch (error) {
-          console.error('MEGA deletion failed:', error);
-          // Continue with DB deletion even if MEGA fails
+
+          // Only proceed if MEGA deletion succeeded
+          if (!megaDeleted) {
+            return res.status(500).json({
+              success: false,
+              error: 'MEGA deletion did not complete successfully'
+            });
+          }
+        } else {
+          console.log(`ℹ Document ${deleteId} has no attached file, skipping MEGA deletion`);
         }
 
-        // Delete from database
-        const deleteResult = await pool.query(
-          'DELETE FROM documents WHERE document_id = $1 RETURNING document_id',
-          [deleteId],
-        );
+        // Delete from database (either file was deleted from MEGA or there was no file)
+        try {
+          const deleteResult = await pool.query(
+            'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
+            [deleteId]
+          );
 
-        console.log(`Document deleted by user ${userId}: ${deleteId}`);
+          if (deleteResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found in database' });
+          }
 
-        return res.status(200).json({
-          success: true,
-          message: 'Document deleted from MEGA and database successfully!',
-        });
+          console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title})`);
+
+          return res.status(200).json({
+            success: true,
+            message: doc.mega_file_id 
+              ? 'Document and file deleted successfully!' 
+              : 'Document deleted successfully (no file was attached)',
+            deleted: deleteResult.rows[0],
+            had_file: !!doc.mega_file_id
+          });
+        } catch (dbError) {
+          console.error('✗ Database deletion failed:', dbError);
+          
+          return res.status(500).json({
+            success: false,
+            error: 'Database deletion failed',
+            details: dbError.message,
+            message: 'Please try again or contact support.'
+          });
+        }
       }
 
       default:
