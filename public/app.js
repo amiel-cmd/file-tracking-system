@@ -1,6 +1,6 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
-// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE
+// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS
 
 const API_BASE = '/api';
 
@@ -321,7 +321,7 @@ function formatFileSize(bytes) {
 // Router
 const router = {
   currentRoute: '',
-  allDocuments: [], // Store all documents for search/filter
+  allDocuments: [],
   filteredDocuments: [],
   currentPage: 1,
   itemsPerPage: 10,
@@ -469,105 +469,102 @@ const router = {
     });
   },
 
-async showDashboard() {
-  const user = auth.getUser();
+  async showDashboard() {
+    const user = auth.getUser();
 
-  try {
-    const data = await api.get('/data/dashboard');
-    this.allDocuments = data.documents || [];
-    this.filteredDocuments = [...this.allDocuments];
+    try {
+      const data = await api.get('/data/dashboard');
+      this.allDocuments = data.documents || [];
+      this.filteredDocuments = [...this.allDocuments];
 
-    document.getElementById('app').innerHTML = `
-      <!-- SIDEBAR LAYOUT -->
-      <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-          <div class="sidebar-header">
-            <h1>📄 DocTrack</h1>
-          </div>
-          <nav class="sidebar-nav">
-            <a href="#" onclick="router.showDashboard(); return false;" class="sidebar-link active">
-              <span class="sidebar-icon">📋</span>
-              <span>My Documents</span>
-            </a>
-            <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link">
-              <span class="sidebar-icon">📦</span>
-              <span>Archives</span>
-            </a>
-            ${user.role === 'admin' ? `
-            <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
-              <span class="sidebar-icon">⚙️</span>
-              <span>Admin Panel</span>
-            </a>
-            ` : ''}
-          </nav>
-          <div class="sidebar-footer">
-            <div class="user-info">
-              <div class="user-avatar">👤</div>
-              <div class="user-details">
-                <div class="user-name">${user.fullName || user.username}</div>
-                <div class="user-role">${user.role || 'User'}</div>
+      document.getElementById('app').innerHTML = `
+        <!-- SIDEBAR LAYOUT -->
+        <div class="app-layout">
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="sidebar-header">
+              <h1>📄 DocTrack</h1>
+            </div>
+            <nav class="sidebar-nav">
+              <a href="#" onclick="router.showDashboard(); return false;" class="sidebar-link active">
+                <span class="sidebar-icon">📋</span>
+                <span>My Documents</span>
+              </a>
+              <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link">
+                <span class="sidebar-icon">📦</span>
+                <span>Archives</span>
+              </a>
+              ${user.role === 'admin' ? `
+              <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
+                <span class="sidebar-icon">⚙️</span>
+                <span>Admin Panel</span>
+              </a>
+              ` : ''}
+            </nav>
+            <div class="sidebar-footer">
+              <div class="user-info">
+                <div class="user-avatar">👤</div>
+                <div class="user-details">
+                  <div class="user-name">${user.fullName || user.username}</div>
+                  <div class="user-role">${user.role || 'User'}</div>
+                </div>
               </div>
+              <button onclick="logout()" class="btn-logout">Logout</button>
             </div>
-            <button onclick="logout()" class="btn-logout">Logout</button>
-          </div>
-        </aside>
+          </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-          <div class="content-header">
-            <h2>My Documents</h2>
-            <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
-          </div>
-          
-          <!-- Search and Filter Bar -->
-          <div class="search-filters">
-            <div class="search-box">
-              <input type="text" id="searchInput" placeholder="🔍 Search by title, type, or document #..." class="form-control">
+          <!-- Main Content -->
+          <main class="main-content">
+            <div class="content-header">
+              <h2>My Documents</h2>
+              <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
             </div>
-            <select id="statusFilter" class="form-control filter-select">
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="routed">Routed</option>
-              <option value="completed">Completed</option>
-            </select>
-            <select id="priorityFilter" class="form-control filter-select">
-              <option value="">All Priority</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-            <button onclick="router.resetFilters()" class="btn btn--secondary">Clear Filters</button>
-          </div>
-          
-          <div id="message"></div>
-          
-          <div class="documents-container">
-            <div id="documentsList"></div>
-            <div id="pagination"></div>
-          </div>
-        </main>
-      </div>
-    `;
+            
+            <!-- Search and Filter Bar - INLINE -->
+            <div class="search-filters-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
+              <select id="statusFilter" class="form-control filter-inline">
+                <option value="">Status</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="routed">Routed</option>
+                <option value="completed">Completed</option>
+              </select>
+              <select id="priorityFilter" class="form-control filter-inline">
+                <option value="">Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+            </div>
+            
+            <div id="message"></div>
+            
+            <div class="documents-container">
+              <div id="documentsList"></div>
+              <div id="pagination"></div>
+            </div>
+          </main>
+        </div>
+      `;
 
-    // Attach search and filter listeners
-    document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
-    document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
-    document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+      // Attach search and filter listeners
+      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
 
-    this.renderDocuments();
-  } catch (error) {
-    if (error.message.includes('Authentication')) {
-      auth.removeToken();
-      this.navigate('/login');
-    } else {
-      this.showMessage(error.message, 'error');
+      this.renderDocuments();
+    } catch (error) {
+      if (error.message.includes('Authentication')) {
+        auth.removeToken();
+        this.navigate('/login');
+      } else {
+        this.showMessage(error.message, 'error');
+      }
     }
-  }
-},
-
+  },
 
   handleSearch(searchTerm) {
     this.applyFilters(searchTerm);
@@ -590,7 +587,7 @@ async showDashboard() {
       return matchesSearch && matchesStatus && matchesPriority;
     });
 
-    this.currentPage = 1; // Reset to first page
+    this.currentPage = 1;
     this.renderDocuments();
   },
 
@@ -615,13 +612,11 @@ async showDashboard() {
       let aVal = a[column];
       let bVal = b[column];
 
-      // Handle dates
       if (column === 'uploaded_at') {
         aVal = new Date(aVal);
         bVal = new Date(bVal);
       }
 
-      // Handle strings
       if (typeof aVal === 'string') {
         aVal = aVal.toLowerCase();
         bVal = bVal.toLowerCase();
@@ -653,7 +648,6 @@ async showDashboard() {
       return;
     }
 
-    // Pagination logic
     const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
@@ -665,13 +659,12 @@ async showDashboard() {
     };
 
     container.innerHTML = `
-      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
+      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
       </div>
       
-      <!-- RESPONSIVE TABLE WRAPPER -->
       <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="table" style="min-width: 1000px; table-layout: fixed;">
+        <table class="table" style="min-width: 1200px; table-layout: fixed;">
           <thead>
             <tr>
               <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">
@@ -694,7 +687,7 @@ async showDashboard() {
               <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
                 Date ${getSortIcon('uploaded_at')}
               </th>
-              <th style="width: 240px;">Actions</th>
+              <th style="width: 380px;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -725,11 +718,9 @@ async showDashboard() {
       </div>
     `;
 
-    // Render pagination
     if (totalPages > 1) {
-      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">';
+      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">';
       
-      // Previous button
       paginationHTML += `
         <button onclick="router.goToPage(${this.currentPage - 1})" 
                 ${this.currentPage === 1 ? 'disabled' : ''} 
@@ -739,7 +730,6 @@ async showDashboard() {
         </button>
       `;
 
-      // Page numbers
       for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
           paginationHTML += `
@@ -754,7 +744,6 @@ async showDashboard() {
         }
       }
 
-      // Next button
       paginationHTML += `
         <button onclick="router.goToPage(${this.currentPage + 1})" 
                 ${this.currentPage === totalPages ? 'disabled' : ''} 
@@ -850,7 +839,6 @@ async function editDocument(id) {
   }
 }
 
-// View Document History Function
 async function viewDocumentHistory(documentId, documentTitle) {
   if (window.openHistoryModal) {
     window.openHistoryModal(documentId, documentTitle);
@@ -859,7 +847,6 @@ async function viewDocumentHistory(documentId, documentTitle) {
   }
 }
 
-// Text-based routing function
 function routeDocument(documentId) {
   const modalHtml = `
     <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
