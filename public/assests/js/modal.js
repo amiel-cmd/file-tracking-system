@@ -1,7 +1,8 @@
-// modal.js - FULLY PATCHED VERSION (File Upload Optional + Button Reset Fix)
+// modal.js - COMPLETE VERSION (File Upload Optional + Button Reset + History Modal)
 
 window.routeModal = null;
 window.documentFormModal = null;
+window.documentHistoryModal = null; // NEW
 
 // ========== Route Document Modal ==========
 class DocumentModal {
@@ -373,10 +374,220 @@ class DocumentFormModal {
     }
 }
 
-// Initialize
+// ========== NEW: Document History Modal ==========
+class DocumentHistoryModal {
+    constructor() {
+        this.modal = null;
+        this.init();
+    }
+
+    init() {
+        this.createModal();
+        this.attachEventListeners();
+    }
+
+    createModal() {
+        if (document.getElementById('historyModal')) {
+            this.modal = document.getElementById('historyModal');
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'historyModal';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: 2147483647;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        `;
+
+        const box = document.createElement('div');
+        box.style.cssText = `
+            background: white; width: 90%; max-width: 900px;
+            border-radius: 12px; padding: 24px; position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            max-height: 85vh; overflow-y: auto;
+        `;
+
+        box.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h3 style="margin:0; font-size:1.25rem;">📜 Document History</h3>
+                <button class="modal__close" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div id="historyContent" style="min-height:200px;">
+                <div style="text-align:center; padding:40px; color:#666;">
+                    <div style="font-size:48px; margin-bottom:10px;">⏳</div>
+                    Loading history...
+                </div>
+            </div>
+            
+            <div style="margin-top:20px; text-align:right;">
+                <button class="modal-close-btn" style="padding:10px 24px; background:#6b7280; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem;">Close</button>
+            </div>
+        `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        this.modal = overlay;
+    }
+
+    attachEventListeners() {
+        const closeBtn = this.modal.querySelector('.modal__close');
+        const closeBottomBtn = this.modal.querySelector('.modal-close-btn');
+        
+        closeBtn.onclick = () => this.close();
+        closeBottomBtn.onclick = () => this.close();
+        
+        this.modal.onclick = (e) => { 
+            if (e.target === this.modal) this.close(); 
+        };
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    async open(documentId, documentTitle = 'Document') {
+        this.modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        const content = this.modal.querySelector('#historyContent');
+        content.innerHTML = `
+            <div style="text-align:center; padding:40px; color:#666;">
+                <div style="font-size:48px; margin-bottom:10px;">⏳</div>
+                <p style="margin:0;">Loading history for <strong>"${documentTitle}"</strong>...</p>
+            </div>
+        `;
+
+        try {
+            const response = await api.get(`/data/document-history?document_id=${documentId}`);
+            
+            if (!response.success) {
+                throw new Error(response.error || 'Failed to load history');
+            }
+
+            const { history, routing } = response;
+
+            if ((!history || history.length === 0) && (!routing || routing.length === 0)) {
+                content.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:#666;">
+                        <div style="font-size:48px; margin-bottom:10px;">📭</div>
+                        <p>No history available for this document</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render history timeline
+            let html = '';
+
+            // Change History Section
+            if (history && history.length > 0) {
+                html += `
+                    <div style="margin-bottom:30px;">
+                        <h4 style="margin:0 0 15px 0; color:#374151; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                            <span>📝</span> Change History
+                        </h4>
+                        <div style="border-left:3px solid #e5e7eb; padding-left:20px;">
+                `;
+
+                history.forEach((item, index) => {
+                    const isFirst = index === 0;
+                    html += `
+                        <div style="position:relative; margin-bottom:20px; ${isFirst ? 'opacity:1;' : 'opacity:0.85;'}">
+                            <div style="position:absolute; left:-29px; width:14px; height:14px; background:${isFirst ? '#10b981' : '#9ca3af'}; border-radius:50%; top:5px; border:3px solid white; box-shadow:0 0 0 1px #e5e7eb;"></div>
+                            <div style="background:${isFirst ? '#ecfdf5' : '#f9fafb'}; padding:14px 16px; border-radius:8px; border-left:3px solid ${isFirst ? '#10b981' : '#d1d5db'};">
+                                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:6px;">
+                                    <div>
+                                        <strong style="color:#111827; font-size:0.95rem;">${item.action}</strong>
+                                        <div style="font-size:0.85rem; color:#6b7280; margin-top:4px;">
+                                            by <strong>${item.user_name || 'System'}</strong>${item.user_department ? ` • ${item.user_department}` : ''}
+                                        </div>
+                                    </div>
+                                    <span style="font-size:0.75rem; color:#9ca3af; white-space:nowrap; margin-left:10px;">
+                                        ${this.formatDate(item.created_at)}
+                                    </span>
+                                </div>
+                                ${item.details ? `<div style="font-size:0.875rem; color:#4b5563; margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb;">${item.details}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+
+            // Routing History Section
+            if (routing && routing.length > 0) {
+                html += `
+                    <div style="margin-top:30px;">
+                        <h4 style="margin:0 0 15px 0; color:#374151; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                            <span>🔄</span> Routing History
+                        </h4>
+                        <div style="border-left:3px solid #dbeafe; padding-left:20px;">
+                `;
+
+                routing.forEach((route, index) => {
+                    const isFirst = index === 0;
+                    html += `
+                        <div style="position:relative; margin-bottom:20px; ${isFirst ? 'opacity:1;' : 'opacity:0.85;'}">
+                            <div style="position:absolute; left:-29px; width:14px; height:14px; background:${isFirst ? '#3b82f6' : '#9ca3af'}; border-radius:50%; top:5px; border:3px solid white; box-shadow:0 0 0 1px #dbeafe;"></div>
+                            <div style="background:${isFirst ? '#eff6ff' : '#f9fafb'}; padding:14px 16px; border-radius:8px; border-left:3px solid ${isFirst ? '#3b82f6' : '#d1d5db'};">
+                                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:6px;">
+                                    <div>
+                                        <strong style="color:#111827; font-size:0.95rem;">${route.action_taken || 'Routed'}</strong>
+                                        <div style="font-size:0.85rem; color:#6b7280; margin-top:4px;">
+                                            <span style="color:#ef4444;">From:</span> <strong>${route.from_user_name || 'N/A'}</strong> 
+                                            <span style="margin:0 6px; color:#d1d5db;">→</span> 
+                                            <span style="color:#10b981;">To:</span> <strong>${route.to_user_name || 'N/A'}</strong>
+                                        </div>
+                                    </div>
+                                    <span style="font-size:0.75rem; color:#9ca3af; white-space:nowrap; margin-left:10px;">
+                                        ${this.formatDate(route.routed_at)}
+                                    </span>
+                                </div>
+                                ${route.remarks ? `<div style="font-size:0.875rem; color:#4b5563; margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb; font-style:italic;">"${route.remarks}"</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+
+            content.innerHTML = html;
+
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            content.innerHTML = `
+                <div style="text-align:center; padding:40px; color:#ef4444;">
+                    <div style="font-size:48px; margin-bottom:10px;">⚠️</div>
+                    <p><strong>Failed to load history</strong></p>
+                    <p style="color:#6b7280; font-size:0.9rem; margin-top:8px;">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    close() {
+        this.modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Initialize All Modals
 function initModals() {
     window.routeModal = new DocumentModal();
     window.documentFormModal = new DocumentFormModal();
+    window.documentHistoryModal = new DocumentHistoryModal(); // NEW
 }
 
 if (document.readyState === 'loading') {
@@ -403,5 +614,15 @@ window.openDocumentFormModal = (id) => {
             .catch(err => alert('Failed to load document: ' + err.message));
     } else {
         window.documentFormModal.open(null);
+    }
+};
+
+// NEW: Global Helper for History Modal
+window.openHistoryModal = (documentId, documentTitle) => {
+    if (window.documentHistoryModal) {
+        window.documentHistoryModal.open(documentId, documentTitle);
+    } else {
+        console.error('History modal not initialized');
+        alert('History feature not available. Please refresh the page.');
     }
 };

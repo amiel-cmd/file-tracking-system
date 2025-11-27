@@ -202,11 +202,14 @@ const editModal = {
 // View Document Modal
 const viewModal = {
   open(documentId, documentData) {
-    const fileExtension = documentData.file_path.split('.').pop().toLowerCase();
+    const filePath = documentData.file_path || '';
+    const hasFile = !!documentData.mega_file_id;
+    const fileExtension = filePath ? filePath.split('.').pop().toLowerCase() : '';
+    
     const isPDF = fileExtension === 'pdf';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension);
-    const isViewable = isPDF || isImage || isOffice;
+    const isViewable = hasFile && (isPDF || isImage || isOffice);
 
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
@@ -229,16 +232,14 @@ const viewModal = {
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">
-                📥 Download
-              </a>
+              ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">📥 Download</a>` : ''}
               <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">
                 ✕
               </button>
             </div>
           </div>
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
-            ${isViewable ? `
+            ${hasFile && isViewable ? `
               ${isPDF || isOffice ? `
                 <iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
               ` : `
@@ -247,9 +248,11 @@ const viewModal = {
             ` : `
               <div style="text-align: center; padding: 2rem;">
                 <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
-                <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${documentData.file_path}</p>
-                <p style="color: #666; margin-bottom: 1.5rem;">Preview not available for this file type</p>
-                <a href="${downloadUrl}" class="btn btn--primary">Download to View</a>
+                <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${hasFile ? filePath : 'No file attached'}</p>
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                  ${hasFile ? 'Preview not available for this file type' : 'This document has no attached file'}
+                </p>
+                ${hasFile ? `<a href="${downloadUrl}" class="btn btn--primary">Download to View</a>` : ''}
               </div>
             `}
           </div>
@@ -267,10 +270,12 @@ const viewModal = {
                 <strong style="color: #666; font-size: 0.875rem;">Date:</strong>
                 <p style="margin: 0.25rem 0 0 0;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
               </div>
+              ${hasFile ? `
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">File Size:</strong>
                 <p style="margin: 0.25rem 0 0 0;">${formatFileSize(documentData.file_size)}</p>
               </div>
+              ` : ''}
             </div>
             ${documentData.description ? `
               <div style="margin-top: 1rem;">
@@ -596,9 +601,10 @@ const router = {
                 <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                   <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
                   <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
+                  <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white;">📜</button>
                   <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route">📤</button>
                   <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white;">📦</button>
-                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white;">🗑️</button>
+                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white;">🗑️</button>
                 </div>
               </td>
             </tr>
@@ -680,6 +686,16 @@ async function editDocument(id) {
   }
 }
 
+// NEW: View Document History Function
+async function viewDocumentHistory(documentId, documentTitle) {
+  // Call the global helper from modal.js
+  if (window.openHistoryModal) {
+    window.openHistoryModal(documentId, documentTitle);
+  } else {
+    alert('History modal not loaded. Please refresh the page.');
+  }
+}
+
 function routeDocument(documentId) {
   api.get('/users/list')
     .then(response => {
@@ -754,6 +770,7 @@ window.editModal = editModal;
 window.formatFileSize = formatFileSize;
 window.viewDocument = viewDocument;
 window.editDocument = editDocument;
+window.viewDocumentHistory = viewDocumentHistory; // NEW: Export history function
 window.routeDocument = routeDocument;
 window.archiveDocument = archiveDocument;
 window.deleteDocument = deleteDocument;
