@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload (FINAL)
+// api/data/documents.js - SECURED VERSION with Optional File Upload + History
 
 // Core imports
 const pool = require('../db');
@@ -220,6 +220,51 @@ module.exports = async function handler(req, res) {
     switch (method) {
       case 'GET': {
         const documentId = query.id || query.document_id;
+        
+        // NEW: Handle history request
+        if (query.history === 'true') {
+          if (!documentId) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+          
+          try {
+            // Get document history
+            const historyQuery = `SELECT dh.*, 
+                          u.full_name as user_name,
+                          u.department as user_department
+                          FROM document_history dh
+                          LEFT JOIN users u ON dh.user_id = u.user_id
+                          WHERE dh.document_id = $1
+                          ORDER BY dh.created_at DESC`;
+            
+            const historyResult = await pool.query(historyQuery, [documentId]);
+            
+            // Get routing history
+            const routingQuery = `SELECT dr.*, 
+                                u_from.full_name as from_user_name,
+                                u_to.full_name as to_user_name
+                                FROM document_routing dr
+                                LEFT JOIN users u_from ON dr.from_user_id = u_from.user_id
+                                LEFT JOIN users u_to ON dr.to_user_id = u_to.user_id
+                                WHERE dr.document_id = $1
+                                ORDER BY dr.routed_at DESC`;
+            
+            const routingResult = await pool.query(routingQuery, [documentId]);
+            
+            return res.status(200).json({
+                success: true,
+                history: historyResult.rows,
+                routing: routingResult.rows
+            });
+          } catch (error) {
+            console.error('Document history error:', error);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Failed to fetch document history',
+                message: error.message 
+            });
+          }
+        }
         
         // If view=true, fetch from MEGA and display inline (for preview)
         if (query.view === 'true') {

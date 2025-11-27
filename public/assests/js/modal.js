@@ -468,7 +468,9 @@ class DocumentHistoryModal {
         `;
 
         try {
-            const response = await api.get(`/data/document-history?document_id=${documentId}`);
+            
+            const response = await api.get(`/data/documents?id=${documentId}&history=true`);
+            
             
             if (!response.success) {
                 throw new Error(response.error || 'Failed to load history');
