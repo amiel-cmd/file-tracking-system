@@ -1,5 +1,5 @@
 // Main Application JavaScript
-// Handles routing and API calls with full CRUD operations
+// Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
 
 const API_BASE = '/api';
 
@@ -309,59 +309,6 @@ const viewModal = {
   }
 };
 
-// Route Modal
-const routeModal = {
-  open(documentId, users, onSelect) {
-    const userOptions = users.map(user => `
-      <option value="${user.user_id}">${user.full_name || user.username}</option>
-    `).join('');
-
-    const modalHtml = `
-      <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 400px; width: 90%;">
-          <div style="margin-bottom: 1.5rem;">
-            <h2 style="margin: 0; font-size: 1.5rem;">Route Document</h2>
-            <p style="margin: 0.5rem 0 0 0; color: #666;">Select a user to route this document to:</p>
-          </div>
-          <div style="margin-bottom: 1.5rem;">
-            <select id="routeUserSelect" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
-              <option value="">-- Select a user --</option>
-              ${userOptions}
-            </select>
-          </div>
-          <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button id="routeCancelBtn" class="btn btn--secondary" style="padding: 0.5rem 1rem; cursor: pointer;">Cancel</button>
-            <button id="routeConfirmBtn" class="btn btn--primary" style="padding: 0.5rem 1rem; cursor: pointer;">Confirm</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const overlay = document.getElementById('routeModalOverlay');
-    const userSelect = document.getElementById('routeUserSelect');
-    const cancelBtn = document.getElementById('routeCancelBtn');
-    const confirmBtn = document.getElementById('routeConfirmBtn');
-
-    cancelBtn.addEventListener('click', () => overlay.remove());
-
-    confirmBtn.addEventListener('click', () => {
-      const selectedUserId = userSelect.value;
-      if (selectedUserId) {
-        onSelect(selectedUserId);
-        overlay.remove();
-      } else {
-        alert('Please select a user.');
-      }
-    });
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.remove();
-    });
-  }
-};
-
 // Utility function to format file size
 function formatFileSize(bytes) {
   if (!bytes) return 'N/A';
@@ -373,6 +320,12 @@ function formatFileSize(bytes) {
 // Router
 const router = {
   currentRoute: '',
+  allDocuments: [], // Store all documents for search/filter
+  filteredDocuments: [],
+  currentPage: 1,
+  itemsPerPage: 10,
+  sortColumn: 'uploaded_at',
+  sortDirection: 'desc',
 
   init() {
     this.handleRoute();
@@ -520,6 +473,8 @@ const router = {
 
     try {
       const data = await api.get('/data/dashboard');
+      this.allDocuments = data.documents || [];
+      this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
         <nav>
@@ -535,20 +490,49 @@ const router = {
           </div>
         </nav>
         <div class="container" style="padding: var(--space-32) 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); flex-wrap: wrap; gap: 1rem;">
             <h2 style="margin: 0;">My Documents</h2>
             <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
           </div>
+          
+          <!-- NEW: Search and Filter Bar -->
+          <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 250px;">
+              <input type="text" id="searchInput" placeholder="🔍 Search by title, type, or document #..." style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+            <select id="statusFilter" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="routed">Routed</option>
+              <option value="completed">Completed</option>
+            </select>
+            <select id="priorityFilter" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+              <option value="">All Priority</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+            <button onclick="router.resetFilters()" class="btn btn--secondary btn--sm">Clear Filters</button>
+          </div>
+          
           <div id="message"></div>
           <div class="card">
             <div class="card__body">
               <div id="documentsList"></div>
+              <div id="pagination" style="margin-top: 1.5rem;"></div>
             </div>
           </div>
         </div>
       `;
 
-      this.renderDocuments(data.documents || []);
+      // Attach search and filter listeners
+      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+
+      this.renderDocuments();
     } catch (error) {
       if (error.message.includes('Authentication')) {
         auth.removeToken();
@@ -559,42 +543,140 @@ const router = {
     }
   },
 
-  renderDocuments(documents) {
-    const container = document.getElementById('documentsList');
+  handleSearch(searchTerm) {
+    this.applyFilters(searchTerm);
+  },
 
-    if (documents.length === 0) {
+  applyFilters(searchTerm = null) {
+    const search = searchTerm !== null ? searchTerm : document.getElementById('searchInput')?.value || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    const priorityFilter = document.getElementById('priorityFilter')?.value || '';
+
+    this.filteredDocuments = this.allDocuments.filter(doc => {
+      const matchesSearch = !search || 
+        doc.title.toLowerCase().includes(search.toLowerCase()) ||
+        doc.document_type.toLowerCase().includes(search.toLowerCase()) ||
+        doc.document_number.toLowerCase().includes(search.toLowerCase());
+
+      const matchesStatus = !statusFilter || doc.status === statusFilter;
+      const matchesPriority = !priorityFilter || doc.priority === priorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    this.currentPage = 1; // Reset to first page
+    this.renderDocuments();
+  },
+
+  resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('priorityFilter').value = '';
+    this.filteredDocuments = [...this.allDocuments];
+    this.currentPage = 1;
+    this.renderDocuments();
+  },
+
+  sortDocuments(column) {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+
+    this.filteredDocuments.sort((a, b) => {
+      let aVal = a[column];
+      let bVal = b[column];
+
+      // Handle dates
+      if (column === 'uploaded_at') {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+
+      // Handle strings
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+
+      if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    this.renderDocuments();
+  },
+
+  renderDocuments() {
+    const container = document.getElementById('documentsList');
+    const paginationContainer = document.getElementById('pagination');
+
+    if (this.filteredDocuments.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No documents found</p>
-          <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">Get started by adding your first document</p>
-          <button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>
+          <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">
+            ${this.allDocuments.length === 0 ? 'Get started by adding your first document' : 'Try adjusting your search or filters'}
+          </p>
+          ${this.allDocuments.length === 0 ? '<button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>' : ''}
         </div>
       `;
+      if (paginationContainer) paginationContainer.innerHTML = '';
       return;
     }
 
+    // Pagination logic
+    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
+
+    const getSortIcon = (column) => {
+      if (this.sortColumn !== column) return '⇅';
+      return this.sortDirection === 'asc' ? '↑' : '↓';
+    };
+
     container.innerHTML = `
+      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
+        Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
+      </div>
       <table class="table">
         <thead>
           <tr>
-            <th>Document #</th>
-            <th>Title</th>
-            <th>Type</th>
-            <th>Priority</th>
-            <th>Status</th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('document_number')">
+              Document # ${getSortIcon('document_number')}
+            </th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('title')">
+              Title ${getSortIcon('title')}
+            </th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('document_type')">
+              Type ${getSortIcon('document_type')}
+            </th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('priority')">
+              Priority ${getSortIcon('priority')}
+            </th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('status')">
+              Status ${getSortIcon('status')}
+            </th>
+            <th>Current Location</th>
             <th>Uploaded By</th>
-            <th>Date</th>
+            <th style="cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
+              Date ${getSortIcon('uploaded_at')}
+            </th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${documents.map(doc => `
+          ${paginatedDocs.map(doc => `
             <tr>
               <td>${doc.document_number}</td>
               <td>${doc.title}</td>
               <td>${doc.document_type}</td>
               <td>${this.getPriorityBadge(doc.priority)}</td>
               <td>${this.getStatusBadge(doc.status)}</td>
+              <td>${doc.current_destination || doc.current_holder_name || '-'}</td>
               <td>${doc.uploaded_by_name || 'N/A'}</td>
               <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
               <td>
@@ -612,6 +694,58 @@ const router = {
         </tbody>
       </table>
     `;
+
+    // Render pagination
+    if (totalPages > 1) {
+      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem;">';
+      
+      // Previous button
+      paginationHTML += `
+        <button onclick="router.goToPage(${this.currentPage - 1})" 
+                ${this.currentPage === 1 ? 'disabled' : ''} 
+                class="btn btn--sm" 
+                style="${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+          ← Previous
+        </button>
+      `;
+
+      // Page numbers
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+          paginationHTML += `
+            <button onclick="router.goToPage(${i})" 
+                    class="btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}" 
+                    style="min-width: 40px;">
+              ${i}
+            </button>
+          `;
+        } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+          paginationHTML += '<span style="padding: 0 0.5rem;">...</span>';
+        }
+      }
+
+      // Next button
+      paginationHTML += `
+        <button onclick="router.goToPage(${this.currentPage + 1})" 
+                ${this.currentPage === totalPages ? 'disabled' : ''} 
+                class="btn btn--sm" 
+                style="${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+          Next →
+        </button>
+      `;
+
+      paginationHTML += '</div>';
+      paginationContainer.innerHTML = paginationHTML;
+    } else {
+      paginationContainer.innerHTML = '';
+    }
+  },
+
+  goToPage(page) {
+    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+    if (page < 1 || page > totalPages) return;
+    this.currentPage = page;
+    this.renderDocuments();
   },
 
   getStatusBadge(status) {
@@ -688,7 +822,6 @@ async function editDocument(id) {
 
 // NEW: View Document History Function
 async function viewDocumentHistory(documentId, documentTitle) {
-  // Call the global helper from modal.js
   if (window.openHistoryModal) {
     window.openHistoryModal(documentId, documentTitle);
   } else {
@@ -696,33 +829,68 @@ async function viewDocumentHistory(documentId, documentTitle) {
   }
 }
 
+// NEW: Text-based routing function
 function routeDocument(documentId) {
-  api.get('/users/list')
-    .then(response => {
-      if (response.users && routeModal) {
-        routeModal.open(documentId, response.users, async (selectedUserId) => {
-          try {
-            const result = await api.request(`/data/documents`, {
-              method: 'PATCH',
-              body: JSON.stringify({
-                document_id: documentId,
-                new_holder: selectedUserId
-              })
-            });
+  const modalHtml = `
+    <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+      <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
+        <div style="margin-bottom: 1.5rem;">
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">📤 Route Document</h2>
+          <p style="margin: 0; color: #666; font-size: 0.875rem;">Enter where you're sending this document</p>
+        </div>
+        <form id="routeTextForm">
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Send to:</label>
+            <input type="text" id="destinationText" placeholder="e.g., Accounting Department, Manager's Office, HR - John Doe" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;" required autofocus>
+            <small style="display: block; margin-top: 0.5rem; color: #666;">Type the department, office, or person's name</small>
+          </div>
+          <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button type="button" id="routeTextCancelBtn" class="btn btn--secondary" style="padding: 0.5rem 1rem; cursor: pointer;">Cancel</button>
+            <button type="submit" class="btn btn--primary" style="padding: 0.5rem 1.5rem; cursor: pointer;">📤 Route Document</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
 
-            alert(result.message || 'Document routed successfully!');
-            router.showDashboard();
-          } catch (error) {
-            alert('Failed to route document: ' + error.message);
-          }
-        });
-      } else {
-        alert('Failed to load users for routing.');
-      }
-    })
-    .catch(error => {
-      alert('Failed to load users: ' + error.message);
-    });
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const overlay = document.getElementById('routeModalOverlay');
+  const form = document.getElementById('routeTextForm');
+  const input = document.getElementById('destinationText');
+  const cancelBtn = document.getElementById('routeTextCancelBtn');
+
+  cancelBtn.addEventListener('click', () => overlay.remove());
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const destination = input.value.trim();
+    
+    if (!destination) {
+      alert('Please enter a destination');
+      return;
+    }
+
+    try {
+      const result = await api.request(`/data/documents`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          document_id: documentId,
+          destination_text: destination
+        })
+      });
+
+      alert(result.message || 'Document routed successfully!');
+      overlay.remove();
+      router.showDashboard();
+    } catch (error) {
+      alert('Failed to route document: ' + error.message);
+    }
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 }
 
 async function archiveDocument(id) {
@@ -764,13 +932,12 @@ document.addEventListener('DOMContentLoaded', () => {
 window.router = router;
 window.api = api;
 window.auth = auth;
-window.routeModal = routeModal;
 window.viewModal = viewModal;
 window.editModal = editModal;
 window.formatFileSize = formatFileSize;
 window.viewDocument = viewDocument;
 window.editDocument = editDocument;
-window.viewDocumentHistory = viewDocumentHistory; // NEW: Export history function
+window.viewDocumentHistory = viewDocumentHistory;
 window.routeDocument = routeDocument;
 window.archiveDocument = archiveDocument;
 window.deleteDocument = deleteDocument;

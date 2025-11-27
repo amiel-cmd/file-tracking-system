@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging
+// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing
 
 // Core imports
 const pool = require('../db');
@@ -614,12 +614,20 @@ module.exports = async function handler(req, res) {
       }
 
       case 'PATCH': {
-        // Route document to another user
+        // NEW: Route document with TEXT-BASED destination OR user-based routing
         const body = await parseJsonBody(req);
-        const { document_id, new_holder } = body;
+        const { document_id, new_holder, destination_text } = body;
 
-        if (!document_id || !new_holder) {
-          return res.status(400).json({ success: false, error: 'Document ID and new holder are required' });
+        if (!document_id) {
+          return res.status(400).json({ success: false, error: 'Document ID is required' });
+        }
+
+        // Must have either new_holder (user ID) OR destination_text (free text)
+        if (!new_holder && !destination_text) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Either recipient user or destination text is required' 
+          });
         }
 
         // STEP 3: Verify current holder or owner before routing
@@ -640,16 +648,45 @@ module.exports = async function handler(req, res) {
           });
         }
 
+        // NEW: If destination_text is provided (free-text routing), use it
+        if (destination_text) {
+          const routeQuery = `
+            UPDATE documents 
+            SET status = 'routed', current_destination = $1
+            WHERE document_id = $2 
+            RETURNING document_id, status, current_destination
+          `;
+
+          const routeResult = await pool.query(routeQuery, [sanitize(destination_text), document_id]);
+
+          // Log routing to history with free-text destination
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Routed', 
+            `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}`
+          );
+
+          console.log(`✓ Document ${document_id} routed to destination: ${destination_text}`);
+
+          return res.status(200).json({
+            success: true,
+            message: `Document routed to ${destination_text}`,
+            document: routeResult.rows[0],
+          });
+        }
+
+        // Otherwise, use the old user-based routing
         const routeQuery = `
           UPDATE documents 
-          SET current_holder = $1, status = 'routed' 
+          SET current_holder = $1, status = 'routed', current_destination = NULL
           WHERE document_id = $2 
           RETURNING document_id, current_holder, status
         `;
 
         const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
 
-        // NEW: Log routing to history
+        // Log routing to history
         try {
           const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
           const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
