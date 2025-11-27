@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload + History
+// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging
 
 // Core imports
 const pool = require('../db');
@@ -189,6 +189,21 @@ const sanitize = (str) => (str ? String(str).replace(/[<>]/g, '') : '');
 
 // IP helper (for logging if you need it)
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+// NEW: Helper to log document history
+async function logHistory(documentId, userId, action, details) {
+  try {
+    await pool.query(
+      `INSERT INTO document_history (document_id, user_id, action, details, created_at)
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [documentId, userId, action, details]
+    );
+    console.log(`✓ History logged: ${action} for document ${documentId} by user ${userId}`);
+  } catch (error) {
+    console.error('Failed to log document history:', error);
+    // Don't throw error - history logging failure shouldn't break main operation
+  }
+}
 
 module.exports = async function handler(req, res) {
   const { method, query } = req;
@@ -421,7 +436,7 @@ module.exports = async function handler(req, res) {
           }
 
           // STEP 3: Verify ownership before archiving
-          const docCheck = await pool.query('SELECT uploaded_by FROM documents WHERE document_id = $1', [document_id]);
+          const docCheck = await pool.query('SELECT uploaded_by, title FROM documents WHERE document_id = $1', [document_id]);
           if (docCheck.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found' });
           }
@@ -441,6 +456,14 @@ module.exports = async function handler(req, res) {
           `;
 
           const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
+
+          // NEW: Log archive to history
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Archived', 
+            `Document "${sanitize(docCheck.rows[0].title)}" was archived`
+          );
 
           return res.status(200).json({
             success: true,
@@ -565,6 +588,16 @@ module.exports = async function handler(req, res) {
           userId,
         ]);
 
+        const newDocId = insertResult.rows[0].document_id;
+
+        // NEW: Log document creation to history
+        const action = uploadedFile ? 'Document Uploaded' : 'Document Created';
+        const details = uploadedFile 
+          ? `Document "${sanitize(title)}" uploaded with file: ${fileName} (${(fileSize / 1024).toFixed(2)} KB)`
+          : `Document "${sanitize(title)}" created without file attachment`;
+        
+        await logHistory(newDocId, userId, action, details);
+
         console.log(`Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${documentNumber}`);
 
         return res.status(201).json({
@@ -591,7 +624,7 @@ module.exports = async function handler(req, res) {
 
         // STEP 3: Verify current holder or owner before routing
         const docCheck = await pool.query(
-          'SELECT uploaded_by, current_holder FROM documents WHERE document_id = $1',
+          'SELECT uploaded_by, current_holder, title FROM documents WHERE document_id = $1',
           [document_id]
         );
         
@@ -616,6 +649,22 @@ module.exports = async function handler(req, res) {
 
         const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
 
+        // NEW: Log routing to history
+        try {
+          const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
+          const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
+          
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Routed', 
+            `Document "${sanitize(doc.title)}" routed to ${holderName}`
+          );
+        } catch (error) {
+          console.error('Failed to get holder info for history:', error);
+          await logHistory(document_id, userId, 'Document Routed', `Document routed to another user`);
+        }
+
         return res.status(200).json({
           success: true,
           message: 'Document routed successfully!',
@@ -632,7 +681,7 @@ module.exports = async function handler(req, res) {
         }
 
         // STEP 3: Verify ownership before updating
-        const docCheck = await pool.query('SELECT uploaded_by FROM documents WHERE document_id = $1', [document_id]);
+        const docCheck = await pool.query('SELECT uploaded_by, title as old_title FROM documents WHERE document_id = $1', [document_id]);
         if (docCheck.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
@@ -658,6 +707,14 @@ module.exports = async function handler(req, res) {
           sanitize(priority),
           document_id,
         ]);
+
+        // NEW: Log edit to history
+        await logHistory(
+          document_id, 
+          userId, 
+          'Document Updated', 
+          `Document details updated: "${sanitize(title)}" (Type: ${sanitize(document_type)}, Priority: ${sanitize(priority)})`
+        );
 
         return res.status(200).json({
           success: true,
@@ -695,6 +752,14 @@ module.exports = async function handler(req, res) {
             error: 'Access denied: You can only delete documents you uploaded' 
           });
         }
+
+        // NEW: Log deletion to history BEFORE deleting (important!)
+        await logHistory(
+          deleteId, 
+          userId, 
+          'Document Deleted', 
+          `Document "${sanitize(doc.title)}" permanently deleted${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
+        );
 
         // CHANGED: Only delete from MEGA if file exists
         if (doc.mega_file_id) {
