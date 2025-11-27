@@ -762,3 +762,112 @@ a:hover {
 .doc-modal-overlay.active {
     display: flex !important;
 }
+
+/* ============================================
+   TABLE ACTION BUTTONS - HORIZONTAL LAYOUT
+   ============================================ */
+
+/* Force horizontal layout for action buttons */
+.table td > div {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
+/* Action button styling */
+.table td .btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: fit-content;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    margin: 0;
+}
+
+/* Specific button widths for consistency */
+.table td .btn[onclick*="viewDocument"] {
+    min-width: 50px;
+    background: #f1f5f9;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+}
+
+.table td .btn[onclick*="editDocument"] {
+    min-width: 45px;
+    background: #f1f5f9;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+}
+
+.table td .btn[onclick*="viewDocumentHistory"] {
+    min-width: 60px;
+    background: #6366f1;
+    color: white;
+    border: 1px solid #6366f1;
+}
+
+.table td .btn[onclick*="routeDocument"] {
+    min-width: 52px;
+}
+
+.table td .btn[onclick*="archiveDocument"] {
+    min-width: 65px;
+    background: #f59e0b;
+    color: white;
+    border: 1px solid #f59e0b;
+}
+
+.table td .btn[onclick*="deleteDocument"] {
+    min-width: 58px;
+    background: #ef4444;
+    color: white;
+    border: 1px solid #ef4444;
+}
+
+/* Hover effects for action buttons */
+.table td .btn[onclick*="viewDocument"]:hover,
+.table td .btn[onclick*="editDocument"]:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+
+.table td .btn[onclick*="viewDocumentHistory"]:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.table td .btn[onclick*="archiveDocument"]:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+}
+
+.table td .btn[onclick*="deleteDocument"]:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Mobile responsive - stack buttons on very small screens */
+@media (max-width: 640px) {
+    .table td > div {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .table td .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Ensure table actions column doesn't break */
+.table th:last-child,
+.table td:last-child {
+    min-width: 380px;
+}
