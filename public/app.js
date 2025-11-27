@@ -1,5 +1,6 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
+// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE
 
 const API_BASE = '/api';
 
@@ -495,7 +496,7 @@ const router = {
             <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
           </div>
           
-          <!-- NEW: Search and Filter Bar -->
+          <!-- Search and Filter Bar -->
           <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
             <div style="flex: 1; min-width: 250px;">
               <input type="text" id="searchInput" placeholder="🔍 Search by title, type, or document #..." style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
@@ -642,62 +643,66 @@ const router = {
       <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
       </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('document_number')">
-              Document # ${getSortIcon('document_number')}
-            </th>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('title')">
-              Title ${getSortIcon('title')}
-            </th>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('document_type')">
-              Type ${getSortIcon('document_type')}
-            </th>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('priority')">
-              Priority ${getSortIcon('priority')}
-            </th>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('status')">
-              Status ${getSortIcon('status')}
-            </th>
-            <th>Current Location</th>
-            <th>Uploaded By</th>
-            <th style="cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
-              Date ${getSortIcon('uploaded_at')}
-            </th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${paginatedDocs.map(doc => `
+      
+      <!-- RESPONSIVE TABLE WRAPPER -->
+      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table class="table" style="min-width: 1000px; table-layout: fixed;">
+          <thead>
             <tr>
-              <td>${doc.document_number}</td>
-              <td>${doc.title}</td>
-              <td>${doc.document_type}</td>
-              <td>${this.getPriorityBadge(doc.priority)}</td>
-              <td>${this.getStatusBadge(doc.status)}</td>
-              <td>${doc.current_destination || doc.current_holder_name || '-'}</td>
-              <td>${doc.uploaded_by_name || 'N/A'}</td>
-              <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
-              <td>
-                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
-                  <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
-                  <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white;">📜</button>
-                  <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route">📤</button>
-                  <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white;">📦</button>
-                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white;">🗑️</button>
-                </div>
-              </td>
+              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">
+                Document # ${getSortIcon('document_number')}
+              </th>
+              <th style="width: 180px; cursor: pointer;" onclick="router.sortDocuments('title')">
+                Title ${getSortIcon('title')}
+              </th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('document_type')">
+                Type ${getSortIcon('document_type')}
+              </th>
+              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('priority')">
+                Priority ${getSortIcon('priority')}
+              </th>
+              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('status')">
+                Status ${getSortIcon('status')}
+              </th>
+              <th style="width: 140px;">Current Location</th>
+              <th style="width: 120px;">Uploaded By</th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
+                Date ${getSortIcon('uploaded_at')}
+              </th>
+              <th style="width: 240px;">Actions</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${paginatedDocs.map(doc => `
+              <tr>
+                <td style="font-size: 0.85rem;">${doc.document_number}</td>
+                <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.title}">${doc.title}</td>
+                <td>${doc.document_type}</td>
+                <td>${this.getPriorityBadge(doc.priority)}</td>
+                <td>${this.getStatusBadge(doc.status)}</td>
+                <td style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.current_destination || doc.current_holder_name || '-'}">${doc.current_destination || doc.current_holder_name || '-'}</td>
+                <td>${doc.uploaded_by_name || 'N/A'}</td>
+                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                <td>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">View</button>
+                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit" style="min-width: 50px;">Edit</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">History</button>
+                    <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">Route</button>
+                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white; min-width: 65px;">Archive</button>
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
 
     // Render pagination
     if (totalPages > 1) {
-      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem;">';
+      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">';
       
       // Previous button
       paginationHTML += `
@@ -820,7 +825,7 @@ async function editDocument(id) {
   }
 }
 
-// NEW: View Document History Function
+// View Document History Function
 async function viewDocumentHistory(documentId, documentTitle) {
   if (window.openHistoryModal) {
     window.openHistoryModal(documentId, documentTitle);
@@ -829,7 +834,7 @@ async function viewDocumentHistory(documentId, documentTitle) {
   }
 }
 
-// NEW: Text-based routing function
+// Text-based routing function
 function routeDocument(documentId) {
   const modalHtml = `
     <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
