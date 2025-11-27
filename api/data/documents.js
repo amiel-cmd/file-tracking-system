@@ -1,4 +1,4 @@
-// api/data/documents.js - FULL CRUD + Archive Support
+// api/data/documents.js - SECURED VERSION with Access Control, Rate Limiting, and File Validation
 
 // Core imports
 const pool = require('../db');
@@ -16,6 +16,87 @@ exports.config = {
     bodyParser: false,
   },
 };
+
+// STEP 5: Rate Limiting
+const rateLimitMap = new Map();
+
+function checkRateLimit(userId) {
+  const now = Date.now();
+  const userRequests = rateLimitMap.get(userId) || [];
+  
+  // Keep only requests from last minute
+  const recentRequests = userRequests.filter(time => now - time < 60000);
+  
+  if (recentRequests.length >= 20) { // Max 20 requests per minute
+    return false;
+  }
+  
+  recentRequests.push(now);
+  rateLimitMap.set(userId, recentRequests);
+  return true;
+}
+
+// Cleanup old rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, requests] of rateLimitMap.entries()) {
+    const recent = requests.filter(time => now - time < 60000);
+    if (recent.length === 0) {
+      rateLimitMap.delete(userId);
+    } else {
+      rateLimitMap.set(userId, recent);
+    }
+  }
+}, 300000);
+
+// STEP 6: File Type Validation
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/x-rar-compressed'
+];
+
+const ALLOWED_EXTENSIONS = [
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'jpg', 'jpeg', 'png', 'gif', 'webp',
+  'txt', 'csv', 'zip', 'rar'
+];
+
+function validateFile(file) {
+  // Check file extension
+  const fileName = file.originalFilename || file.newFilename;
+  const ext = fileName.toLowerCase().split('.').pop();
+  
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    return {
+      valid: false,
+      error: `File extension '.${ext}' is not allowed. Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`
+    };
+  }
+  
+  // Check MIME type
+  const mimeType = file.mimetype;
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return {
+      valid: false,
+      error: `File type '${mimeType}' is not allowed for security reasons`
+    };
+  }
+  
+  return { valid: true };
+}
 
 // Helper: Initialize MEGA storage
 const getMegaStorage = async () => {
@@ -120,9 +201,19 @@ module.exports = async function handler(req, res) {
     user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
   } catch (error) {
     // For local dev you can fall back to userId=1; remove this in production
-    user = { userId: 1 };
+    user = { userId: 1, role: 'user' };
   }
   const userId = user.userId || 1;
+  const userRole = user.role || 'user';
+
+  // STEP 5: Check Rate Limit
+  if (!checkRateLimit(userId)) {
+    console.log(`Rate limit exceeded for user ${userId} from IP ${getClientIp(req)}`);
+    return res.status(429).json({ 
+      success: false, 
+      error: 'Too many requests. Please try again later.' 
+    });
+  }
 
   try {
     switch (method) {
@@ -141,6 +232,15 @@ module.exports = async function handler(req, res) {
           }
           
           const doc = docResult.rows[0];
+          
+          // STEP 3: Access Control Check
+          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
+            console.log(`Access denied: User ${userId} attempted to view document ${documentId}`);
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You do not have permission to view this document' 
+            });
+          }
           
           // View/Preview from MEGA
           try {
@@ -188,6 +288,15 @@ module.exports = async function handler(req, res) {
           
           const doc = docResult.rows[0];
           
+          // STEP 3: Access Control Check
+          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
+            console.log(`Access denied: User ${userId} attempted to download document ${documentId}`);
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You do not have permission to download this document' 
+            });
+          }
+          
           // Download from MEGA
           try {
             const storage = await getMegaStorage();
@@ -220,10 +329,22 @@ module.exports = async function handler(req, res) {
         if (!documentId) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
+        
         const viewResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
         if (viewResult.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
+        
+        const doc = viewResult.rows[0];
+        
+        // STEP 3: Access Control Check for metadata
+        if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied: You do not have permission to access this document' 
+          });
+        }
+        
         return res.status(200).json({ success: true, document: viewResult.rows[0] });
       }
 
@@ -237,6 +358,19 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
 
+          // STEP 3: Verify ownership before archiving
+          const docCheck = await pool.query('SELECT uploaded_by FROM documents WHERE document_id = $1', [document_id]);
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You can only archive documents you uploaded' 
+            });
+          }
+
           const archiveQuery = `
             UPDATE documents 
             SET is_archived = 1, archived_at = NOW(), archived_by = $1 
@@ -245,10 +379,6 @@ module.exports = async function handler(req, res) {
           `;
 
           const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
-
-          if (archiveResult.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found' });
-          }
 
           return res.status(200).json({
             success: true,
@@ -288,8 +418,29 @@ module.exports = async function handler(req, res) {
           });
         }
 
+        // STEP 6: Validate File Type
+        const validation = validateFile(uploadedFile);
+        if (!validation.valid) {
+          console.log(`File validation failed for user ${userId}: ${validation.error}`);
+          // Clean up uploaded file
+          await fs.unlink(uploadedFile.filepath).catch(() => {});
+          return res.status(400).json({
+            success: false,
+            error: validation.error
+          });
+        }
+
         const fileName = uploadedFile.originalFilename || uploadedFile.newFilename;
         const fileSize = uploadedFile.size;
+
+        // Additional size check
+        if (fileSize > 10 * 1024 * 1024) {
+          await fs.unlink(uploadedFile.filepath).catch(() => {});
+          return res.status(400).json({
+            success: false,
+            error: 'File size exceeds 10MB limit'
+          });
+        }
 
         // Upload to MEGA
         let megaFileId, megaLink;
@@ -313,6 +464,8 @@ module.exports = async function handler(req, res) {
           
         } catch (error) {
           console.error('MEGA upload failed:', error);
+          // Clean up temp file on error
+          await fs.unlink(uploadedFile.filepath).catch(() => {});
           return res.status(500).json({
             success: false,
             error: 'Failed to upload to MEGA storage',
@@ -342,6 +495,8 @@ module.exports = async function handler(req, res) {
           userId,
         ]);
 
+        console.log(`Document uploaded successfully by user ${userId}: ${documentNumber}`);
+
         return res.status(201).json({
           success: true,
           message: 'Document uploaded to MEGA successfully!',
@@ -361,6 +516,24 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Document ID and new holder are required' });
         }
 
+        // STEP 3: Verify current holder or owner before routing
+        const docCheck = await pool.query(
+          'SELECT uploaded_by, current_holder FROM documents WHERE document_id = $1',
+          [document_id]
+        );
+        
+        if (docCheck.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+        
+        const doc = docCheck.rows[0];
+        if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied: You can only route documents you own or currently hold' 
+          });
+        }
+
         const routeQuery = `
           UPDATE documents 
           SET current_holder = $1, status = 'routed' 
@@ -369,10 +542,6 @@ module.exports = async function handler(req, res) {
         `;
 
         const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
-
-        if (routeResult.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Document not found' });
-        }
 
         return res.status(200).json({
           success: true,
@@ -389,6 +558,19 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
 
+        // STEP 3: Verify ownership before updating
+        const docCheck = await pool.query('SELECT uploaded_by FROM documents WHERE document_id = $1', [document_id]);
+        if (docCheck.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+        
+        if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied: You can only edit documents you uploaded' 
+          });
+        }
+
         const updateQuery = `
           UPDATE documents 
           SET title = $1, description = $2, document_type = $3, priority = $4 
@@ -403,10 +585,6 @@ module.exports = async function handler(req, res) {
           sanitize(priority),
           document_id,
         ]);
-
-        if (updateResult.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Document not found' });
-        }
 
         return res.status(200).json({
           success: true,
@@ -426,20 +604,33 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
 
-        // Get document info first to delete from MEGA
-        const docResult = await pool.query('SELECT mega_file_id FROM documents WHERE document_id = $1', [deleteId]);
+        // Get document info first
+        const docResult = await pool.query(
+          'SELECT mega_file_id, uploaded_by FROM documents WHERE document_id = $1',
+          [deleteId]
+        );
         
         if (docResult.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
 
+        // STEP 3: Verify ownership before deleting
+        const doc = docResult.rows[0];
+        if (doc.uploaded_by !== userId && userRole !== 'admin') {
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied: You can only delete documents you uploaded' 
+          });
+        }
+
         // Delete from MEGA
         try {
           const storage = await getMegaStorage();
-          const file = await findMegaFile(storage, docResult.rows[0].mega_file_id);
+          const file = await findMegaFile(storage, doc.mega_file_id);
           
           if (file) {
             await file.delete();
+            console.log(`File deleted from MEGA: ${doc.mega_file_id}`);
           }
         } catch (error) {
           console.error('MEGA deletion failed:', error);
@@ -451,6 +642,8 @@ module.exports = async function handler(req, res) {
           'DELETE FROM documents WHERE document_id = $1 RETURNING document_id',
           [deleteId],
         );
+
+        console.log(`Document deleted by user ${userId}: ${deleteId}`);
 
         return res.status(200).json({
           success: true,
