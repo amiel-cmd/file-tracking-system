@@ -346,14 +346,7 @@ module.exports = async function handler(req, res) {
             });
           }
           
-          // Access Control Check
-          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-            console.log(`Access denied: User ${userId} attempted to view document ${documentId}`);
-            return res.status(403).json({ 
-              success: false, 
-              error: 'Access denied: You do not have permission to view this document' 
-            });
-          }
+          // NO ACCESS CONTROL - Everyone can view documents
           
           // View/Preview from MEGA
           try {
@@ -409,14 +402,7 @@ module.exports = async function handler(req, res) {
             });
           }
           
-          // Access Control Check
-          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-            console.log(`Access denied: User ${userId} attempted to download document ${documentId}`);
-            return res.status(403).json({ 
-              success: false, 
-              error: 'Access denied: You do not have permission to download this document' 
-            });
-          }
+          // NO ACCESS CONTROL - Everyone can download documents
           
           // Download from MEGA
           try {
@@ -455,15 +441,7 @@ module.exports = async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
         
-        const doc = viewResult.rows[0];
-        
-        // Access Control Check for metadata
-        if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-          return res.status(403).json({ 
-            success: false, 
-            error: 'Access denied: You do not have permission to access this document' 
-          });
-        }
+        // NO ACCESS CONTROL - Everyone can view document metadata
         
         return res.status(200).json({ success: true, document: viewResult.rows[0] });
       }
@@ -573,8 +551,8 @@ module.exports = async function handler(req, res) {
             uploadDir: '/tmp',
             keepExtensions: true,
             multiples: false,
-            allowEmptyFiles: true,  // ← ADDED: Allow empty files
-            minFileSize: 0,         // ← ADDED: Allow 0-byte files
+            allowEmptyFiles: true,  // Allow empty files
+            minFileSize: 0,         // Allow 0-byte files
           });
 
           [fields, files] = await new Promise((resolve, reject) => {
