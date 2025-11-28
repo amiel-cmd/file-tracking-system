@@ -1,6 +1,7 @@
-const pool = require('../db');
-const { requireAuth, requireAdmin } = require('../utils/auth');
+const pool = require('../../db');
+const { requireAuth, requireAdmin } = require('../../utils/auth');
 const bcrypt = require('bcrypt');
+
 
 module.exports = async function handler(req, res) {
     console.log('DEBUG: [...route].js handler called');
