@@ -1337,7 +1337,7 @@ async function archiveDocument(documentId) {
   if (!confirm('Archive this document?')) return;
 
   try {
-    const result = await api.post('/data/documents/archive', { document_id: documentId });
+    const result = await api.post('/data/documents?action=archive', { document_id: documentId });
     alert(result.message || 'Document archived successfully!');
     router.handleRoute();
   } catch (error) {
