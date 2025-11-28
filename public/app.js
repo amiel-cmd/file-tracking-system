@@ -1362,7 +1362,7 @@ async function routeDocument(documentId) {
   if (!destination) return;
 
   try {
-    // FIXED: Use PATCH method with destination_text parameter
+    // FIXED: Use PATCH method with destination_text parameters
     const result = await api.request('/data/documents', {
       method: 'PATCH',
       body: JSON.stringify({
