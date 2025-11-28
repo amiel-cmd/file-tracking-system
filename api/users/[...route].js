@@ -3,7 +3,7 @@ const { requireAuth, requireAdmin } = require('../utils/auth');
 const bcrypt = require('bcrypt');
 
 module.exports = async function handler(req, res) {
-    console.log('DEBUG: user.js handler called');
+    console.log('DEBUG: [...route].js handler called');
     console.log('DEBUG: req.method:', req.method);
     console.log('DEBUG: req.url:', req.url);
 
@@ -32,6 +32,10 @@ module.exports = async function handler(req, res) {
         const { method, url } = req;
         console.log('DEBUG: After auth - method:', method, 'url:', url);
 
+        // Extract route path (remove query params)
+        const routePath = url.split('?')[0];
+        console.log('DEBUG: Route path:', routePath);
+
         // Helper to parse JSON body
         const parseBody = () => {
             return new Promise((resolve, reject) => {
@@ -49,10 +53,9 @@ module.exports = async function handler(req, res) {
         };
 
         // GET ADMIN DASHBOARD STATS
-        if (url.endsWith('/stats') && method === 'GET') {
-            console.log('DEBUG: /stats endpoint matched');
+        if (routePath.includes('/user/stats') && method === 'GET') {
+            console.log('DEBUG: /user/stats endpoint matched');
             
-            // Get user statistics
             const statsQuery = `
                 SELECT 
                     COUNT(*) as total_users,
@@ -64,7 +67,6 @@ module.exports = async function handler(req, res) {
             `;
             const statsResult = await pool.query(statsQuery);
 
-            // Get document statistics
             const docStatsQuery = `
                 SELECT 
                     COUNT(*) as total_documents,
@@ -77,7 +79,6 @@ module.exports = async function handler(req, res) {
             `;
             const docStatsResult = await pool.query(docStatsQuery);
 
-            // Get recent activity
             const recentActivityQuery = `
                 SELECT 
                     dh.action,
@@ -101,9 +102,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET ALL USERS (with filtering options)
-        if (url.endsWith('/list') && method === 'GET') {
-            console.log('DEBUG: /list endpoint matched');
+        // GET ALL USERS
+        if (routePath.includes('/user/list') && method === 'GET') {
+            console.log('DEBUG: /user/list endpoint matched');
             
             const usersQuery = `
                 SELECT 
@@ -127,9 +128,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET PENDING USERS (awaiting approval)
-        if (url.endsWith('/pending') && method === 'GET') {
-            console.log('DEBUG: /pending endpoint matched');
+        // GET PENDING USERS
+        if (routePath.includes('/user/pending') && method === 'GET') {
+            console.log('DEBUG: /user/pending endpoint matched');
             
             const pendingQuery = `
                 SELECT 
@@ -152,8 +153,8 @@ module.exports = async function handler(req, res) {
         }
 
         // APPROVE USER
-        if (url.endsWith('/approve') && method === 'POST') {
-            console.log('DEBUG: /approve endpoint matched');
+        if (routePath.includes('/user/approve') && method === 'POST') {
+            console.log('DEBUG: /user/approve endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -164,7 +165,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Approve user (set is_active = 1)
             const updateQuery = `
                 UPDATE users 
                 SET is_active = 1 
@@ -190,8 +190,8 @@ module.exports = async function handler(req, res) {
         }
 
         // REJECT/DENY USER
-        if (url.endsWith('/reject') && method === 'POST') {
-            console.log('DEBUG: /reject endpoint matched');
+        if (routePath.includes('/user/reject') && method === 'POST') {
+            console.log('DEBUG: /user/reject endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -202,7 +202,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Get user info before deletion
             const userInfo = await pool.query(
                 'SELECT username, full_name, email FROM users WHERE user_id = $1',
                 [user_id]
@@ -215,22 +214,21 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Delete user
             const deleteQuery = 'DELETE FROM users WHERE user_id = $1 RETURNING user_id, username, full_name';
             const result = await pool.query(deleteQuery, [user_id]);
 
-            console.log(`✓ User ${user_id} (${userInfo.rows[0].username}) rejected and removed by admin`);
+            console.log(`✓ User ${user_id} (${userInfo.rows[0].username}) rejected by admin`);
 
             return res.status(200).json({
                 success: true,
-                message: 'User registration rejected and removed successfully!',
+                message: 'User registration rejected!',
                 user: result.rows[0]
             });
         }
 
-        // DEACTIVATE USER (soft delete - set is_active = 0)
-        if (url.endsWith('/deactivate') && method === 'POST') {
-            console.log('DEBUG: /deactivate endpoint matched');
+        // DEACTIVATE USER
+        if (routePath.includes('/user/deactivate') && method === 'POST') {
+            console.log('DEBUG: /user/deactivate endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -266,8 +264,8 @@ module.exports = async function handler(req, res) {
         }
 
         // REACTIVATE USER
-        if (url.endsWith('/reactivate') && method === 'POST') {
-            console.log('DEBUG: /reactivate endpoint matched');
+        if (routePath.includes('/user/reactivate') && method === 'POST') {
+            console.log('DEBUG: /user/reactivate endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -303,8 +301,8 @@ module.exports = async function handler(req, res) {
         }
 
         // UPDATE USER ROLE
-        if (url.endsWith('/update-role') && method === 'POST') {
-            console.log('DEBUG: /update-role endpoint matched');
+        if (routePath.includes('/user/update-role') && method === 'POST') {
+            console.log('DEBUG: /user/update-role endpoint matched');
             const body = await parseBody();
             const { user_id, role } = body;
 
@@ -337,18 +335,18 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            console.log(`✓ User ${user_id} (${result.rows[0].username}) role changed to ${role} by admin`);
+            console.log(`✓ User ${user_id} (${result.rows[0].username}) role changed to ${role}`);
 
             return res.status(200).json({
                 success: true,
-                message: `User role updated to ${role} successfully!`,
+                message: `User role updated to ${role}!`,
                 user: result.rows[0]
             });
         }
 
         // DELETE USER PERMANENTLY
-        if (url.endsWith('/delete') && method === 'DELETE') {
-            console.log('DEBUG: /delete endpoint matched');
+        if (routePath.includes('/user/delete') && method === 'POST') {
+            console.log('DEBUG: /user/delete endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -359,7 +357,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Check if user has documents
             const docCheck = await pool.query(
                 'SELECT COUNT(*) as doc_count FROM documents WHERE uploaded_by = $1',
                 [user_id]
@@ -367,7 +364,6 @@ module.exports = async function handler(req, res) {
 
             const hasDocuments = parseInt(docCheck.rows[0].doc_count) > 0;
 
-            // Get user info
             const userInfo = await pool.query(
                 'SELECT username, full_name FROM users WHERE user_id = $1',
                 [user_id]
@@ -380,24 +376,22 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Delete user
             const deleteQuery = 'DELETE FROM users WHERE user_id = $1 RETURNING user_id, username, full_name';
             const result = await pool.query(deleteQuery, [user_id]);
 
-            console.log(`✓ User ${user_id} (${userInfo.rows[0].username}) permanently deleted by admin`);
+            console.log(`✓ User ${user_id} (${userInfo.rows[0].username}) deleted by admin`);
 
             return res.status(200).json({
                 success: true,
                 message: 'User permanently deleted!',
                 user: result.rows[0],
-                had_documents: hasDocuments,
-                warning: hasDocuments ? 'User had documents that may now be orphaned' : null
+                had_documents: hasDocuments
             });
         }
 
-        // RESET USER PASSWORD (admin can reset any user's password)
-        if (url.endsWith('/reset-password') && method === 'POST') {
-            console.log('DEBUG: /reset-password endpoint matched');
+        // RESET USER PASSWORD
+        if (routePath.includes('/user/reset-password') && method === 'POST') {
+            console.log('DEBUG: /user/reset-password endpoint matched');
             const body = await parseBody();
             const { user_id, new_password } = body;
 
@@ -415,7 +409,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Hash new password
             const hashedPassword = await bcrypt.hash(new_password, 10);
 
             const updateQuery = `
@@ -443,10 +436,9 @@ module.exports = async function handler(req, res) {
         }
 
         // GET USER DETAILS BY ID
-        if (url.includes('/details') && method === 'GET') {
-            console.log('DEBUG: /details endpoint matched');
+        if (routePath.includes('/user/details') && method === 'GET') {
+            console.log('DEBUG: /user/details endpoint matched');
             
-            // Extract user_id from query string
             const urlParams = new URL(req.url, `http://${req.headers.host}`);
             const user_id = urlParams.searchParams.get('id');
 
@@ -457,7 +449,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Get user details
             const userQuery = `
                 SELECT 
                     user_id,
@@ -481,7 +472,6 @@ module.exports = async function handler(req, res) {
                 });
             }
 
-            // Get user's document statistics
             const docStatsQuery = `
                 SELECT 
                     COUNT(*) as total_documents,
@@ -506,7 +496,7 @@ module.exports = async function handler(req, res) {
             path: url
         });
     } catch (error) {
-        console.error('User management error:', error);
+        console.error('Admin management error:', error);
         return res.status(500).json({
             success: false,
             error: 'Internal server error',
