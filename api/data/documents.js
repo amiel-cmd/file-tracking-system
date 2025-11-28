@@ -207,6 +207,7 @@ async function logHistory(documentId, userId, action, details) {
 
 module.exports = async function handler(req, res) {
   const { method, query } = req;
+  const urlPath = req.url.split('?')[0]; // Get clean URL path
 
   // Auth: decode JWT from Authorization header
   let user;
@@ -236,8 +237,8 @@ module.exports = async function handler(req, res) {
       case 'GET': {
         const documentId = query.id || query.document_id;
         
-        // Handle history request
-        if (query.history === 'true') {
+        // Handle /documents/history endpoint
+        if (urlPath.includes('/history')) {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
@@ -255,6 +256,49 @@ module.exports = async function handler(req, res) {
             const historyResult = await pool.query(historyQuery, [documentId]);
             
             // Get routing history
+            const routingQuery = `SELECT dr.*, 
+                                u_from.full_name as from_user_name,
+                                u_to.full_name as to_user_name
+                                FROM document_routing dr
+                                LEFT JOIN users u_from ON dr.from_user_id = u_from.user_id
+                                LEFT JOIN users u_to ON dr.to_user_id = u_to.user_id
+                                WHERE dr.document_id = $1
+                                ORDER BY dr.routed_at DESC`;
+            
+            const routingResult = await pool.query(routingQuery, [documentId]);
+            
+            return res.status(200).json({
+                success: true,
+                history: historyResult.rows,
+                routing: routingResult.rows
+            });
+          } catch (error) {
+            console.error('Document history error:', error);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Failed to fetch document history',
+                message: error.message 
+            });
+          }
+        }
+        
+        // Handle history query parameter (backwards compatibility)
+        if (query.history === 'true') {
+          if (!documentId) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+          
+          try {
+            const historyQuery = `SELECT dh.*, 
+                          u.full_name as user_name,
+                          u.department as user_department
+                          FROM document_history dh
+                          LEFT JOIN users u ON dh.user_id = u.user_id
+                          WHERE dh.document_id = $1
+                          ORDER BY dh.created_at DESC`;
+            
+            const historyResult = await pool.query(historyQuery, [documentId]);
+            
             const routingQuery = `SELECT dr.*, 
                                 u_from.full_name as from_user_name,
                                 u_to.full_name as to_user_name
@@ -425,7 +469,205 @@ module.exports = async function handler(req, res) {
       }
 
       case 'POST': {
-        // Check for special actions in query
+        // Handle /documents/archive endpoint
+        if (urlPath.includes('/archive')) {
+          const body = await parseJsonBody(req);
+          const { document_id } = body;
+
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          // Verify ownership before archiving
+          const docCheck = await pool.query('SELECT uploaded_by, title FROM documents WHERE document_id = $1', [document_id]);
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You can only archive documents you uploaded' 
+            });
+          }
+
+          const archiveQuery = `
+            UPDATE documents 
+            SET is_archived = 1, archived_at = NOW(), archived_by = $1 
+            WHERE document_id = $2 
+            RETURNING document_id, title, is_archived
+          `;
+
+          const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
+
+          // Log archive to history
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Archived', 
+            `Document "${sanitize(docCheck.rows[0].title)}" was archived`
+          );
+
+          return res.status(200).json({
+            success: true,
+            message: 'Document archived successfully!',
+            document: archiveResult.rows[0],
+          });
+        }
+
+        // Handle /documents/restore endpoint
+        if (urlPath.includes('/restore')) {
+          const body = await parseJsonBody(req);
+          const { document_id } = body;
+
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          // Verify ownership before restoring
+          const docCheck = await pool.query('SELECT uploaded_by, title, is_archived FROM documents WHERE document_id = $1', [document_id]);
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          // Check if document is actually archived
+          if (docCheck.rows[0].is_archived !== 1) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Document is not archived' 
+            });
+          }
+          
+          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You can only restore documents you uploaded' 
+            });
+          }
+
+          const restoreQuery = `
+            UPDATE documents 
+            SET is_archived = 0, archived_at = NULL, archived_by = NULL 
+            WHERE document_id = $1 
+            RETURNING document_id, title, is_archived
+          `;
+
+          const restoreResult = await pool.query(restoreQuery, [document_id]);
+
+          // Log restore to history
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Restored', 
+            `Document "${sanitize(docCheck.rows[0].title)}" was restored from archive`
+          );
+
+          console.log(`✓ Document ${document_id} restored from archive by user ${userId}`);
+
+          return res.status(200).json({
+            success: true,
+            message: 'Document restored successfully!',
+            document: restoreResult.rows[0],
+          });
+        }
+
+        // Handle /documents/route endpoint
+        if (urlPath.includes('/route')) {
+          const body = await parseJsonBody(req);
+          const { document_id, new_holder, destination } = body;
+
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          // Must have either new_holder OR destination
+          if (!new_holder && !destination) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Either recipient user or destination is required' 
+            });
+          }
+
+          // Verify current holder or owner before routing
+          const docCheck = await pool.query(
+            'SELECT uploaded_by, current_holder, title FROM documents WHERE document_id = $1',
+            [document_id]
+          );
+          
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          const doc = docCheck.rows[0];
+          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You can only route documents you own or currently hold' 
+            });
+          }
+
+          // If destination is provided (free-text routing), use it
+          if (destination) {
+            const routeQuery = `
+              UPDATE documents 
+              SET status = 'routed', current_destination = $1
+              WHERE document_id = $2 
+              RETURNING document_id, status, current_destination
+            `;
+
+            const routeResult = await pool.query(routeQuery, [sanitize(destination), document_id]);
+
+            // Log routing to history with free-text destination
+            await logHistory(
+              document_id, 
+              userId, 
+              'Document Routed', 
+              `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination)}`
+            );
+
+            console.log(`✓ Document ${document_id} routed to destination: ${destination}`);
+
+            return res.status(200).json({
+              success: true,
+              message: `Document routed to ${destination}`,
+              document: routeResult.rows[0],
+            });
+          }
+
+          // Otherwise, use user-based routing
+          const routeQuery = `
+            UPDATE documents 
+            SET current_holder = $1, status = 'routed', current_destination = NULL
+            WHERE document_id = $2 
+            RETURNING document_id, current_holder, status
+          `;
+
+          const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
+
+          // Log routing to history
+          try {
+            const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
+            const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
+            
+            await logHistory(
+              document_id, 
+              userId, 
+              'Document Routed', 
+              `Document "${sanitize(doc.title)}" routed to ${holderName}`
+            );
+          } catch (error) {
+            console.error('Failed to get holder info for history:', error);
+            await logHistory(document_id, userId, 'Document Routed', `Document routed to another user`);
+          }
+
+          return res.status(200).json({
+            success: true,
+            message: 'Document routed successfully!',
+            document: routeResult.rows[0],
+          });
+        }
+
+        // Check for special actions in query (backwards compatibility)
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
@@ -471,7 +713,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // RESTORE/UNARCHIVE ACTION
+        // RESTORE/UNARCHIVE ACTION (backwards compatibility)
         if (query.action === 'restore') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
@@ -806,136 +1048,133 @@ module.exports = async function handler(req, res) {
         });
       }
 
-    case 'DELETE': {
-  let deleteId = query.id;
-  if (!deleteId) {
-    const body = await parseJsonBody(req);
-    deleteId = body.document_id;
-  }
+      case 'DELETE': {
+        let deleteId = query.id;
+        if (!deleteId) {
+          const body = await parseJsonBody(req);
+          deleteId = body.document_id;
+        }
 
-  if (!deleteId) {
-    return res.status(400).json({ success: false, error: 'Document ID is required' });
-  }
+        if (!deleteId) {
+          return res.status(400).json({ success: false, error: 'Document ID is required' });
+        }
 
-  console.log(`[DELETE] Starting deletion process for document ${deleteId} by user ${userId}`); // DEBUG
+        console.log(`[DELETE] Starting deletion process for document ${deleteId} by user ${userId}`);
 
-  // Get document info first - INCLUDE is_archived
-  const docResult = await pool.query(
-    'SELECT mega_file_id, uploaded_by, title, is_archived FROM documents WHERE document_id = $1',
-    [deleteId]
-  );
-  
-  if (docResult.rows.length === 0) {
-    return res.status(404).json({ success: false, error: 'Document not found' });
-  }
+        // Get document info first - INCLUDE is_archived
+        const docResult = await pool.query(
+          'SELECT mega_file_id, uploaded_by, title, is_archived FROM documents WHERE document_id = $1',
+          [deleteId]
+        );
+        
+        if (docResult.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Document not found' });
+        }
 
-  // Verify ownership before deleting (WORKS FOR BOTH ACTIVE AND ARCHIVED)
-  const doc = docResult.rows[0];
-  console.log(`[DELETE] Document info:`, {
-    id: deleteId,
-    title: doc.title,
-    uploaded_by: doc.uploaded_by,
-    has_file: !!doc.mega_file_id,
-    is_archived: doc.is_archived
-  }); // DEBUG
+        // Verify ownership before deleting (WORKS FOR BOTH ACTIVE AND ARCHIVED)
+        const doc = docResult.rows[0];
+        console.log(`[DELETE] Document info:`, {
+          id: deleteId,
+          title: doc.title,
+          uploaded_by: doc.uploaded_by,
+          has_file: !!doc.mega_file_id,
+          is_archived: doc.is_archived
+        });
 
-  if (doc.uploaded_by !== userId && userRole !== 'admin') {
-    console.log(`Access denied: User ${userId} tried to delete document ${deleteId} uploaded by ${doc.uploaded_by}`);
-    return res.status(403).json({ 
-      success: false, 
-      error: 'Access denied: You can only delete documents you uploaded' 
-    });
-  }
+        if (doc.uploaded_by !== userId && userRole !== 'admin') {
+          console.log(`Access denied: User ${userId} tried to delete document ${deleteId} uploaded by ${doc.uploaded_by}`);
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied: You can only delete documents you uploaded' 
+          });
+        }
 
-  // Only delete from MEGA if file exists
-  if (doc.mega_file_id) {
-    console.log(`[DELETE] Document has file, attempting MEGA deletion...`); // DEBUG
-    let megaDeleted = false;
+        // Only delete from MEGA if file exists
+        if (doc.mega_file_id) {
+          console.log(`[DELETE] Document has file, attempting MEGA deletion...`);
+          let megaDeleted = false;
 
-    try {
-      const storage = await getMegaStorage();
-      const file = await findMegaFile(storage, doc.mega_file_id);
-      
-      if (file) {
-        await file.delete();
-        megaDeleted = true;
-        console.log(`✓ File deleted from MEGA: ${doc.mega_file_id}`);
-      } else {
-        console.log(`⚠ File not found in MEGA (may have been deleted already): ${doc.mega_file_id}`);
-        megaDeleted = true; // Allow database deletion
+          try {
+            const storage = await getMegaStorage();
+            const file = await findMegaFile(storage, doc.mega_file_id);
+            
+            if (file) {
+              await file.delete();
+              megaDeleted = true;
+              console.log(`✓ File deleted from MEGA: ${doc.mega_file_id}`);
+            } else {
+              console.log(`⚠ File not found in MEGA (may have been deleted already): ${doc.mega_file_id}`);
+              megaDeleted = true; // Allow database deletion
+            }
+          } catch (error) {
+            console.error('✗ MEGA deletion failed:', error);
+            
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to delete file from MEGA storage',
+              details: error.message,
+              message: 'Document was not deleted to maintain data consistency. Please try again or contact support.'
+            });
+          }
+
+          if (!megaDeleted) {
+            return res.status(500).json({
+              success: false,
+              error: 'MEGA deletion did not complete successfully'
+            });
+          }
+        } else {
+          console.log(`[DELETE] Document has no file, skipping MEGA deletion`);
+        }
+
+        // Delete from database FIRST, then log to history
+        try {
+          console.log(`[DELETE] Attempting database deletion for document ${deleteId}...`);
+          
+          const deleteResult = await pool.query(
+            'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
+            [deleteId]
+          );
+
+          if (deleteResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found in database' });
+          }
+
+          console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title}) ${doc.is_archived ? '[ARCHIVED]' : '[ACTIVE]'}`);
+
+          // Log deletion to history AFTER successful deletion
+          try {
+            await logHistory(
+              deleteId, 
+              userId, 
+              'Document Deleted', 
+              `Document "${sanitize(doc.title)}" permanently deleted${doc.is_archived ? ' (was archived)' : ''}${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
+            );
+          } catch (historyError) {
+            // Don't fail the deletion if history logging fails
+            console.warn('⚠ Failed to log deletion history (document already deleted):', historyError.message);
+          }
+
+          return res.status(200).json({
+            success: true,
+            message: doc.mega_file_id 
+              ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!` 
+              : `Document${doc.is_archived ? ' (archived)' : ''} deleted successfully (no file was attached)`,
+            deleted: deleteResult.rows[0],
+            had_file: !!doc.mega_file_id,
+            was_archived: doc.is_archived === 1
+          });
+        } catch (dbError) {
+          console.error('✗ Database deletion failed:', dbError);
+          
+          return res.status(500).json({
+            success: false,
+            error: 'Database deletion failed',
+            details: dbError.message,
+            message: 'Please try again or contact support.'
+          });
+        }
       }
-    } catch (error) {
-      console.error('✗ MEGA deletion failed:', error);
-      
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to delete file from MEGA storage',
-        details: error.message,
-        message: 'Document was not deleted to maintain data consistency. Please try again or contact support.'
-      });
-    }
-
-    if (!megaDeleted) {
-      return res.status(500).json({
-        success: false,
-        error: 'MEGA deletion did not complete successfully'
-      });
-    }
-  } else {
-    console.log(`[DELETE] Document has no file, skipping MEGA deletion`); // DEBUG
-  }
-
-  // Delete from database FIRST, then log to history
-  try {
-    console.log(`[DELETE] Attempting database deletion for document ${deleteId}...`); // DEBUG
-    
-    const deleteResult = await pool.query(
-      'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
-      [deleteId]
-    );
-
-    if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Document not found in database' });
-    }
-
-    console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title}) ${doc.is_archived ? '[ARCHIVED]' : '[ACTIVE]'}`);
-
-    // Log deletion to history AFTER successful deletion
-    // Note: This will only work if document_history doesn't have a foreign key constraint
-    // or if the constraint is set to ON DELETE CASCADE
-    try {
-      await logHistory(
-        deleteId, 
-        userId, 
-        'Document Deleted', 
-        `Document "${sanitize(doc.title)}" permanently deleted${doc.is_archived ? ' (was archived)' : ''}${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
-      );
-    } catch (historyError) {
-      // Don't fail the deletion if history logging fails
-      console.warn('⚠ Failed to log deletion history (document already deleted):', historyError.message);
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: doc.mega_file_id 
-        ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!` 
-        : `Document${doc.is_archived ? ' (archived)' : ''} deleted successfully (no file was attached)`,
-      deleted: deleteResult.rows[0],
-      had_file: !!doc.mega_file_id,
-      was_archived: doc.is_archived === 1
-    });
-  } catch (dbError) {
-    console.error('✗ Database deletion failed:', dbError);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Database deletion failed',
-      details: dbError.message,
-      message: 'Please try again or contact support.'
-    });
-  }
-}
-
 
       default:
         return res.status(405).json({ success: false, error: 'Method not allowed' });
