@@ -148,7 +148,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // REGISTER - FIXED: Set is_active = 0 (pending approval)
+  // REGISTER - FIXED: Set is_active = 0 (pending approval), role = 'staff'
   if (action === 'register') {
     try {
       console.log('[REGISTER] Starting registration for username:', username);
@@ -207,10 +207,10 @@ module.exports = async function handler(req, res) {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       console.log('[REGISTER] Inserting user with is_active = 0 (pending approval)...');
-      // Insert user with is_active = 0 (PENDING APPROVAL)
+      // Insert user with is_active = 0 (PENDING APPROVAL), role = 'staff'
       const result = await pool.query(
         `INSERT INTO users (username, email, password, full_name, role, is_active) 
-         VALUES ($1, $2, $3, $4, 'user', 0) 
+         VALUES ($1, $2, $3, $4, 'staff', 0) 
          RETURNING user_id, username, email, full_name, role, is_active`,
         [username, email, hashedPassword, full_name]
       );
