@@ -1349,7 +1349,7 @@ async function restoreDocument(documentId) {
   if (!confirm('Restore this document from archives?')) return;  //update
 
   try {
-    const result = await api.post('/data/documents/restore', { document_id: documentId });
+    const result = await api.post('/data/documents/documents?action=restore', { document_id: documentId });
     alert(result.message || 'Document restored successfully!');
     router.handleRoute();
   } catch (error) {
@@ -1362,9 +1362,13 @@ async function routeDocument(documentId) {
   if (!destination) return;
 
   try {
-    const result = await api.post('/data/documents', {
-      document_id: documentId,
-      destination: destination
+    // FIXED: Use PATCH method with destination_text parameter
+    const result = await api.request('/data/documents', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        document_id: documentId,
+        destination_text: destination
+      })
     });
     alert(result.message || 'Document routed successfully!');
     router.handleRoute();
@@ -1372,6 +1376,7 @@ async function routeDocument(documentId) {
     alert('Error routing document: ' + error.message);
   }
 }
+
 
 async function viewDocumentHistory(documentId, title) {
   try {
