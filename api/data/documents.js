@@ -806,115 +806,136 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      case 'DELETE': {
-        let deleteId = query.id;
-        if (!deleteId) {
-          const body = await parseJsonBody(req);
-          deleteId = body.document_id;
-        }
+    case 'DELETE': {
+  let deleteId = query.id;
+  if (!deleteId) {
+    const body = await parseJsonBody(req);
+    deleteId = body.document_id;
+  }
 
-        if (!deleteId) {
-          return res.status(400).json({ success: false, error: 'Document ID is required' });
-        }
+  if (!deleteId) {
+    return res.status(400).json({ success: false, error: 'Document ID is required' });
+  }
 
-        // Get document info first - INCLUDE is_archived
-        const docResult = await pool.query(
-          'SELECT mega_file_id, uploaded_by, title, is_archived FROM documents WHERE document_id = $1',
-          [deleteId]
-        );
-        
-        if (docResult.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Document not found' });
-        }
+  console.log(`[DELETE] Starting deletion process for document ${deleteId} by user ${userId}`); // DEBUG
 
-        // Verify ownership before deleting (WORKS FOR BOTH ACTIVE AND ARCHIVED)
-        const doc = docResult.rows[0];
-        if (doc.uploaded_by !== userId && userRole !== 'admin') {
-          console.log(`Access denied: User ${userId} tried to delete document ${deleteId} uploaded by ${doc.uploaded_by}`);
-          return res.status(403).json({ 
-            success: false, 
-            error: 'Access denied: You can only delete documents you uploaded' 
-          });
-        }
+  // Get document info first - INCLUDE is_archived
+  const docResult = await pool.query(
+    'SELECT mega_file_id, uploaded_by, title, is_archived FROM documents WHERE document_id = $1',
+    [deleteId]
+  );
+  
+  if (docResult.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Document not found' });
+  }
 
-        // Log deletion to history BEFORE deleting
-        await logHistory(
-          deleteId, 
-          userId, 
-          'Document Deleted', 
-          `Document "${sanitize(doc.title)}" permanently deleted${doc.is_archived ? ' (was archived)' : ''}${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
-        );
+  // Verify ownership before deleting (WORKS FOR BOTH ACTIVE AND ARCHIVED)
+  const doc = docResult.rows[0];
+  console.log(`[DELETE] Document info:`, {
+    id: deleteId,
+    title: doc.title,
+    uploaded_by: doc.uploaded_by,
+    has_file: !!doc.mega_file_id,
+    is_archived: doc.is_archived
+  }); // DEBUG
 
-        // Only delete from MEGA if file exists
-        if (doc.mega_file_id) {
-          let megaDeleted = false;
+  if (doc.uploaded_by !== userId && userRole !== 'admin') {
+    console.log(`Access denied: User ${userId} tried to delete document ${deleteId} uploaded by ${doc.uploaded_by}`);
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Access denied: You can only delete documents you uploaded' 
+    });
+  }
 
-          try {
-            const storage = await getMegaStorage();
-            const file = await findMegaFile(storage, doc.mega_file_id);
-            
-            if (file) {
-              await file.delete();
-              megaDeleted = true;
-              console.log(`✓ File deleted from MEGA: ${doc.mega_file_id}`);
-            } else {
-              console.log(`⚠ File not found in MEGA (may have been deleted already): ${doc.mega_file_id}`);
-              megaDeleted = true; // Allow database deletion
-            }
-          } catch (error) {
-            console.error('✗ MEGA deletion failed:', error);
-            
-            return res.status(500).json({
-              success: false,
-              error: 'Failed to delete file from MEGA storage',
-              details: error.message,
-              message: 'Document was not deleted to maintain data consistency. Please try again or contact support.'
-            });
-          }
+  // Only delete from MEGA if file exists
+  if (doc.mega_file_id) {
+    console.log(`[DELETE] Document has file, attempting MEGA deletion...`); // DEBUG
+    let megaDeleted = false;
 
-          if (!megaDeleted) {
-            return res.status(500).json({
-              success: false,
-              error: 'MEGA deletion did not complete successfully'
-            });
-          }
-        } else {
-          console.log(`ℹ Document ${deleteId} has no attached file, skipping MEGA deletion`);
-        }
-
-        // Delete from database
-        try {
-          const deleteResult = await pool.query(
-            'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
-            [deleteId]
-          );
-
-          if (deleteResult.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found in database' });
-          }
-
-          console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title}) ${doc.is_archived ? '[ARCHIVED]' : '[ACTIVE]'}`);
-
-          return res.status(200).json({
-            success: true,
-            message: doc.mega_file_id 
-              ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!` 
-              : `Document${doc.is_archived ? ' (archived)' : ''} deleted successfully (no file was attached)`,
-            deleted: deleteResult.rows[0],
-            had_file: !!doc.mega_file_id,
-            was_archived: doc.is_archived === 1
-          });
-        } catch (dbError) {
-          console.error('✗ Database deletion failed:', dbError);
-          
-          return res.status(500).json({
-            success: false,
-            error: 'Database deletion failed',
-            details: dbError.message,
-            message: 'Please try again or contact support.'
-          });
-        }
+    try {
+      const storage = await getMegaStorage();
+      const file = await findMegaFile(storage, doc.mega_file_id);
+      
+      if (file) {
+        await file.delete();
+        megaDeleted = true;
+        console.log(`✓ File deleted from MEGA: ${doc.mega_file_id}`);
+      } else {
+        console.log(`⚠ File not found in MEGA (may have been deleted already): ${doc.mega_file_id}`);
+        megaDeleted = true; // Allow database deletion
       }
+    } catch (error) {
+      console.error('✗ MEGA deletion failed:', error);
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete file from MEGA storage',
+        details: error.message,
+        message: 'Document was not deleted to maintain data consistency. Please try again or contact support.'
+      });
+    }
+
+    if (!megaDeleted) {
+      return res.status(500).json({
+        success: false,
+        error: 'MEGA deletion did not complete successfully'
+      });
+    }
+  } else {
+    console.log(`[DELETE] Document has no file, skipping MEGA deletion`); // DEBUG
+  }
+
+  // Delete from database FIRST, then log to history
+  try {
+    console.log(`[DELETE] Attempting database deletion for document ${deleteId}...`); // DEBUG
+    
+    const deleteResult = await pool.query(
+      'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
+      [deleteId]
+    );
+
+    if (deleteResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Document not found in database' });
+    }
+
+    console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title}) ${doc.is_archived ? '[ARCHIVED]' : '[ACTIVE]'}`);
+
+    // Log deletion to history AFTER successful deletion
+    // Note: This will only work if document_history doesn't have a foreign key constraint
+    // or if the constraint is set to ON DELETE CASCADE
+    try {
+      await logHistory(
+        deleteId, 
+        userId, 
+        'Document Deleted', 
+        `Document "${sanitize(doc.title)}" permanently deleted${doc.is_archived ? ' (was archived)' : ''}${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
+      );
+    } catch (historyError) {
+      // Don't fail the deletion if history logging fails
+      console.warn('⚠ Failed to log deletion history (document already deleted):', historyError.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: doc.mega_file_id 
+        ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!` 
+        : `Document${doc.is_archived ? ' (archived)' : ''} deleted successfully (no file was attached)`,
+      deleted: deleteResult.rows[0],
+      had_file: !!doc.mega_file_id,
+      was_archived: doc.is_archived === 1
+    });
+  } catch (dbError) {
+    console.error('✗ Database deletion failed:', dbError);
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Database deletion failed',
+      details: dbError.message,
+      message: 'Please try again or contact support.'
+    });
+  }
+}
+
 
       default:
         return res.status(405).json({ success: false, error: 'Method not allowed' });
