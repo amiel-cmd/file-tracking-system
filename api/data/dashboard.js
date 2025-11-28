@@ -22,34 +22,32 @@ module.exports = async function handler(req, res) {
         const userId = req.user.userId;
         const userRole = req.user.role;
         
-        // Get documents based on user role
+        // Get ALL documents (including archived) based on user role
         let documentsQuery;
         let documentsParams;
         
         if (userRole === 'admin') {
-            // Admin sees all documents
+            // Admin sees all documents (including archived)
             documentsQuery = `SELECT d.*, 
                             u.full_name as uploaded_by_name,
                             h.full_name as current_holder_name
                             FROM documents d
                             LEFT JOIN users u ON d.uploaded_by = u.user_id
                             LEFT JOIN users h ON d.current_holder = h.user_id
-                            WHERE d.is_archived = 0
                             ORDER BY d.uploaded_at DESC
-                            LIMIT 50`;
+                            LIMIT 100`;
             documentsParams = [];
         } else {
-            // Regular users see documents they uploaded or are current holder
+            // Regular users see documents they uploaded or are current holder (including archived)
             documentsQuery = `SELECT d.*, 
                             u.full_name as uploaded_by_name,
                             h.full_name as current_holder_name
                             FROM documents d
                             LEFT JOIN users u ON d.uploaded_by = u.user_id
                             LEFT JOIN users h ON d.current_holder = h.user_id
-                            WHERE d.is_archived = 0 
-                            AND (d.uploaded_by = $1 OR d.current_holder = $1)
+                            WHERE (d.uploaded_by = $1 OR d.current_holder = $1)
                             ORDER BY d.uploaded_at DESC
-                            LIMIT 50`;
+                            LIMIT 100`;
             documentsParams = [userId];
         }
         
