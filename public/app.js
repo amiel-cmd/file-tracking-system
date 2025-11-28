@@ -1346,7 +1346,7 @@ async function archiveDocument(documentId) {
 }
 
 async function restoreDocument(documentId) {
-  if (!confirm('Restore this document from archives?')) return;
+  if (!confirm('Restore this document from archives?')) return;  //update
 
   try {
     const result = await api.post('/data/documents/restore', { document_id: documentId });
