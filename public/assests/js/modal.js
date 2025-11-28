@@ -188,11 +188,7 @@ class DocumentFormModal {
                         <label style="display:block; margin-bottom:5px; font-weight:500;">Type *</label>
                         <select name="document_type" id="form_document_type" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
                             <option value="">Select...</option>
-                            <option value="Memo">Memo</option>
-                            <option value="Letter">Letter</option>
-                            <option value="Report">Report</option>
-                            <option value="Invoice">Invoice</option>
-                            <option value="Contract">Contract</option>
+                            <option value="outgoing">Outgoing</option>
                             <option value="incoming">Incoming</option>
                             <option value="Other">Other</option>
                         </select>
