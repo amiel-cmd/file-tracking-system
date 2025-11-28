@@ -32,11 +32,9 @@ module.exports = async function handler(req, res) {
         const { method, url } = req;
         console.log('DEBUG: After auth - method:', method, 'url:', url);
 
-        // Extract route path (remove query params)
         const routePath = url.split('?')[0];
         console.log('DEBUG: Route path:', routePath);
 
-        // Helper to parse JSON body
         const parseBody = () => {
             return new Promise((resolve, reject) => {
                 let body = '';
@@ -52,17 +50,17 @@ module.exports = async function handler(req, res) {
             });
         };
 
-        // GET ADMIN DASHBOARD STATS - CHANGED FROM /user/stats to /stats
+        // GET ADMIN DASHBOARD STATS - FIXED SQL SYNTAX
         if (routePath.includes('/stats') && method === 'GET') {
             console.log('DEBUG: /stats endpoint matched');
             
             const statsQuery = `
                 SELECT 
                     COUNT(*) as total_users,
-                    COUNT(*) FILTER (WHERE is_active = 0) as pending_users,
-                    COUNT(*) FILTER (WHERE is_active = 1) as active_users,
-                    COUNT(*) FILTER (WHERE role = 'admin') as total_admins,
-                    COUNT(*) FILTER (WHERE role = 'user') as total_regular_users
+                    SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as pending_users,
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users,
+                    SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as total_admins,
+                    SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as total_regular_users
                 FROM users
             `;
             const statsResult = await pool.query(statsQuery);
@@ -70,11 +68,11 @@ module.exports = async function handler(req, res) {
             const docStatsQuery = `
                 SELECT 
                     COUNT(*) as total_documents,
-                    COUNT(*) FILTER (WHERE is_archived = 0) as active_documents,
-                    COUNT(*) FILTER (WHERE is_archived = 1) as archived_documents,
-                    COUNT(*) FILTER (WHERE status = 'pending') as pending_documents,
-                    COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress_documents,
-                    COUNT(*) FILTER (WHERE status = 'completed') as completed_documents
+                    SUM(CASE WHEN is_archived = 0 THEN 1 ELSE 0 END) as active_documents,
+                    SUM(CASE WHEN is_archived = 1 THEN 1 ELSE 0 END) as archived_documents,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_documents,
+                    SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_documents,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_documents
                 FROM documents
             `;
             const docStatsResult = await pool.query(docStatsQuery);
@@ -102,7 +100,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET ALL USERS - CHANGED FROM /user/list to /list
+        // GET ALL USERS
         if (routePath.includes('/list') && method === 'GET') {
             console.log('DEBUG: /list endpoint matched');
             
@@ -128,7 +126,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET PENDING USERS - CHANGED FROM /user/pending to /pending
+        // GET PENDING USERS
         if (routePath.includes('/pending') && method === 'GET') {
             console.log('DEBUG: /pending endpoint matched');
             
@@ -152,7 +150,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // APPROVE USER - CHANGED FROM /user/approve to /approve
+        // APPROVE USER
         if (routePath.includes('/approve') && method === 'POST') {
             console.log('DEBUG: /approve endpoint matched');
             const body = await parseBody();
@@ -189,7 +187,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // REJECT USER - CHANGED FROM /user/reject to /reject
+        // REJECT USER
         if (routePath.includes('/reject') && method === 'POST') {
             console.log('DEBUG: /reject endpoint matched');
             const body = await parseBody();
@@ -226,7 +224,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // DEACTIVATE USER - CHANGED FROM /user/deactivate to /deactivate
+        // DEACTIVATE USER
         if (routePath.includes('/deactivate') && method === 'POST') {
             console.log('DEBUG: /deactivate endpoint matched');
             const body = await parseBody();
@@ -263,7 +261,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // REACTIVATE USER - CHANGED FROM /user/reactivate to /reactivate
+        // REACTIVATE USER
         if (routePath.includes('/reactivate') && method === 'POST') {
             console.log('DEBUG: /reactivate endpoint matched');
             const body = await parseBody();
@@ -300,7 +298,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // UPDATE USER ROLE - CHANGED FROM /user/update-role to /update-role
+        // UPDATE USER ROLE
         if (routePath.includes('/update-role') && method === 'POST') {
             console.log('DEBUG: /update-role endpoint matched');
             const body = await parseBody();
@@ -344,7 +342,7 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // DELETE USER - CHANGED FROM /user/delete to /delete
+        // DELETE USER
         if (routePath.includes('/delete') && method === 'POST') {
             console.log('DEBUG: /delete endpoint matched');
             const body = await parseBody();
@@ -386,106 +384,6 @@ module.exports = async function handler(req, res) {
                 message: 'User permanently deleted!',
                 user: result.rows[0],
                 had_documents: hasDocuments
-            });
-        }
-
-        // RESET PASSWORD - CHANGED FROM /user/reset-password to /reset-password
-        if (routePath.includes('/reset-password') && method === 'POST') {
-            console.log('DEBUG: /reset-password endpoint matched');
-            const body = await parseBody();
-            const { user_id, new_password } = body;
-
-            if (!user_id || !new_password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'User ID and new password are required'
-                });
-            }
-
-            if (new_password.length < 6) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Password must be at least 6 characters long'
-                });
-            }
-
-            const hashedPassword = await bcrypt.hash(new_password, 10);
-
-            const updateQuery = `
-                UPDATE users 
-                SET password = $1 
-                WHERE user_id = $2 
-                RETURNING user_id, username, full_name
-            `;
-            const result = await pool.query(updateQuery, [hashedPassword, user_id]);
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'User not found'
-                });
-            }
-
-            console.log(`✓ Password reset for user ${user_id} (${result.rows[0].username}) by admin`);
-
-            return res.status(200).json({
-                success: true,
-                message: 'Password reset successfully!',
-                user: result.rows[0]
-            });
-        }
-
-        // GET USER DETAILS - CHANGED FROM /user/details to /details
-        if (routePath.includes('/details') && method === 'GET') {
-            console.log('DEBUG: /details endpoint matched');
-            
-            const urlParams = new URL(req.url, `http://${req.headers.host}`);
-            const user_id = urlParams.searchParams.get('id');
-
-            if (!user_id) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'User ID is required'
-                });
-            }
-
-            const userQuery = `
-                SELECT 
-                    user_id,
-                    username,
-                    email,
-                    full_name,
-                    department,
-                    role,
-                    is_active,
-                    created_at,
-                    last_login
-                FROM users
-                WHERE user_id = $1
-            `;
-            const userResult = await pool.query(userQuery, [user_id]);
-
-            if (userResult.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'User not found'
-                });
-            }
-
-            const docStatsQuery = `
-                SELECT 
-                    COUNT(*) as total_documents,
-                    COUNT(*) FILTER (WHERE is_archived = 0) as active_documents,
-                    COUNT(*) FILTER (WHERE is_archived = 1) as archived_documents
-                FROM documents
-                WHERE uploaded_by = $1
-            `;
-            const docStatsResult = await pool.query(docStatsQuery, [user_id]);
-
-            return res.status(200).json({
-                success: true,
-                user: userResult.rows[0],
-                document_stats: docStatsResult.rows[0]
             });
         }
 
