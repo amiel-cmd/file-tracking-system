@@ -1,4 +1,5 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing
+// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing + ARCHIVE & RESTORE
+
 
 // Core imports
 const pool = require('../db');
@@ -6,9 +7,11 @@ const jwt = require('jsonwebtoken');
 const { Storage } = require('megajs');
 const fs = require('fs').promises;
 
+
 // Formidable v3 is ESM-only; require() returns an object with .default
 const formidableModule = require('formidable');
 const formidable = formidableModule.default || formidableModule;
+
 
 // Disable automatic body parsing for file uploads
 exports.config = {
@@ -17,8 +20,10 @@ exports.config = {
   },
 };
 
+
 // STEP 5: Rate Limiting
 const rateLimitMap = new Map();
+
 
 function checkRateLimit(userId) {
   const now = Date.now();
@@ -36,6 +41,7 @@ function checkRateLimit(userId) {
   return true;
 }
 
+
 // Cleanup old rate limit entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
@@ -48,6 +54,7 @@ setInterval(() => {
     }
   }
 }, 300000);
+
 
 // STEP 6: File Type Validation
 const ALLOWED_MIME_TYPES = [
@@ -68,11 +75,13 @@ const ALLOWED_MIME_TYPES = [
   'application/x-rar-compressed'
 ];
 
+
 const ALLOWED_EXTENSIONS = [
   'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
   'jpg', 'jpeg', 'png', 'gif', 'webp',
   'txt', 'csv', 'zip', 'rar'
 ];
+
 
 function validateFile(file) {
   // Check file extension
@@ -98,6 +107,7 @@ function validateFile(file) {
   return { valid: true };
 }
 
+
 // Helper: Initialize MEGA storage
 const getMegaStorage = async () => {
   try {
@@ -111,6 +121,7 @@ const getMegaStorage = async () => {
     throw new Error('Failed to connect to MEGA storage');
   }
 };
+
 
 // Helper: Find file in MEGA by nodeId
 const findMegaFile = async (storage, nodeId) => {
@@ -142,6 +153,7 @@ const findMegaFile = async (storage, nodeId) => {
   return searchInFolder(storage.root);
 };
 
+
 // Helper to parse JSON body manually (because bodyParser is disabled)
 const parseJsonBody = async (req) => {
   return new Promise((resolve, reject) => {
@@ -157,6 +169,7 @@ const parseJsonBody = async (req) => {
     req.on('error', reject);
   });
 };
+
 
 // Helper to detect MIME type from filename
 const getMimeType = (filename) => {
@@ -184,11 +197,14 @@ const getMimeType = (filename) => {
   return mimeTypes[ext] || 'application/octet-stream';
 };
 
+
 // Simple sanitization
 const sanitize = (str) => (str ? String(str).replace(/[<>]/g, '') : '');
 
+
 // IP helper (for logging if you need it)
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
 
 // NEW: Helper to log document history
 async function logHistory(documentId, userId, action, details) {
@@ -205,8 +221,10 @@ async function logHistory(documentId, userId, action, details) {
   }
 }
 
+
 module.exports = async function handler(req, res) {
   const { method, query } = req;
+
 
   // Auth: decode JWT from Authorization header
   let user;
@@ -222,6 +240,7 @@ module.exports = async function handler(req, res) {
   const userId = user.userId || 1;
   const userRole = user.role || 'user';
 
+
   // STEP 5: Check Rate Limit
   if (!checkRateLimit(userId)) {
     console.log(`Rate limit exceeded for user ${userId} from IP ${getClientIp(req)}`);
@@ -230,6 +249,7 @@ module.exports = async function handler(req, res) {
       error: 'Too many requests. Please try again later.' 
     });
   }
+
 
   try {
     switch (method) {
@@ -425,15 +445,18 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, document: viewResult.rows[0] });
       }
 
+
       case 'POST': {
         // Check for special actions in query
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
 
+
           if (!document_id) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
+
 
           // STEP 3: Verify ownership before archiving
           const docCheck = await pool.query('SELECT uploaded_by, title FROM documents WHERE document_id = $1', [document_id]);
@@ -448,6 +471,7 @@ module.exports = async function handler(req, res) {
             });
           }
 
+
           const archiveQuery = `
             UPDATE documents 
             SET is_archived = 1, archived_at = NOW(), archived_by = $1 
@@ -455,7 +479,9 @@ module.exports = async function handler(req, res) {
             RETURNING document_id, title, is_archived
           `;
 
+
           const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
+
 
           // NEW: Log archive to history
           await logHistory(
@@ -465,12 +491,70 @@ module.exports = async function handler(req, res) {
             `Document "${sanitize(docCheck.rows[0].title)}" was archived`
           );
 
+
           return res.status(200).json({
             success: true,
             message: 'Document archived successfully!',
             document: archiveResult.rows[0],
           });
         }
+
+        // NEW: RESTORE/UNARCHIVE ACTION
+        if (query.action === 'restore') {
+          const body = await parseJsonBody(req);
+          const { document_id } = body;
+
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          // STEP 3: Verify ownership before restoring
+          const docCheck = await pool.query('SELECT uploaded_by, title, is_archived FROM documents WHERE document_id = $1', [document_id]);
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+          
+          // Check if document is actually archived
+          if (docCheck.rows[0].is_archived !== 1) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Document is not archived' 
+            });
+          }
+          
+          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
+            return res.status(403).json({ 
+              success: false, 
+              error: 'Access denied: You can only restore documents you uploaded' 
+            });
+          }
+
+          const restoreQuery = `
+            UPDATE documents 
+            SET is_archived = 0, archived_at = NULL, archived_by = NULL 
+            WHERE document_id = $1 
+            RETURNING document_id, title, is_archived
+          `;
+
+          const restoreResult = await pool.query(restoreQuery, [document_id]);
+
+          // Log restore to history
+          await logHistory(
+            document_id, 
+            userId, 
+            'Document Restored', 
+            `Document "${sanitize(docCheck.rows[0].title)}" was restored from archive`
+          );
+
+          console.log(`✓ Document ${document_id} restored from archive by user ${userId}`);
+
+          return res.status(200).json({
+            success: true,
+            message: 'Document restored successfully!',
+            document: restoreResult.rows[0],
+          });
+        }
+
 
         // File upload using formidable + MEGA
         const form = formidable({
@@ -480,6 +564,7 @@ module.exports = async function handler(req, res) {
           multiples: false,
         });
 
+
         const [fields, files] = await new Promise((resolve, reject) => {
           form.parse(req, (err, f, fls) => {
             if (err) return reject(err);
@@ -487,14 +572,17 @@ module.exports = async function handler(req, res) {
           });
         });
 
+
         // Extract fields (formidable v3 returns arrays)
         const title = Array.isArray(fields.title) ? fields.title[0] : fields.title;
         const description = Array.isArray(fields.description) ? fields.description[0] : fields.description;
         const document_type = Array.isArray(fields.document_type) ? fields.document_type[0] : fields.document_type;
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
 
+
         // File - NOW OPTIONAL
         const uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+
 
         // CHANGED: File is now optional, only require title, type, and priority
         if (!title || !document_type || !priority) {
@@ -504,10 +592,12 @@ module.exports = async function handler(req, res) {
           });
         }
 
+
         let megaFileId = null;
         let megaLink = null;
         let fileName = null;
         let fileSize = 0;
+
 
         // Only upload to MEGA if file is provided
         if (uploadedFile) {
@@ -523,8 +613,10 @@ module.exports = async function handler(req, res) {
             });
           }
 
+
           fileName = uploadedFile.originalFilename || uploadedFile.newFilename;
           fileSize = uploadedFile.size;
+
 
           // Additional size check
           if (fileSize > 10 * 1024 * 1024) {
@@ -534,6 +626,7 @@ module.exports = async function handler(req, res) {
               error: 'File size exceeds 10MB limit'
             });
           }
+
 
           // Upload to MEGA
           try {
@@ -566,7 +659,9 @@ module.exports = async function handler(req, res) {
           }
         }
 
+
         const documentNumber = `DOC-${Date.now()}`;
+
 
         const insertQuery = `
           INSERT INTO documents 
@@ -574,6 +669,7 @@ module.exports = async function handler(req, res) {
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'pending', 0, NOW()) 
           RETURNING document_id, document_number, title, document_type, priority, status, uploaded_at
         `;
+
 
         const insertResult = await pool.query(insertQuery, [
           documentNumber,
@@ -588,7 +684,9 @@ module.exports = async function handler(req, res) {
           userId,
         ]);
 
+
         const newDocId = insertResult.rows[0].document_id;
+
 
         // NEW: Log document creation to history
         const action = uploadedFile ? 'Document Uploaded' : 'Document Created';
@@ -598,7 +696,9 @@ module.exports = async function handler(req, res) {
         
         await logHistory(newDocId, userId, action, details);
 
+
         console.log(`Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${documentNumber}`);
+
 
         return res.status(201).json({
           success: true,
@@ -613,14 +713,17 @@ module.exports = async function handler(req, res) {
         });
       }
 
+
       case 'PATCH': {
         // NEW: Route document with TEXT-BASED destination OR user-based routing
         const body = await parseJsonBody(req);
         const { document_id, new_holder, destination_text } = body;
 
+
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
+
 
         // Must have either new_holder (user ID) OR destination_text (free text)
         if (!new_holder && !destination_text) {
@@ -629,6 +732,7 @@ module.exports = async function handler(req, res) {
             error: 'Either recipient user or destination text is required' 
           });
         }
+
 
         // STEP 3: Verify current holder or owner before routing
         const docCheck = await pool.query(
@@ -648,6 +752,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
+
         // NEW: If destination_text is provided (free-text routing), use it
         if (destination_text) {
           const routeQuery = `
@@ -657,7 +762,9 @@ module.exports = async function handler(req, res) {
             RETURNING document_id, status, current_destination
           `;
 
+
           const routeResult = await pool.query(routeQuery, [sanitize(destination_text), document_id]);
+
 
           // Log routing to history with free-text destination
           await logHistory(
@@ -667,7 +774,9 @@ module.exports = async function handler(req, res) {
             `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}`
           );
 
+
           console.log(`✓ Document ${document_id} routed to destination: ${destination_text}`);
+
 
           return res.status(200).json({
             success: true,
@@ -675,6 +784,7 @@ module.exports = async function handler(req, res) {
             document: routeResult.rows[0],
           });
         }
+
 
         // Otherwise, use the old user-based routing
         const routeQuery = `
@@ -684,7 +794,9 @@ module.exports = async function handler(req, res) {
           RETURNING document_id, current_holder, status
         `;
 
+
         const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
+
 
         // Log routing to history
         try {
@@ -702,6 +814,7 @@ module.exports = async function handler(req, res) {
           await logHistory(document_id, userId, 'Document Routed', `Document routed to another user`);
         }
 
+
         return res.status(200).json({
           success: true,
           message: 'Document routed successfully!',
@@ -709,13 +822,16 @@ module.exports = async function handler(req, res) {
         });
       }
 
+
       case 'PUT': {
         const body = await parseJsonBody(req);
         const { document_id, title, description, document_type, priority } = body;
 
+
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
+
 
         // STEP 3: Verify ownership before updating
         const docCheck = await pool.query('SELECT uploaded_by, title as old_title FROM documents WHERE document_id = $1', [document_id]);
@@ -730,12 +846,14 @@ module.exports = async function handler(req, res) {
           });
         }
 
+
         const updateQuery = `
           UPDATE documents 
           SET title = $1, description = $2, document_type = $3, priority = $4 
           WHERE document_id = $5 
           RETURNING document_id, title, description, document_type, priority
         `;
+
 
         const updateResult = await pool.query(updateQuery, [
           sanitize(title),
@@ -745,6 +863,7 @@ module.exports = async function handler(req, res) {
           document_id,
         ]);
 
+
         // NEW: Log edit to history
         await logHistory(
           document_id, 
@@ -753,12 +872,14 @@ module.exports = async function handler(req, res) {
           `Document details updated: "${sanitize(title)}" (Type: ${sanitize(document_type)}, Priority: ${sanitize(priority)})`
         );
 
+
         return res.status(200).json({
           success: true,
           message: 'Document updated successfully!',
           document: updateResult.rows[0],
         });
       }
+
 
       case 'DELETE': {
         let deleteId = query.id;
@@ -767,9 +888,11 @@ module.exports = async function handler(req, res) {
           deleteId = body.document_id;
         }
 
+
         if (!deleteId) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
+
 
         // Get document info first
         const docResult = await pool.query(
@@ -781,6 +904,7 @@ module.exports = async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
 
+
         // STEP 3: Verify ownership before deleting
         const doc = docResult.rows[0];
         if (doc.uploaded_by !== userId && userRole !== 'admin') {
@@ -790,6 +914,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
+
         // NEW: Log deletion to history BEFORE deleting (important!)
         await logHistory(
           deleteId, 
@@ -798,9 +923,11 @@ module.exports = async function handler(req, res) {
           `Document "${sanitize(doc.title)}" permanently deleted${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
         );
 
+
         // CHANGED: Only delete from MEGA if file exists
         if (doc.mega_file_id) {
           let megaDeleted = false;
+
 
           try {
             const storage = await getMegaStorage();
@@ -827,6 +954,7 @@ module.exports = async function handler(req, res) {
             });
           }
 
+
           // Only proceed if MEGA deletion succeeded
           if (!megaDeleted) {
             return res.status(500).json({
@@ -838,6 +966,7 @@ module.exports = async function handler(req, res) {
           console.log(`ℹ Document ${deleteId} has no attached file, skipping MEGA deletion`);
         }
 
+
         // Delete from database (either file was deleted from MEGA or there was no file)
         try {
           const deleteResult = await pool.query(
@@ -845,11 +974,14 @@ module.exports = async function handler(req, res) {
             [deleteId]
           );
 
+
           if (deleteResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found in database' });
           }
 
+
           console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title})`);
+
 
           return res.status(200).json({
             success: true,
@@ -870,6 +1002,7 @@ module.exports = async function handler(req, res) {
           });
         }
       }
+
 
       default:
         return res.status(405).json({ success: false, error: 'Method not allowed' });

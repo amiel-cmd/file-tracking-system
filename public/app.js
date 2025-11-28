@@ -1,8 +1,10 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
-// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS
+// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES
+
 
 const API_BASE = '/api';
+
 
 // Auth utilities
 const auth = {
@@ -33,6 +35,7 @@ const auth = {
     return !!this.getToken();
   }
 };
+
 
 // API utilities
 const api = {
@@ -135,6 +138,7 @@ const api = {
   }
 };
 
+
 // Edit Document Modal
 const editModal = {
   open(documentData, onSave) {
@@ -199,6 +203,7 @@ const editModal = {
     });
   }
 };
+
 
 // View Document Modal
 const viewModal = {
@@ -310,6 +315,7 @@ const viewModal = {
   }
 };
 
+
 // Utility function to format file size
 function formatFileSize(bytes) {
   if (!bytes) return 'N/A';
@@ -317,6 +323,7 @@ function formatFileSize(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
+
 
 // Router
 const router = {
@@ -360,6 +367,12 @@ const router = {
         return;
       }
       this.showDashboard();
+    } else if (path === '/archives') {
+      if (!auth.isAuthenticated()) {
+        this.navigate('/login');
+        return;
+      }
+      this.showArchives();
     } else {
       this.navigate('/dashboard');
     }
@@ -474,7 +487,8 @@ const router = {
 
     try {
       const data = await api.get('/data/dashboard');
-      this.allDocuments = data.documents || [];
+      // Filter out archived documents for dashboard view
+      this.allDocuments = (data.documents || []).filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
@@ -486,7 +500,7 @@ const router = {
               <h1>📄 DocTrack</h1>
             </div>
             <nav class="sidebar-nav">
-              <a href="#" onclick="router.showDashboard(); return false;" class="sidebar-link active">
+              <a href="#" onclick="router.navigate('/dashboard'); return false;" class="sidebar-link active">
                 <span class="sidebar-icon">📋</span>
                 <span>My Documents</span>
               </a>
@@ -566,6 +580,98 @@ const router = {
     }
   },
 
+  async showArchives() {
+    const user = auth.getUser();
+
+    try {
+      const data = await api.get('/data/dashboard');
+      // Filter only archived documents
+      this.allDocuments = (data.documents || []).filter(doc => doc.is_archived === 1);
+      this.filteredDocuments = [...this.allDocuments];
+
+      document.getElementById('app').innerHTML = `
+        <!-- SIDEBAR LAYOUT -->
+        <div class="app-layout">
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="sidebar-header">
+              <h1>📄 DocTrack</h1>
+            </div>
+            <nav class="sidebar-nav">
+              <a href="#" onclick="router.navigate('/dashboard'); return false;" class="sidebar-link">
+                <span class="sidebar-icon">📋</span>
+                <span>My Documents</span>
+              </a>
+              <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link active">
+                <span class="sidebar-icon">📦</span>
+                <span>Archives</span>
+              </a>
+              ${user.role === 'admin' ? `
+              <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
+                <span class="sidebar-icon">⚙️</span>
+                <span>Admin Panel</span>
+              </a>
+              ` : ''}
+            </nav>
+            <div class="sidebar-footer">
+              <div class="user-info">
+                <div class="user-avatar">👤</div>
+                <div class="user-details">
+                  <div class="user-name">${user.fullName || user.username}</div>
+                  <div class="user-role">${user.role || 'User'}</div>
+                </div>
+              </div>
+              <button onclick="logout()" class="btn-logout">Logout</button>
+            </div>
+          </aside>
+
+          <!-- Main Content -->
+          <main class="main-content">
+            <div class="content-header">
+              <div>
+                <h2>📦 Archived Documents</h2>
+                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
+              </div>
+            </div>
+            
+            <!-- Search Bar for Archives -->
+            <div class="search-filters-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
+              <select id="priorityFilter" class="form-control filter-inline">
+                <option value="">Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+            </div>
+            
+            <div id="message"></div>
+            
+            <div class="documents-container">
+              <div id="documentsList"></div>
+              <div id="pagination"></div>
+            </div>
+          </main>
+        </div>
+      `;
+
+      // Attach search and filter listeners
+      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+
+      this.renderArchivedDocuments();
+    } catch (error) {
+      if (error.message.includes('Authentication')) {
+        auth.removeToken();
+        this.navigate('/login');
+      } else {
+        this.showMessage(error.message, 'error');
+      }
+    }
+  },
+
   handleSearch(searchTerm) {
     this.applyFilters(searchTerm);
   },
@@ -588,16 +694,32 @@ const router = {
     });
 
     this.currentPage = 1;
-    this.renderDocuments();
+    
+    // Render appropriate view based on current route
+    if (this.currentRoute === '/archives') {
+      this.renderArchivedDocuments();
+    } else {
+      this.renderDocuments();
+    }
   },
 
   resetFilters() {
     document.getElementById('searchInput').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('priorityFilter').value = '';
+    if (document.getElementById('statusFilter')) {
+      document.getElementById('statusFilter').value = '';
+    }
+    if (document.getElementById('priorityFilter')) {
+      document.getElementById('priorityFilter').value = '';
+    }
     this.filteredDocuments = [...this.allDocuments];
     this.currentPage = 1;
-    this.renderDocuments();
+    
+    // Render appropriate view based on current route
+    if (this.currentRoute === '/archives') {
+      this.renderArchivedDocuments();
+    } else {
+      this.renderDocuments();
+    }
   },
 
   sortDocuments(column) {
@@ -612,7 +734,7 @@ const router = {
       let aVal = a[column];
       let bVal = b[column];
 
-      if (column === 'uploaded_at') {
+      if (column === 'uploaded_at' || column === 'archived_at') {
         aVal = new Date(aVal);
         bVal = new Date(bVal);
       }
@@ -627,7 +749,12 @@ const router = {
       return 0;
     });
 
-    this.renderDocuments();
+    // Render appropriate view based on current route
+    if (this.currentRoute === '/archives') {
+      this.renderArchivedDocuments();
+    } else {
+      this.renderDocuments();
+    }
   },
 
   renderDocuments() {
@@ -718,6 +845,97 @@ const router = {
       </div>
     `;
 
+    this.renderPagination(paginationContainer, totalPages);
+  },
+
+  renderArchivedDocuments() {
+    const container = document.getElementById('documentsList');
+    const paginationContainer = document.getElementById('pagination');
+
+    if (this.filteredDocuments.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p style="font-size: 3rem; margin-bottom: 1rem;">📦</p>
+          <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No archived documents</p>
+          <p style="color: var(--color-text-secondary);">
+            ${this.allDocuments.length === 0 ? 'Archived documents will appear here' : 'Try adjusting your search'}
+          </p>
+        </div>
+      `;
+      if (paginationContainer) paginationContainer.innerHTML = '';
+      return;
+    }
+
+    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
+
+    const getSortIcon = (column) => {
+      if (this.sortColumn !== column) return '⇅';
+      return this.sortDirection === 'asc' ? '↑' : '↓';
+    };
+
+    container.innerHTML = `
+      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
+        Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} archived documents
+      </div>
+      
+      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table class="table" style="min-width: 1200px; table-layout: fixed;">
+          <thead>
+            <tr>
+              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">
+                Document # ${getSortIcon('document_number')}
+              </th>
+              <th style="width: 200px; cursor: pointer;" onclick="router.sortDocuments('title')">
+                Title ${getSortIcon('title')}
+              </th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('document_type')">
+                Type ${getSortIcon('document_type')}
+              </th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('priority')">
+                Priority ${getSortIcon('priority')}
+              </th>
+              <th style="width: 140px;">Archived By</th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('archived_at')">
+                Archived Date ${getSortIcon('archived_at')}
+              </th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
+                Upload Date ${getSortIcon('uploaded_at')}
+              </th>
+              <th style="width: 300px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paginatedDocs.map(doc => `
+              <tr>
+                <td style="font-size: 0.85rem;">${doc.document_number}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.title}">${doc.title}</td>
+                <td>${doc.document_type}</td>
+                <td>${this.getPriorityBadge(doc.priority)}</td>
+                <td>${doc.uploaded_by_name || 'N/A'}</td>
+                <td style="font-size: 0.85rem;">${doc.archived_at ? new Date(doc.archived_at).toLocaleDateString() : 'N/A'}</td>
+                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                <td>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">View</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">History</button>
+                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Restore" style="background: #10b981; color: white; min-width: 65px;">Restore</button>
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    this.renderPagination(paginationContainer, totalPages);
+  },
+
+  renderPagination(paginationContainer, totalPages) {
     if (totalPages > 1) {
       let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">';
       
@@ -764,7 +982,13 @@ const router = {
     const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
     if (page < 1 || page > totalPages) return;
     this.currentPage = page;
-    this.renderDocuments();
+    
+    // Render appropriate view based on current route
+    if (this.currentRoute === '/archives') {
+      this.renderArchivedDocuments();
+    } else {
+      this.renderDocuments();
+    }
   },
 
   getStatusBadge(status) {
@@ -798,6 +1022,7 @@ const router = {
     }
   }
 };
+
 
 // Global CRUD functions
 function logout() {
@@ -926,6 +1151,22 @@ async function archiveDocument(id) {
   }
 }
 
+async function restoreDocument(id) {
+  if (!confirm('Are you sure you want to restore this document?')) {
+    return;
+  }
+
+  try {
+    const result = await api.post('/data/documents?action=restore', {
+      document_id: id
+    });
+    alert(result.message || 'Document restored successfully!');
+    router.showArchives();
+  } catch (error) {
+    alert('Failed to restore document: ' + error.message);
+  }
+}
+
 async function deleteDocument(id, title) {
   if (!confirm(`Are you sure you want to permanently delete "${title}"?\n\nThis will also delete the file from MEGA storage and cannot be undone!`)) {
     return;
@@ -934,7 +1175,13 @@ async function deleteDocument(id, title) {
   try {
     const result = await api.delete(`/data/documents?id=${id}`);
     alert(result.message || 'Document deleted successfully!');
-    router.showDashboard();
+    
+    // Refresh appropriate view
+    if (router.currentRoute === '/archives') {
+      router.showArchives();
+    } else {
+      router.showDashboard();
+    }
   } catch (error) {
     alert('Failed to delete document: ' + error.message);
   }
@@ -957,5 +1204,6 @@ window.editDocument = editDocument;
 window.viewDocumentHistory = viewDocumentHistory;
 window.routeDocument = routeDocument;
 window.archiveDocument = archiveDocument;
+window.restoreDocument = restoreDocument;
 window.deleteDocument = deleteDocument;
 window.logout = logout;
