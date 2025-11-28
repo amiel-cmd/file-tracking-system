@@ -2,7 +2,6 @@ const pool = require('../db');
 const { requireAuth, requireAdmin } = require('../utils/auth');
 const bcrypt = require('bcrypt');
 
-
 module.exports = async function handler(req, res) {
     console.log('DEBUG: [...route].js handler called');
     console.log('DEBUG: req.method:', req.method);
@@ -53,9 +52,9 @@ module.exports = async function handler(req, res) {
             });
         };
 
-        // GET ADMIN DASHBOARD STATS
-        if (routePath.includes('/user/stats') && method === 'GET') {
-            console.log('DEBUG: /user/stats endpoint matched');
+        // GET ADMIN DASHBOARD STATS - CHANGED FROM /user/stats to /stats
+        if (routePath.includes('/stats') && method === 'GET') {
+            console.log('DEBUG: /stats endpoint matched');
             
             const statsQuery = `
                 SELECT 
@@ -103,9 +102,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET ALL USERS
-        if (routePath.includes('/user/list') && method === 'GET') {
-            console.log('DEBUG: /user/list endpoint matched');
+        // GET ALL USERS - CHANGED FROM /user/list to /list
+        if (routePath.includes('/list') && method === 'GET') {
+            console.log('DEBUG: /list endpoint matched');
             
             const usersQuery = `
                 SELECT 
@@ -129,9 +128,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET PENDING USERS
-        if (routePath.includes('/user/pending') && method === 'GET') {
-            console.log('DEBUG: /user/pending endpoint matched');
+        // GET PENDING USERS - CHANGED FROM /user/pending to /pending
+        if (routePath.includes('/pending') && method === 'GET') {
+            console.log('DEBUG: /pending endpoint matched');
             
             const pendingQuery = `
                 SELECT 
@@ -153,9 +152,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // APPROVE USER
-        if (routePath.includes('/user/approve') && method === 'POST') {
-            console.log('DEBUG: /user/approve endpoint matched');
+        // APPROVE USER - CHANGED FROM /user/approve to /approve
+        if (routePath.includes('/approve') && method === 'POST') {
+            console.log('DEBUG: /approve endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -190,9 +189,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // REJECT/DENY USER
-        if (routePath.includes('/user/reject') && method === 'POST') {
-            console.log('DEBUG: /user/reject endpoint matched');
+        // REJECT USER - CHANGED FROM /user/reject to /reject
+        if (routePath.includes('/reject') && method === 'POST') {
+            console.log('DEBUG: /reject endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -227,9 +226,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // DEACTIVATE USER
-        if (routePath.includes('/user/deactivate') && method === 'POST') {
-            console.log('DEBUG: /user/deactivate endpoint matched');
+        // DEACTIVATE USER - CHANGED FROM /user/deactivate to /deactivate
+        if (routePath.includes('/deactivate') && method === 'POST') {
+            console.log('DEBUG: /deactivate endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -264,9 +263,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // REACTIVATE USER
-        if (routePath.includes('/user/reactivate') && method === 'POST') {
-            console.log('DEBUG: /user/reactivate endpoint matched');
+        // REACTIVATE USER - CHANGED FROM /user/reactivate to /reactivate
+        if (routePath.includes('/reactivate') && method === 'POST') {
+            console.log('DEBUG: /reactivate endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -301,9 +300,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // UPDATE USER ROLE
-        if (routePath.includes('/user/update-role') && method === 'POST') {
-            console.log('DEBUG: /user/update-role endpoint matched');
+        // UPDATE USER ROLE - CHANGED FROM /user/update-role to /update-role
+        if (routePath.includes('/update-role') && method === 'POST') {
+            console.log('DEBUG: /update-role endpoint matched');
             const body = await parseBody();
             const { user_id, role } = body;
 
@@ -345,9 +344,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // DELETE USER PERMANENTLY
-        if (routePath.includes('/user/delete') && method === 'POST') {
-            console.log('DEBUG: /user/delete endpoint matched');
+        // DELETE USER - CHANGED FROM /user/delete to /delete
+        if (routePath.includes('/delete') && method === 'POST') {
+            console.log('DEBUG: /delete endpoint matched');
             const body = await parseBody();
             const user_id = body.user_id;
 
@@ -390,9 +389,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // RESET USER PASSWORD
-        if (routePath.includes('/user/reset-password') && method === 'POST') {
-            console.log('DEBUG: /user/reset-password endpoint matched');
+        // RESET PASSWORD - CHANGED FROM /user/reset-password to /reset-password
+        if (routePath.includes('/reset-password') && method === 'POST') {
+            console.log('DEBUG: /reset-password endpoint matched');
             const body = await parseBody();
             const { user_id, new_password } = body;
 
@@ -436,9 +435,9 @@ module.exports = async function handler(req, res) {
             });
         }
 
-        // GET USER DETAILS BY ID
-        if (routePath.includes('/user/details') && method === 'GET') {
-            console.log('DEBUG: /user/details endpoint matched');
+        // GET USER DETAILS - CHANGED FROM /user/details to /details
+        if (routePath.includes('/details') && method === 'GET') {
+            console.log('DEBUG: /details endpoint matched');
             
             const urlParams = new URL(req.url, `http://${req.headers.host}`);
             const user_id = urlParams.searchParams.get('id');
