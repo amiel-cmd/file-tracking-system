@@ -1,25 +1,17 @@
 // Main Application JavaScript
-// Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
-// RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL
+// Handles routing and API calls with full CRUD operations
+// Search, Pagination, Sorting
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL
 
 const API_BASE = '/api';
 
 // Auth utilities
 const auth = {
-  getToken() {
-    return localStorage.getItem('token');
-  },
-
-  setToken(token) {
-    localStorage.setItem('token', token);
-  },
-
-  removeToken() {
-    localStorage.removeItem('token');
-  },
-
-  getUser() {
-    const token = this.getToken();
+  getToken: () => localStorage.getItem('token'),
+  setToken: (token) => localStorage.setItem('token', token),
+  removeToken: () => localStorage.removeItem('token'),
+  getUser: () => {
+    const token = auth.getToken();
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -28,10 +20,7 @@ const auth = {
       return null;
     }
   },
-
-  isAuthenticated() {
-    return !!this.getToken();
-  }
+  isAuthenticated: () => !!auth.getToken()
 };
 
 // API utilities
@@ -42,10 +31,7 @@ const api = {
       'Content-Type': 'application/json',
       ...options.headers
     };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -60,14 +46,13 @@ const api = {
       try {
         data = text ? JSON.parse(text) : {};
       } catch (e) {
-        console.error('Failed to parse JSON from API:', text);
+        console.error('Failed to parse JSON from API', text);
         throw new Error('Server returned invalid response');
       }
 
       if (!response.ok) {
         throw new Error(data.error || 'Request failed');
       }
-
       return data;
     } catch (error) {
       console.error('API Error:', error);
@@ -100,10 +85,7 @@ const api = {
   async uploadFile(endpoint, formData) {
     const token = auth.getToken();
     const headers = {};
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -119,14 +101,13 @@ const api = {
       try {
         data = text ? JSON.parse(text) : {};
       } catch (e) {
-        console.error('Failed to parse JSON from API:', text);
+        console.error('Failed to parse JSON from API', text);
         throw new Error('Server returned invalid response');
       }
 
       if (!response.ok) {
         throw new Error(data.error || 'Request failed');
       }
-
       return data;
     } catch (error) {
       console.error('API Error:', error);
@@ -203,10 +184,9 @@ const editModal = {
 // View Document Modal
 const viewModal = {
   open(documentId, documentData) {
-    const filePath = documentData.file_path || '';
+    const filePath = documentData.file_path;
     const hasFile = !!documentData.mega_file_id;
     const fileExtension = filePath ? filePath.split('.').pop().toLowerCase() : '';
-    
     const isPDF = fileExtension === 'pdf';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension);
@@ -214,10 +194,10 @@ const viewModal = {
 
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
-    
     const previewUrl = isOffice 
       ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
       : viewUrl;
+
     const modalHtml = `
       <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
         <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
@@ -225,26 +205,20 @@ const viewModal = {
             <div>
               <h2 style="margin: 0; font-size: 1.5rem;">${documentData.title}</h2>
               <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
-                Document #${documentData.document_number} | 
-                ${documentData.document_type} | 
-                Priority: ${documentData.priority}
+                📄 Document ${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority}
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">📥 Download</a>` : ''}
-              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">
-                ✕
-              </button>
+              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">✕</button>
             </div>
           </div>
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
-            ${hasFile && isViewable ? `
-              ${isPDF || isOffice ? `
-                <iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
-              ` : `
-                <img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">
-              `}
-            ` : `
+            ${hasFile && isViewable ? (
+              isPDF || isOffice 
+                ? `<iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>`
+                : `<img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">`
+            ) : `
               <div style="text-align: center; padding: 2rem;">
                 <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
                 <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${hasFile ? filePath : 'No file attached'}</p>
@@ -258,30 +232,28 @@ const viewModal = {
           <div style="padding: 1rem 1.5rem; border-top: 1px solid #ddd; background: #f9f9f9;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Status:</strong>
+                <strong style="color: #666; font-size: 0.875rem;">Status</strong>
                 <p style="margin: 0.25rem 0 0 0;">${documentData.status}</p>
               </div>
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Uploaded By:</strong>
+                <strong style="color: #666; font-size: 0.875rem;">Uploaded By</strong>
                 <p style="margin: 0.25rem 0 0 0;">${documentData.uploaded_by_name || 'N/A'}</p>
               </div>
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Date:</strong>
+                <strong style="color: #666; font-size: 0.875rem;">Date</strong>
                 <p style="margin: 0.25rem 0 0 0;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
               </div>
               ${hasFile ? `
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">File Size:</strong>
+                <strong style="color: #666; font-size: 0.875rem;">File Size</strong>
                 <p style="margin: 0.25rem 0 0 0;">${formatFileSize(documentData.file_size)}</p>
-              </div>
-              ` : ''}
+              </div>` : ''}
             </div>
             ${documentData.description ? `
-              <div style="margin-top: 1rem;">
-                <strong style="color: #666; font-size: 0.875rem;">Description:</strong>
-                <p style="margin: 0.25rem 0 0 0;">${documentData.description}</p>
-              </div>
-            ` : ''}
+            <div style="margin-top: 1rem;">
+              <strong style="color: #666; font-size: 0.875rem;">Description</strong>
+              <p style="margin: 0.25rem 0 0 0;">${documentData.description}</p>
+            </div>` : ''}
           </div>
         </div>
       </div>
@@ -293,7 +265,6 @@ const viewModal = {
     const closeBtn = document.getElementById('viewCloseBtn');
 
     closeBtn.addEventListener('click', () => overlay.remove());
-
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.remove();
     });
@@ -404,7 +375,7 @@ const router = {
               <button type="submit" class="btn btn--primary btn--full-width">Login</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Don't have an account? <a href="#" onclick="event.preventDefault(); router.navigate('/register');">Register here</a>
+              Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register');">Register here</a>
             </p>
           </div>
         </div>
@@ -417,10 +388,7 @@ const router = {
       const data = Object.fromEntries(formData);
 
       try {
-        const result = await api.post('/auth', {
-          action: 'login',
-          ...data
-        });
+        const result = await api.post('/auth', { action: 'login', ...data });
         auth.setToken(result.token);
         this.navigate('/dashboard');
       } catch (error) {
@@ -462,7 +430,7 @@ const router = {
               <button type="submit" class="btn btn--primary btn--full-width">Register</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Already have an account? <a href="#" onclick="event.preventDefault(); router.navigate('/login');">Login here</a>
+              Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login');">Login here</a>
             </p>
           </div>
         </div>
@@ -475,10 +443,7 @@ const router = {
       const data = Object.fromEntries(formData);
 
       try {
-        const result = await api.post('/auth', {
-          action: 'register',
-          ...data
-        });
+        const result = await api.post('/auth', { action: 'register', ...data });
         this.showMessage(result.message, 'success');
         setTimeout(() => this.navigate('/login'), 2000);
       } catch (error) {
@@ -491,7 +456,7 @@ const router = {
 
     try {
       const data = await api.get('/data/dashboard');
-      this.allDocuments = (data.documents || []).filter(doc => doc.is_archived !== 1);
+      this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
@@ -506,19 +471,18 @@ const router = {
                 <span>My Documents</span>
               </a>
               <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">📦</span>
+                <span class="sidebar-icon">🗄️</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
               <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
-              </a>
-              ` : ''}
+              </a>` : ''}
             </nav>
             <div class="sidebar-footer">
               <div class="user-info">
-                <div class="user-avatar">👤</div>
+                <div class="user-avatar"></div>
                 <div class="user-details">
                   <div class="user-name">${user.fullName || user.username}</div>
                   <div class="user-role">${user.role || 'User'}</div>
@@ -531,9 +495,10 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <h2>My Documents</h2>
-              <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
+              <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
             </div>
-            
+
+            <!-- Search and Filters WITH DATE FILTERS -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline">
@@ -550,11 +515,13 @@ const router = {
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
-            
+
             <div id="message"></div>
-            
+
             <div class="documents-container">
               <div id="documentsList"></div>
               <div id="pagination"></div>
@@ -566,6 +533,8 @@ const router = {
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
 
       this.renderDocuments();
     } catch (error) {
@@ -584,9 +553,8 @@ const router = {
 
     try {
       const data = await api.get('/data/dashboard');
-      this.allDocuments = (data.documents || []).filter(doc => doc.is_archived === 1);
+      this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
       this.filteredDocuments = [...this.allDocuments];
-      
       console.log('Archived documents:', this.allDocuments.length);
 
       document.getElementById('app').innerHTML = `
@@ -601,19 +569,18 @@ const router = {
                 <span>My Documents</span>
               </a>
               <a href="/archives" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">📦</span>
+                <span class="sidebar-icon">🗄️</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
               <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
-              </a>
-              ` : ''}
+              </a>` : ''}
             </nav>
             <div class="sidebar-footer">
               <div class="user-info">
-                <div class="user-avatar">👤</div>
+                <div class="user-avatar"></div>
                 <div class="user-details">
                   <div class="user-name">${user.fullName || user.username}</div>
                   <div class="user-role">${user.role || 'User'}</div>
@@ -626,11 +593,12 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <div>
-                <h2>📦 Archived Documents</h2>
+                <h2>🗄️ Archived Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
               </div>
             </div>
-            
+
+            <!-- Search and Filters WITH DATE FILTERS -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
               <select id="priorityFilter" class="form-control filter-inline">
@@ -640,11 +608,13 @@ const router = {
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
-            
+
             <div id="message"></div>
-            
+
             <div class="documents-container">
               <div id="documentsList"></div>
               <div id="pagination"></div>
@@ -655,6 +625,8 @@ const router = {
 
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
 
       this.renderArchivedDocuments();
     } catch (error) {
@@ -667,6 +639,7 @@ const router = {
       }
     }
   },
+
   async showAdminPanel() {
     console.log('showAdminPanel() called');
     const user = auth.getUser();
@@ -690,7 +663,7 @@ const router = {
                 <span>My Documents</span>
               </a>
               <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">📦</span>
+                <span class="sidebar-icon">🗄️</span>
                 <span>Archives</span>
               </a>
               <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin');">
@@ -700,7 +673,7 @@ const router = {
             </nav>
             <div class="sidebar-footer">
               <div class="user-info">
-                <div class="user-avatar">👤</div>
+                <div class="user-avatar"></div>
                 <div class="user-details">
                   <div class="user-name">${user.fullName || user.username}</div>
                   <div class="user-role">${user.role || 'User'}</div>
@@ -712,7 +685,7 @@ const router = {
 
           <main class="main-content">
             <div class="content-header">
-              <h2>⚙️ Admin Panel</h2>
+              <h2>🛡️ Admin Panel</h2>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
@@ -739,8 +712,7 @@ const router = {
             ${pendingData.pending_users.length > 0 ? `
             <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
               <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
-                <span>⚠️</span>
-                <span>Pending User Registrations (${pendingData.pending_users.length})</span>
+                <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
               </h3>
               <div style="overflow-x: auto;">
                 <table class="table">
@@ -764,8 +736,8 @@ const router = {
                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
                           <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">✓ Approve</button>
-                            <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">✕ Reject</button>
+                            <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">✅ Approve</button>
+                            <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">❌ Reject</button>
                           </div>
                         </td>
                       </tr>
@@ -800,36 +772,26 @@ const router = {
                         <td>${u.email}</td>
                         <td>${u.department || 'N/A'}</td>
                         <td>
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${
-                            u.role === 'admin' 
-                              ? 'background: #dbeafe; color: #1e40af;' 
-                              : 'background: #e5e7eb; color: #374151;'
-                          }">
-                            ${u.role === 'admin' ? '👑 Admin' : 'User'}
+                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
+                            ${u.role === 'admin' ? 'Admin' : 'User'}
                           </span>
                         </td>
                         <td>
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${
-                            u.is_active === 1 
-                              ? 'background: #d1fae5; color: #065f46;' 
-                              : 'background: #fee2e2; color: #991b1b;'
-                          }">
-                            ${u.is_active === 1 ? '✓ Active' : '✕ Inactive'}
+                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
+                            ${u.is_active === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td style="font-size: 0.875rem;">${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
                           <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                            ${u.is_active === 1 ? `
-                              <button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Deactivate</button>
-                            ` : `
-                              <button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Reactivate</button>
-                            `}
-                            ${u.role !== 'admin' ? `
-                              <button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Make Admin</button>
-                            ` : `
-                              <button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Remove Admin</button>
-                            `}
+                            ${u.is_active === 1 
+                              ? `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Deactivate</button>`
+                              : `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Reactivate</button>`
+                            }
+                            ${u.role !== 'admin' 
+                              ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Make Admin</button>`
+                              : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Remove Admin</button>`
+                            }
                             <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Delete</button>
                           </div>
                         </td>
@@ -842,7 +804,6 @@ const router = {
           </main>
         </div>
       `;
-
     } catch (error) {
       console.error('Admin panel error:', error);
       if (error.message.includes('Authentication')) {
@@ -854,14 +815,18 @@ const router = {
       }
     }
   },
+
   handleSearch(searchTerm) {
     this.applyFilters(searchTerm);
   },
 
+  // PATCHED: Filter logic with Date Range support
   applyFilters(searchTerm = null) {
     const search = searchTerm !== null ? searchTerm : document.getElementById('searchInput')?.value || '';
     const statusFilter = document.getElementById('statusFilter')?.value || '';
     const priorityFilter = document.getElementById('priorityFilter')?.value || '';
+    const dateFrom = document.getElementById('dateFromFilter')?.value || '';
+    const dateTo = document.getElementById('dateToFilter')?.value || '';
 
     this.filteredDocuments = this.allDocuments.filter(doc => {
       const matchesSearch = !search || 
@@ -871,12 +836,27 @@ const router = {
 
       const matchesStatus = !statusFilter || doc.status === statusFilter;
       const matchesPriority = !priorityFilter || doc.priority === priorityFilter;
+      
+      // Date filtering
+      let matchesDateRange = true;
+      if (dateFrom || dateTo) {
+        const docDate = new Date(doc.uploaded_at);
+        if (dateFrom) {
+          const fromDate = new Date(dateFrom);
+          fromDate.setHours(0, 0, 0, 0);
+          matchesDateRange = matchesDateRange && docDate >= fromDate;
+        }
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          matchesDateRange = matchesDateRange && docDate <= toDate;
+        }
+      }
 
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
     });
 
     this.currentPage = 1;
-    
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -884,17 +864,16 @@ const router = {
     }
   },
 
+  // PATCHED: Reset filters including date inputs
   resetFilters() {
     document.getElementById('searchInput').value = '';
-    if (document.getElementById('statusFilter')) {
-      document.getElementById('statusFilter').value = '';
-    }
-    if (document.getElementById('priorityFilter')) {
-      document.getElementById('priorityFilter').value = '';
-    }
+    if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
+    if (document.getElementById('priorityFilter')) document.getElementById('priorityFilter').value = '';
+    if (document.getElementById('dateFromFilter')) document.getElementById('dateFromFilter').value = '';
+    if (document.getElementById('dateToFilter')) document.getElementById('dateToFilter').value = '';
+    
     this.filteredDocuments = [...this.allDocuments];
     this.currentPage = 1;
-    
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -935,7 +914,6 @@ const router = {
       this.renderDocuments();
     }
   },
-
   renderDocuments() {
     const container = document.getElementById('documentsList');
     const paginationContainer = document.getElementById('pagination');
@@ -960,7 +938,7 @@ const router = {
     const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
 
     const getSortIcon = (column) => {
-      if (this.sortColumn !== column) return '⇅';
+      if (this.sortColumn !== column) return '↕️';
       return this.sortDirection === 'asc' ? '↑' : '↓';
     };
 
@@ -968,31 +946,18 @@ const router = {
       <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
       </div>
-      
       <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
         <table class="table" style="min-width: 1200px; table-layout: fixed;">
           <thead>
             <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">
-                Document # ${getSortIcon('document_number')}
-              </th>
-              <th style="width: 180px; cursor: pointer;" onclick="router.sortDocuments('title')">
-                Title ${getSortIcon('title')}
-              </th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('document_type')">
-                Type ${getSortIcon('document_type')}
-              </th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('priority')">
-                Priority ${getSortIcon('priority')}
-              </th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('status')">
-                Status ${getSortIcon('status')}
-              </th>
+              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
+              <th style="width: 180px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
+              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
+              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('status')">Status ${getSortIcon('status')}</th>
               <th style="width: 140px;">Current Location</th>
               <th style="width: 120px;">Uploaded By</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
-                Date ${getSortIcon('uploaded_at')}
-              </th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Date ${getSortIcon('uploaded_at')}</th>
               <th style="width: 380px;">Actions</th>
             </tr>
           </thead>
@@ -1009,12 +974,12 @@ const router = {
                 <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">View</button>
-                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit" style="min-width: 50px;">Edit</button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}' )" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">History</button>
-                    <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">Route</button>
-                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white; min-width: 65px;">Archive</button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}' )" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">Delete</button>
+                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
+                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit" style="min-width: 50px;">✏️ Edit</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
+                    <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">➡️ Route</button>
+                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white; min-width: 65px;">📦 Archive</button>
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
                   </div>
                 </td>
               </tr>
@@ -1034,7 +999,7 @@ const router = {
     if (this.filteredDocuments.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <p style="font-size: 3rem; margin-bottom: 1rem;">📦</p>
+          <p style="font-size: 3rem; margin-bottom: 1rem;">🗄️</p>
           <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No archived documents</p>
           <p style="color: var(--color-text-secondary);">
             ${this.allDocuments.length === 0 ? 'Archived documents will appear here' : 'Try adjusting your search'}
@@ -1051,7 +1016,7 @@ const router = {
     const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
 
     const getSortIcon = (column) => {
-      if (this.sortColumn !== column) return '⇅';
+      if (this.sortColumn !== column) return '↕️';
       return this.sortDirection === 'asc' ? '↑' : '↓';
     };
 
@@ -1059,30 +1024,17 @@ const router = {
       <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} archived documents
       </div>
-      
       <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
         <table class="table" style="min-width: 1200px; table-layout: fixed;">
           <thead>
             <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">
-                Document # ${getSortIcon('document_number')}
-              </th>
-              <th style="width: 200px; cursor: pointer;" onclick="router.sortDocuments('title')">
-                Title ${getSortIcon('title')}
-              </th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('document_type')">
-                Type ${getSortIcon('document_type')}
-              </th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('priority')">
-                Priority ${getSortIcon('priority')}
-              </th>
+              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
+              <th style="width: 200px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
+              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
               <th style="width: 140px;">Archived By</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('archived_at')">
-                Archived Date ${getSortIcon('archived_at')}
-              </th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">
-                Upload Date ${getSortIcon('uploaded_at')}
-              </th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('archived_at')">Archived Date ${getSortIcon('archived_at')}</th>
+              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Upload Date ${getSortIcon('uploaded_at')}</th>
               <th style="width: 300px;">Actions</th>
             </tr>
           </thead>
@@ -1098,10 +1050,10 @@ const router = {
                 <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">View</button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}' )" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">History</button>
-                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Restore" style="background: #10b981; color: white; min-width: 65px;">Restore</button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}' )" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">Delete</button>
+                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
+                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Restore" style="background: #10b981; color: white; min-width: 65px;">↩️ Restore</button>
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
                   </div>
                 </td>
               </tr>
@@ -1115,46 +1067,27 @@ const router = {
   },
 
   renderPagination(paginationContainer, totalPages) {
-    if (totalPages > 1) {
-      let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">';
-      
-      paginationHTML += `
-        <button onclick="router.goToPage(${this.currentPage - 1})" 
-                ${this.currentPage === 1 ? 'disabled' : ''} 
-                class="btn btn--sm" 
-                style="${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
-          ← Previous
-        </button>
-      `;
-
-      for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-          paginationHTML += `
-            <button onclick="router.goToPage(${i})" 
-                    class="btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}" 
-                    style="min-width: 40px;">
-              ${i}
-            </button>
-          `;
-        } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-          paginationHTML += '<span style="padding: 0 0.5rem;">...</span>';
-        }
-      }
-
-      paginationHTML += `
-        <button onclick="router.goToPage(${this.currentPage + 1})" 
-                ${this.currentPage === totalPages ? 'disabled' : ''} 
-                class="btn btn--sm" 
-                style="${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
-          Next →
-        </button>
-      `;
-
-      paginationHTML += '</div>';
-      paginationContainer.innerHTML = paginationHTML;
-    } else {
+    if (totalPages <= 1) {
       paginationContainer.innerHTML = '';
+      return;
     }
+
+    let paginationHTML = `<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">`;
+    
+    paginationHTML += `<button onclick="router.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Previous</button>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+        paginationHTML += `<button onclick="router.goToPage(${i})" class="btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}" style="min-width: 40px;">${i}</button>`;
+      } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+        paginationHTML += `<span style="padding: 0 0.5rem;">...</span>`;
+      }
+    }
+
+    paginationHTML += `<button onclick="router.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Next</button>`;
+    
+    paginationHTML += `</div>`;
+    paginationContainer.innerHTML = paginationHTML;
   },
 
   goToPage(page) {
@@ -1171,22 +1104,22 @@ const router = {
 
   getPriorityBadge(priority) {
     const colors = {
-      low: 'background: #dbeafe; color: #1e40af;',
-      medium: 'background: #fef3c7; color: #92400e;',
-      high: 'background: #fed7aa; color: #9a3412;',
-      urgent: 'background: #fee2e2; color: #991b1b;'
+      low: { background: '#dbeafe', color: '#1e40af' },
+      medium: { background: '#fef3c7', color: '#92400e' },
+      high: { background: '#fed7aa', color: '#9a3412' },
+      urgent: { background: '#fee2e2', color: '#991b1b' }
     };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[priority] || colors.medium}">${priority}</span>`;
+    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[priority] ? `background: ${colors[priority].background}; color: ${colors[priority].color};` : ''}">${priority}</span>`;
   },
 
   getStatusBadge(status) {
     const colors = {
-      pending: 'background: #fef3c7; color: #92400e;',
-      in_progress: 'background: #dbeafe; color: #1e40af;',
-      routed: 'background: #e0e7ff; color: #3730a3;',
-      completed: 'background: #d1fae5; color: #065f46;'
+      pending: { background: '#fef3c7', color: '#92400e' },
+      in_progress: { background: '#dbeafe', color: '#1e40af' },
+      routed: { background: '#e0e7ff', color: '#3730a3' },
+      completed: { background: '#d1fae5', color: '#065f46' }
     };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[status] || colors.pending}">${status.replace('_', ' ')}</span>`;
+    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[status] ? `background: ${colors[status].background}; color: ${colors[status].color};` : ''}">${status.replace('_', ' ')}</span>`;
   },
 
   showMessage(message, type = 'info') {
@@ -1194,13 +1127,13 @@ const router = {
     if (!messageDiv) return;
 
     const colors = {
-      success: 'background: #d1fae5; color: #065f46; border-left: 4px solid #10b981;',
-      error: 'background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444;',
-      info: 'background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6;'
+      success: { background: '#d1fae5', color: '#065f46', borderLeft: '4px solid #10b981' },
+      error: { background: '#fee2e2', color: '#991b1b', borderLeft: '4px solid #ef4444' },
+      info: { background: '#dbeafe', color: '#1e40af', borderLeft: '4px solid #3b82f6' }
     };
 
     messageDiv.innerHTML = `
-      <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 4px; ${colors[type] || colors.info}">
+      <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 4px; background: ${colors[type].background}; color: ${colors[type].color}; border-left: ${colors[type].borderLeft};">
         ${message}
       </div>
     `;
@@ -1210,9 +1143,10 @@ const router = {
     }, 5000);
   }
 };
+
 // Admin User Management Functions
 async function approveUser(userId, username) {
-  if (!confirm(`Approve user "${username}"?`)) return;
+  if (!confirm(`Approve user ${username}?`)) return;
   try {
     const result = await api.post('/users/approve', { user_id: userId });
     alert(result.message || 'User approved!');
@@ -1223,7 +1157,7 @@ async function approveUser(userId, username) {
 }
 
 async function rejectUser(userId, username) {
-  if (!confirm(`Reject "${username}"? Cannot be undone.`)) return;
+  if (!confirm(`Reject ${username}? Cannot be undone.`)) return;
   try {
     const result = await api.post('/users/reject', { user_id: userId });
     alert(result.message || 'User rejected!');
@@ -1234,7 +1168,7 @@ async function rejectUser(userId, username) {
 }
 
 async function deactivateUser(userId, username) {
-  if (!confirm(`Deactivate "${username}"?`)) return;
+  if (!confirm(`Deactivate ${username}?`)) return;
   try {
     const result = await api.post('/users/deactivate', { user_id: userId });
     alert(result.message || 'User deactivated!');
@@ -1245,7 +1179,7 @@ async function deactivateUser(userId, username) {
 }
 
 async function reactivateUser(userId, username) {
-  if (!confirm(`Reactivate "${username}"?`)) return;
+  if (!confirm(`Reactivate ${username}?`)) return;
   try {
     const result = await api.post('/users/reactivate', { user_id: userId });
     alert(result.message || 'User reactivated!');
@@ -1256,7 +1190,7 @@ async function reactivateUser(userId, username) {
 }
 
 async function makeAdmin(userId, username) {
-  if (!confirm(`Grant admin privileges to "${username}"?`)) return;
+  if (!confirm(`Grant admin privileges to ${username}?`)) return;
   try {
     const result = await api.post('/users/update-role', { user_id: userId, role: 'admin' });
     alert(result.message || 'User promoted to admin!');
@@ -1267,7 +1201,7 @@ async function makeAdmin(userId, username) {
 }
 
 async function removeAdmin(userId, username) {
-  if (!confirm(`Remove admin privileges from "${username}"?`)) return;
+  if (!confirm(`Remove admin privileges from ${username}?`)) return;
   try {
     const result = await api.post('/users/update-role', { user_id: userId, role: 'user' });
     alert(result.message || 'Admin privileges removed!');
@@ -1278,7 +1212,7 @@ async function removeAdmin(userId, username) {
 }
 
 async function deleteUser(userId, username) {
-  if (!confirm(`PERMANENTLY DELETE user "${username}"?\n\nThis CANNOT be undone!`)) return;
+  if (!confirm(`PERMANENTLY DELETE user ${username}? CANNOT be undone!`)) return;
   try {
     const result = await api.post('/users/delete', { user_id: userId });
     alert(result.message || 'User deleted!');
@@ -1288,7 +1222,7 @@ async function deleteUser(userId, username) {
   }
 }
 
-// Document Management Functions (you already have these, keeping them here for completeness)
+// Document Management Functions
 async function viewDocument(documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
@@ -1320,9 +1254,7 @@ async function editDocument(documentId) {
 }
 
 async function deleteDocument(documentId, title) {
-  if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis will permanently delete the document and its file from storage.\n\nThis action CANNOT be undone!`)) {
-    return;
-  }
+  if (!confirm(`Are you sure you want to delete "${title}"? This will permanently delete the document and its file from storage.\n\nThis action CANNOT be undone!`)) return;
 
   try {
     const result = await api.delete(`/data/documents?id=${documentId}`);
@@ -1346,7 +1278,7 @@ async function archiveDocument(documentId) {
 }
 
 async function restoreDocument(documentId) {
-  if (!confirm('Restore this document from archives?')) return;  //update
+  if (!confirm('Restore this document from archives?')) return;
 
   try {
     const result = await api.post('/data/documents?action=restore', { document_id: documentId });
@@ -1362,7 +1294,6 @@ async function routeDocument(documentId) {
   if (!destination) return;
 
   try {
-    // FIXED: Use PATCH method with destination_text parameters
     const result = await api.request('/data/documents', {
       method: 'PATCH',
       body: JSON.stringify({
@@ -1376,7 +1307,6 @@ async function routeDocument(documentId) {
     alert('Error routing document: ' + error.message);
   }
 }
-
 
 async function viewDocumentHistory(documentId, title) {
   try {
@@ -1504,22 +1434,5 @@ document.addEventListener('DOMContentLoaded', () => {
 window.router = router;
 window.api = api;
 window.auth = auth;
-window.viewModal = viewModal;
-window.editModal = editModal;
-window.formatFileSize = formatFileSize;
-window.viewDocument = viewDocument;
-window.editDocument = editDocument;
-window.viewDocumentHistory = viewDocumentHistory;
-window.routeDocument = routeDocument;
-window.archiveDocument = archiveDocument;
-window.restoreDocument = restoreDocument;
-window.deleteDocument = deleteDocument;
 window.openDocumentFormModal = openDocumentFormModal;
-window.logout = logout;
-window.approveUser = approveUser;
-window.rejectUser = rejectUser;
-window.deactivateUser = deactivateUser;
-window.reactivateUser = reactivateUser;
-window.makeAdmin = makeAdmin;
-window.removeAdmin = removeAdmin;
-window.deleteUser = deleteUser;
+window.logout = logout;   
