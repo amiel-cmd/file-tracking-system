@@ -566,7 +566,6 @@ module.exports = async function handler(req, res) {
         }
 
         // File upload using formidable + MEGA
-        // Wrap in try-catch for better error handling
         let fields, files;
         try {
           const form = formidable({
@@ -574,6 +573,8 @@ module.exports = async function handler(req, res) {
             uploadDir: '/tmp',
             keepExtensions: true,
             multiples: false,
+            allowEmptyFiles: true,  // ← ADDED: Allow empty files
+            minFileSize: 0,         // ← ADDED: Allow 0-byte files
           });
 
           [fields, files] = await new Promise((resolve, reject) => {
@@ -602,9 +603,20 @@ module.exports = async function handler(req, res) {
 
         console.log('Parsed fields:', { title, document_type, priority, hasDescription: !!description });
 
-        // File - OPTIONAL
-        const uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
-        console.log('Uploaded file:', uploadedFile ? uploadedFile.originalFilename : 'No file');
+        // File - OPTIONAL - Filter out empty files
+        let uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+
+        // Check if file is actually empty (size 0) and treat as no file
+        if (uploadedFile && uploadedFile.size === 0) {
+          console.log('Empty file detected, treating as no file uploaded');
+          // Delete the empty temp file if it exists
+          if (uploadedFile.filepath) {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+          }
+          uploadedFile = null;
+        }
+
+        console.log('Uploaded file:', uploadedFile ? `${uploadedFile.originalFilename} (${uploadedFile.size} bytes)` : 'No file');
 
         if (!title || !document_type || !priority) {
           return res.status(400).json({
