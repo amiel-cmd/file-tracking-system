@@ -368,9 +368,20 @@ const router = {
         return;
       }
       this.showArchives();
-    } else {
-      this.navigate('/dashboard');
-    }
+    }  else if (path === '/admin') {
+  if (!auth.isAuthenticated()) {
+    this.navigate('/login');
+    return;
+  }
+  const user = auth.getUser();
+  if (user.role !== 'admin') {
+    alert('Access denied: Admin only');
+    this.navigate('/dashboard');
+    return;
+  }
+  this.showAdminPanel();
+}
+
   },
 
   showLogin() {
@@ -658,6 +669,273 @@ const router = {
       }
     }
   },
+
+  async showAdminPanel() {
+  console.log('showAdminPanel() called');
+  const user = auth.getUser();
+
+  try {
+    const [statsData, usersData, pendingData] = await Promise.all([
+      api.get('/admin/user/stats'),
+      api.get('/admin/user/list'),
+      api.get('/admin/user/pending')
+    ]);
+
+    document.getElementById('app').innerHTML = `
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h1>📄 DocTrack</h1>
+          </div>
+          <nav class="sidebar-nav">
+            <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
+              <span class="sidebar-icon">📋</span>
+              <span>My Documents</span>
+            </a>
+            <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
+              <span class="sidebar-icon">📦</span>
+              <span>Archives</span>
+            </a>
+            <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin');">
+              <span class="sidebar-icon">⚙️</span>
+              <span>Admin Panel</span>
+            </a>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="user-info">
+              <div class="user-avatar">👤</div>
+              <div class="user-details">
+                <div class="user-name">${user.fullName || user.username}</div>
+                <div class="user-role">${user.role || 'User'}</div>
+              </div>
+            </div>
+            <button onclick="logout()" class="btn-logout">Logout</button>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <div class="content-header">
+            <h2>⚙️ Admin Panel</h2>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
+              <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
+              <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
+              <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
+              <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
+            </div>
+          </div>
+
+          <div id="adminMessage"></div>
+
+          ${pendingData.pending_users.length > 0 ? `
+          <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
+            <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+              <span>⚠️</span>
+              <span>Pending User Registrations (${pendingData.pending_users.length})</span>
+            </h3>
+            <div style="overflow-x: auto;">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pendingData.pending_users.map(u => `
+                    <tr>
+                      <td>${u.full_name}</td>
+                      <td>${u.username}</td>
+                      <td>${u.email}</td>
+                      <td>${u.department || 'N/A'}</td>
+                      <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                          <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">✓ Approve</button>
+                          <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">✕ Reject</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          ` : ''}
+
+          <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 1rem 0;">👥 All Users</h3>
+            <div style="overflow-x: auto;">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${usersData.users.map(u => `
+                    <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
+                      <td>${u.full_name}</td>
+                      <td>${u.username}</td>
+                      <td>${u.email}</td>
+                      <td>${u.department || 'N/A'}</td>
+                      <td>
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${
+                          u.role === 'admin' 
+                            ? 'background: #dbeafe; color: #1e40af;' 
+                            : 'background: #e5e7eb; color: #374151;'
+                        }">
+                          ${u.role === 'admin' ? '👑 Admin' : 'User'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${
+                          u.is_active === 1 
+                            ? 'background: #d1fae5; color: #065f46;' 
+                            : 'background: #fee2e2; color: #991b1b;'
+                        }">
+                          ${u.is_active === 1 ? '✓ Active' : '✕ Inactive'}
+                        </span>
+                      </td>
+                      <td style="font-size: 0.875rem;">${new Date(u.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                          ${u.is_active === 1 ? `
+                            <button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Deactivate</button>
+                          ` : `
+                            <button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Reactivate</button>
+                          `}
+                          ${u.role !== 'admin' ? `
+                            <button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Make Admin</button>
+                          ` : `
+                            <button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Remove Admin</button>
+                          `}
+                          <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+
+  } catch (error) {
+    console.error('Admin panel error:', error);
+    if (error.message.includes('Authentication')) {
+      auth.removeToken();
+      this.navigate('/login');
+    } else {
+      alert('Error loading admin panel: ' + error.message);
+      this.navigate('/dashboard');
+    }
+  }
+  // Admin User Management Functions
+async function approveUser(userId, username) {
+  if (!confirm(`Approve user "${username}"?`)) return;
+  try {
+    const result = await api.post('/admin/user/approve', { user_id: userId });
+    alert(result.message || 'User approved!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function rejectUser(userId, username) {
+  if (!confirm(`Reject "${username}"? Cannot be undone.`)) return;
+  try {
+    const result = await api.post('/admin/user/reject', { user_id: userId });
+    alert(result.message || 'User rejected!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function deactivateUser(userId, username) {
+  if (!confirm(`Deactivate "${username}"?`)) return;
+  try {
+    const result = await api.post('/admin/user/deactivate', { user_id: userId });
+    alert(result.message || 'User deactivated!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function reactivateUser(userId, username) {
+  if (!confirm(`Reactivate "${username}"?`)) return;
+  try {
+    const result = await api.post('/admin/user/reactivate', { user_id: userId });
+    alert(result.message || 'User reactivated!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function makeAdmin(userId, username) {
+  if (!confirm(`Grant admin to "${username}"?`)) return;
+  try {
+    const result = await api.post('/admin/user/update-role', { user_id: userId, role: 'admin' });
+    alert(result.message || 'User promoted!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function removeAdmin(userId, username) {
+  if (!confirm(`Remove admin from "${username}"?`)) return;
+  try {
+    const result = await api.post('/admin/user/update-role', { user_id: userId, role: 'user' });
+    alert(result.message || 'Admin removed!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`DELETE "${username}"? CANNOT BE UNDONE!`)) return;
+  try {
+    const result = await api.post('/admin/user/delete', { user_id: userId });
+    alert(result.message || 'User deleted!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+},
+
 
   handleSearch(searchTerm) {
     this.applyFilters(searchTerm);
@@ -1189,3 +1467,11 @@ window.archiveDocument = archiveDocument;
 window.restoreDocument = restoreDocument;
 window.deleteDocument = deleteDocument;
 window.logout = logout;
+window.approveUser = approveUser;
+window.rejectUser = rejectUser;
+window.deactivateUser = deactivateUser;
+window.reactivateUser = reactivateUser;
+window.makeAdmin = makeAdmin;
+window.removeAdmin = removeAdmin;
+window.deleteUser = deleteUser;
+
