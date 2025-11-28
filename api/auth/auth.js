@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
     }));
   }
 
-  const { action, username, password, email, full_name } = body;
+  const { action, username, password, email, full_name, confirm_password } = body;
 
   // LOGIN
   if (action === 'login') {
@@ -80,14 +80,14 @@ module.exports = async function handler(req, res) {
       const user = result.rows[0];
       console.log('[LOGIN] User found:', user.username, 'is_active:', user.is_active);
 
-      // Check if active
-      if (user.is_active === 0) {
-        console.log('[LOGIN] User is inactive');
+      // Check if active - UPDATED MESSAGE
+      if (user.is_active === 0 || user.is_active === false) {
+        console.log('[LOGIN] User is inactive - pending approval');
         res.statusCode = 403;
         res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
-          error: 'Account is inactive' 
+          error: 'Your account is pending admin approval. Please wait for approval before logging in.' 
         }));
       }
 
@@ -148,7 +148,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // REGISTER
+  // REGISTER - FIXED: Set is_active = 0 (pending approval)
   if (action === 'register') {
     try {
       console.log('[REGISTER] Starting registration for username:', username);
@@ -160,6 +160,28 @@ module.exports = async function handler(req, res) {
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'All fields required' 
+        }));
+      }
+
+      // Check password confirmation if provided
+      if (confirm_password && password !== confirm_password) {
+        console.log('[REGISTER] Passwords do not match');
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Passwords do not match' 
+        }));
+      }
+
+      // Validate password length
+      if (password.length < 6) {
+        console.log('[REGISTER] Password too short');
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Password must be at least 6 characters long' 
         }));
       }
 
@@ -184,21 +206,21 @@ module.exports = async function handler(req, res) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      console.log('[REGISTER] Inserting user...');
-      // Insert user
+      console.log('[REGISTER] Inserting user with is_active = 0 (pending approval)...');
+      // Insert user with is_active = 0 (PENDING APPROVAL)
       const result = await pool.query(
         `INSERT INTO users (username, email, password, full_name, role, is_active) 
-         VALUES ($1, $2, $3, $4, 'staff', 1) 
-         RETURNING user_id, username, email, full_name, role`,
+         VALUES ($1, $2, $3, $4, 'user', 0) 
+         RETURNING user_id, username, email, full_name, role, is_active`,
         [username, email, hashedPassword, full_name]
       );
 
-      console.log('[REGISTER] Success! User created:', result.rows[0].username);
+      console.log('[REGISTER] Success! User created (pending approval):', result.rows[0].username);
       res.statusCode = 201;
       res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify({ 
         success: true, 
-        message: 'Registration successful',
+        message: 'Registration successful! Your account is pending admin approval. You will be able to login once an administrator approves your account.',
         user: result.rows[0]
       }));
 
