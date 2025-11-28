@@ -649,7 +649,6 @@ a:hover {
    SAFE MODAL STYLES (NO CONFLICTS)
    ============================================ */
 
-/* The full screen background overlay */
 .doc-modal-overlay {
     position: fixed;
     top: 0;
@@ -664,7 +663,6 @@ a:hover {
     backdrop-filter: blur(4px);
 }
 
-/* The white modal box */
 .doc-modal-box {
     background: white;
     width: 90%;
@@ -685,7 +683,6 @@ a:hover {
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* Modal Header */
 .doc-modal-box .modal__header {
     padding: 20px 24px;
     border-bottom: 1px solid #e2e8f0;
@@ -716,12 +713,10 @@ a:hover {
     color: #ef4444;
 }
 
-/* Modal Body */
 .doc-modal-box .modal__body {
     padding: 24px;
 }
 
-/* Form Elements inside Modal */
 .doc-modal-box .form-group {
     margin-bottom: 20px;
 }
@@ -741,7 +736,6 @@ a:hover {
     font-size: 1rem;
 }
 
-/* File Upload Area */
 .doc-modal-box .file-upload-area {
     border: 2px dashed #cbd5e1;
     border-radius: 8px;
@@ -757,7 +751,6 @@ a:hover {
     background: #eff6ff;
 }
 
-/* Ensure active state works */
 .doc-modal-overlay.active {
     display: flex !important;
 }
@@ -766,7 +759,6 @@ a:hover {
    TABLE ACTION BUTTONS - HORIZONTAL LAYOUT
    ============================================ */
 
-/* Force horizontal layout for action buttons */
 .table td > div {
     display: flex !important;
     flex-direction: row !important;
@@ -776,7 +768,6 @@ a:hover {
     justify-content: flex-start !important;
 }
 
-/* Action button styling */
 .table td .btn {
     white-space: nowrap;
     display: inline-flex;
@@ -828,7 +819,6 @@ a:hover {
     border: 1px solid #ef4444;
 }
 
-/* Hover effects for action buttons */
 .table td .btn[onclick*="viewDocument"]:hover,
 .table td .btn[onclick*="editDocument"]:hover {
     background: #e2e8f0;
@@ -851,7 +841,6 @@ a:hover {
     transform: translateY(-1px);
 }
 
-/* Mobile responsive - stack buttons on very small screens */
 @media (max-width: 640px) {
     .table td > div {
         flex-direction: column !important;
@@ -863,7 +852,6 @@ a:hover {
     }
 }
 
-/* Ensure table actions column doesn't break */
 .table th:last-child,
 .table td:last-child {
     min-width: 380px;
@@ -873,20 +861,18 @@ a:hover {
    SIDEBAR LAYOUT - FULL WIDTH DESIGN
    ============================================ */
 
-/* App Layout Container */
 .app-layout {
     display: flex;
     min-height: 100vh;
     background: var(--color-background);
 }
 
-/* Sidebar Styles */
 .sidebar {
     width: 260px;
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     color: white;
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     position: fixed;
     left: 0;
     top: 0;
@@ -908,40 +894,47 @@ a:hover {
     letter-spacing: -0.5px;
 }
 
+/* FORCE SIDEBAR NAV TO ALWAYS SHOW VERTICALLY */
 .sidebar-nav {
-    flex: 1;
-    padding: 20px 0;
-    overflow-y: auto;
+    flex: 1 !important;
+    padding: 20px 0 !important;
+    overflow-y: auto !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .sidebar-link {
-    display: flex;
-    align-items: center;
-    padding: 12px 20px;
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    transition: all 0.2s;
-    font-size: 0.95rem;
-    font-weight: 500;
-    gap: 12px;
+    display: flex !important;
+    align-items: center !important;
+    padding: 12px 20px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-decoration: none !important;
+    transition: all 0.2s !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    gap: 12px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-direction: row !important;
 }
 
 .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    text-decoration: none;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    text-decoration: none !important;
 }
 
 .sidebar-link.active {
-    background: rgba(37, 99, 235, 0.2);
-    color: white;
-    border-left: 3px solid var(--color-primary);
+    background: rgba(37, 99, 235, 0.2) !important;
+    color: white !important;
+    border-left: 3px solid var(--color-primary) !important;
 }
 
 .sidebar-icon {
-    font-size: 1.25rem;
-    width: 24px;
-    text-align: center;
+    font-size: 1.25rem !important;
+    width: 24px !important;
+    text-align: center !important;
 }
 
 .sidebar-footer {
@@ -1006,7 +999,6 @@ a:hover {
     border-color: #ef4444;
 }
 
-/* Main Content Area */
 .main-content {
     margin-left: 260px;
     flex: 1;
@@ -1031,7 +1023,6 @@ a:hover {
 
 /* ================================
    INLINE COMPACT FILTERS - ONE LINE
-   (For your exact HTML structure)
    ================================ */
 
 .search-filters-inline {
@@ -1047,7 +1038,6 @@ a:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Search box takes remaining space */
 .search-inline {
     flex: 1;
     min-width: 200px;
@@ -1062,7 +1052,6 @@ a:hover {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
 }
 
-/* Status and Priority dropdowns - compact 110px width */
 .filter-inline {
     width: 110px !important;
     min-width: 110px !important;
@@ -1079,7 +1068,6 @@ a:hover {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
 }
 
-/* Clear button - compact on the right */
 .btn-clear {
     font-size: 0.875rem !important;
     padding: 10px 18px !important;
@@ -1099,7 +1087,6 @@ a:hover {
     transform: translateY(-1px);
 }
 
-/* Mobile responsive - stack on small screens */
 @media (max-width: 640px) {
     .search-filters-inline {
         flex-wrap: wrap;
@@ -1121,7 +1108,6 @@ a:hover {
     }
 }
 
-/* Tablet responsive */
 @media (max-width: 768px) {
     .search-filters-inline {
         padding: 10px;
@@ -1135,7 +1121,6 @@ a:hover {
     }
 }
 
-/* Documents Container */
 .documents-container {
     background: white;
     border-radius: 12px;
@@ -1143,7 +1128,6 @@ a:hover {
     overflow: hidden;
 }
 
-/* Table Wrapper for Full Width */
 .documents-container #documentsList {
     overflow-x: auto;
 }
@@ -1153,61 +1137,27 @@ a:hover {
     min-width: 1200px;
 }
 
-/* Pagination */
 #pagination {
     padding: 20px;
     border-top: 1px solid var(--color-border);
     background: #f9fafb;
 }
 
-/* Mobile Responsive for Layout, Sidebar, Content, etc. */
+/* Mobile Responsive FIXED - Don't mess with sidebar on mobile */
 @media (max-width: 1024px) {
     .sidebar {
-        width: 220px;
+        width: 220px !important;
     }
     .main-content {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 220px !important;
+        width: calc(100% - 220px) !important;
         padding: 24px;
     }
 }
 
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-    }
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-        padding: 16px;
-    }
-    .sidebar-nav {
-        display: flex;
-        padding: 0;
-        overflow-x: auto;
-    }
-    .sidebar-link {
-        flex-direction: column;
-        padding: 12px 16px;
-        text-align: center;
-        gap: 4px;
-    }
-    .sidebar-footer {
-        display: none;
-    }
-    .content-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    .content-header .btn {
-        width: 100%;
-    }
-}
+/* REMOVED THE PROBLEMATIC 768px BREAKPOINT THAT WAS HIDING THE NAV */
+/* The sidebar will now ALWAYS show vertically with navigation links visible */
 
-/* Remove old nav styles conflict */
 nav {
     display: none !important;
 }
