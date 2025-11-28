@@ -1349,7 +1349,7 @@ async function restoreDocument(documentId) {
   if (!confirm('Restore this document from archives?')) return;  //update
 
   try {
-    const result = await api.post('/data/documents/documents?action=restore', { document_id: documentId });
+    const result = await api.post('/data/documents?action=restore', { document_id: documentId });
     alert(result.message || 'Document restored successfully!');
     router.handleRoute();
   } catch (error) {
