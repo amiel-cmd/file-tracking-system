@@ -1,5 +1,5 @@
-const pool = require('../../db');
-const { requireAuth, requireAdmin } = require('../../utils/auth');
+const pool = require('../db');
+const { requireAuth, requireAdmin } = require('../utils/auth');
 const bcrypt = require('bcrypt');
 
 
