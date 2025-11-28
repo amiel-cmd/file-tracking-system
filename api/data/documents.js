@@ -469,205 +469,7 @@ module.exports = async function handler(req, res) {
       }
 
       case 'POST': {
-        // Handle /documents/archive endpoint
-        if (urlPath.includes('/archive')) {
-          const body = await parseJsonBody(req);
-          const { document_id } = body;
-
-          if (!document_id) {
-            return res.status(400).json({ success: false, error: 'Document ID is required' });
-          }
-
-          // Verify ownership before archiving
-          const docCheck = await pool.query('SELECT uploaded_by, title FROM documents WHERE document_id = $1', [document_id]);
-          if (docCheck.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found' });
-          }
-          
-          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
-            return res.status(403).json({ 
-              success: false, 
-              error: 'Access denied: You can only archive documents you uploaded' 
-            });
-          }
-
-          const archiveQuery = `
-            UPDATE documents 
-            SET is_archived = 1, archived_at = NOW(), archived_by = $1 
-            WHERE document_id = $2 
-            RETURNING document_id, title, is_archived
-          `;
-
-          const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
-
-          // Log archive to history
-          await logHistory(
-            document_id, 
-            userId, 
-            'Document Archived', 
-            `Document "${sanitize(docCheck.rows[0].title)}" was archived`
-          );
-
-          return res.status(200).json({
-            success: true,
-            message: 'Document archived successfully!',
-            document: archiveResult.rows[0],
-          });
-        }
-
-        // Handle /documents/restore endpoint
-        if (urlPath.includes('/restore')) {
-          const body = await parseJsonBody(req);
-          const { document_id } = body;
-
-          if (!document_id) {
-            return res.status(400).json({ success: false, error: 'Document ID is required' });
-          }
-
-          // Verify ownership before restoring
-          const docCheck = await pool.query('SELECT uploaded_by, title, is_archived FROM documents WHERE document_id = $1', [document_id]);
-          if (docCheck.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found' });
-          }
-          
-          // Check if document is actually archived
-          if (docCheck.rows[0].is_archived !== 1) {
-            return res.status(400).json({ 
-              success: false, 
-              error: 'Document is not archived' 
-            });
-          }
-          
-          if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
-            return res.status(403).json({ 
-              success: false, 
-              error: 'Access denied: You can only restore documents you uploaded' 
-            });
-          }
-
-          const restoreQuery = `
-            UPDATE documents 
-            SET is_archived = 0, archived_at = NULL, archived_by = NULL 
-            WHERE document_id = $1 
-            RETURNING document_id, title, is_archived
-          `;
-
-          const restoreResult = await pool.query(restoreQuery, [document_id]);
-
-          // Log restore to history
-          await logHistory(
-            document_id, 
-            userId, 
-            'Document Restored', 
-            `Document "${sanitize(docCheck.rows[0].title)}" was restored from archive`
-          );
-
-          console.log(`✓ Document ${document_id} restored from archive by user ${userId}`);
-
-          return res.status(200).json({
-            success: true,
-            message: 'Document restored successfully!',
-            document: restoreResult.rows[0],
-          });
-        }
-
-        // Handle /documents/route endpoint
-        if (urlPath.includes('/route')) {
-          const body = await parseJsonBody(req);
-          const { document_id, new_holder, destination } = body;
-
-          if (!document_id) {
-            return res.status(400).json({ success: false, error: 'Document ID is required' });
-          }
-
-          // Must have either new_holder OR destination
-          if (!new_holder && !destination) {
-            return res.status(400).json({ 
-              success: false, 
-              error: 'Either recipient user or destination is required' 
-            });
-          }
-
-          // Verify current holder or owner before routing
-          const docCheck = await pool.query(
-            'SELECT uploaded_by, current_holder, title FROM documents WHERE document_id = $1',
-            [document_id]
-          );
-          
-          if (docCheck.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found' });
-          }
-          
-          const doc = docCheck.rows[0];
-          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-            return res.status(403).json({ 
-              success: false, 
-              error: 'Access denied: You can only route documents you own or currently hold' 
-            });
-          }
-
-          // If destination is provided (free-text routing), use it
-          if (destination) {
-            const routeQuery = `
-              UPDATE documents 
-              SET status = 'routed', current_destination = $1
-              WHERE document_id = $2 
-              RETURNING document_id, status, current_destination
-            `;
-
-            const routeResult = await pool.query(routeQuery, [sanitize(destination), document_id]);
-
-            // Log routing to history with free-text destination
-            await logHistory(
-              document_id, 
-              userId, 
-              'Document Routed', 
-              `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination)}`
-            );
-
-            console.log(`✓ Document ${document_id} routed to destination: ${destination}`);
-
-            return res.status(200).json({
-              success: true,
-              message: `Document routed to ${destination}`,
-              document: routeResult.rows[0],
-            });
-          }
-
-          // Otherwise, use user-based routing
-          const routeQuery = `
-            UPDATE documents 
-            SET current_holder = $1, status = 'routed', current_destination = NULL
-            WHERE document_id = $2 
-            RETURNING document_id, current_holder, status
-          `;
-
-          const routeResult = await pool.query(routeQuery, [new_holder, document_id]);
-
-          // Log routing to history
-          try {
-            const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
-            const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
-            
-            await logHistory(
-              document_id, 
-              userId, 
-              'Document Routed', 
-              `Document "${sanitize(doc.title)}" routed to ${holderName}`
-            );
-          } catch (error) {
-            console.error('Failed to get holder info for history:', error);
-            await logHistory(document_id, userId, 'Document Routed', `Document routed to another user`);
-          }
-
-          return res.status(200).json({
-            success: true,
-            message: 'Document routed successfully!',
-            document: routeResult.rows[0],
-          });
-        }
-
-        // Check for special actions in query (backwards compatibility)
+        // Check for special actions FIRST (these use JSON, not formidable)
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
@@ -676,7 +478,6 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
 
-          // Verify ownership before archiving
           const docCheck = await pool.query('SELECT uploaded_by, title FROM documents WHERE document_id = $1', [document_id]);
           if (docCheck.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found' });
@@ -698,7 +499,6 @@ module.exports = async function handler(req, res) {
 
           const archiveResult = await pool.query(archiveQuery, [userId, document_id]);
 
-          // Log archive to history
           await logHistory(
             document_id, 
             userId, 
@@ -713,7 +513,6 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // RESTORE/UNARCHIVE ACTION (backwards compatibility)
         if (query.action === 'restore') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
@@ -722,13 +521,11 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
 
-          // Verify ownership before restoring
           const docCheck = await pool.query('SELECT uploaded_by, title, is_archived FROM documents WHERE document_id = $1', [document_id]);
           if (docCheck.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found' });
           }
           
-          // Check if document is actually archived
           if (docCheck.rows[0].is_archived !== 1) {
             return res.status(400).json({ 
               success: false, 
@@ -752,7 +549,6 @@ module.exports = async function handler(req, res) {
 
           const restoreResult = await pool.query(restoreQuery, [document_id]);
 
-          // Log restore to history
           await logHistory(
             document_id, 
             userId, 
@@ -770,19 +566,33 @@ module.exports = async function handler(req, res) {
         }
 
         // File upload using formidable + MEGA
-        const form = formidable({
-          maxFileSize: 10 * 1024 * 1024, // 10MB
-          uploadDir: '/tmp',
-          keepExtensions: true,
-          multiples: false,
-        });
-
-        const [fields, files] = await new Promise((resolve, reject) => {
-          form.parse(req, (err, f, fls) => {
-            if (err) return reject(err);
-            resolve([f, fls]);
+        // Wrap in try-catch for better error handling
+        let fields, files;
+        try {
+          const form = formidable({
+            maxFileSize: 10 * 1024 * 1024, // 10MB
+            uploadDir: '/tmp',
+            keepExtensions: true,
+            multiples: false,
           });
-        });
+
+          [fields, files] = await new Promise((resolve, reject) => {
+            form.parse(req, (err, f, fls) => {
+              if (err) {
+                console.error('Formidable parse error:', err);
+                return reject(err);
+              }
+              resolve([f, fls]);
+            });
+          });
+        } catch (parseError) {
+          console.error('Form parsing failed:', parseError);
+          return res.status(400).json({
+            success: false,
+            error: 'Failed to parse form data',
+            message: parseError.message
+          });
+        }
 
         // Extract fields (formidable v3 returns arrays)
         const title = Array.isArray(fields.title) ? fields.title[0] : fields.title;
@@ -790,13 +600,17 @@ module.exports = async function handler(req, res) {
         const document_type = Array.isArray(fields.document_type) ? fields.document_type[0] : fields.document_type;
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
 
+        console.log('Parsed fields:', { title, document_type, priority, hasDescription: !!description });
+
         // File - OPTIONAL
         const uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+        console.log('Uploaded file:', uploadedFile ? uploadedFile.originalFilename : 'No file');
 
         if (!title || !document_type || !priority) {
           return res.status(400).json({
             success: false,
             error: 'Title, document type, and priority are required',
+            received: { title: !!title, document_type: !!document_type, priority: !!priority }
           });
         }
 
@@ -843,6 +657,7 @@ module.exports = async function handler(req, res) {
             megaLink = uploadedMegaFile.link();
             
             await fs.unlink(uploadedFile.filepath).catch(() => {});
+            console.log(`✓ File uploaded to MEGA: ${fileName}`);
           } catch (error) {
             console.error('MEGA upload failed:', error);
             await fs.unlink(uploadedFile.filepath).catch(() => {});
@@ -852,6 +667,8 @@ module.exports = async function handler(req, res) {
               message: error.message
             });
           }
+        } else {
+          console.log('No file provided - creating document without attachment');
         }
 
         const documentNumber = `DOC-${Date.now()}`;
@@ -886,7 +703,7 @@ module.exports = async function handler(req, res) {
         
         await logHistory(newDocId, userId, action, details);
 
-        console.log(`Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${documentNumber}`);
+        console.log(`✓ Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${documentNumber}`);
 
         return res.status(201).json({
           success: true,
