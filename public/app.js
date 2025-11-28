@@ -2,9 +2,7 @@
 // Handles routing and API calls with full CRUD operations + Search, Pagination, Sorting
 // RESPONSIVE + TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES
 
-
 const API_BASE = '/api';
-
 
 // Auth utilities
 const auth = {
@@ -35,7 +33,6 @@ const auth = {
     return !!this.getToken();
   }
 };
-
 
 // API utilities
 const api = {
@@ -138,7 +135,6 @@ const api = {
   }
 };
 
-
 // Edit Document Modal
 const editModal = {
   open(documentData, onSave) {
@@ -204,7 +200,6 @@ const editModal = {
   }
 };
 
-
 // View Document Modal
 const viewModal = {
   open(documentId, documentData) {
@@ -220,7 +215,6 @@ const viewModal = {
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
     
-    // Use Google Docs Viewer for Office documents
     const previewUrl = isOffice 
       ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
       : viewUrl;
@@ -315,7 +309,6 @@ const viewModal = {
   }
 };
 
-
 // Utility function to format file size
 function formatFileSize(bytes) {
   if (!bytes) return 'N/A';
@@ -323,7 +316,6 @@ function formatFileSize(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
-
 
 // Router
 const router = {
@@ -341,12 +333,14 @@ const router = {
   },
 
   navigate(path) {
+    console.log('Navigating to:', path); // DEBUG
     window.history.pushState({}, '', path);
     this.handleRoute();
   },
 
   handleRoute() {
     const path = window.location.pathname;
+    console.log('Current path:', path); // DEBUG
     this.currentRoute = path;
 
     if (path === '/' || path === '/login') {
@@ -368,6 +362,7 @@ const router = {
       }
       this.showDashboard();
     } else if (path === '/archives') {
+      console.log('Loading archives page...'); // DEBUG
       if (!auth.isAuthenticated()) {
         this.navigate('/login');
         return;
@@ -399,7 +394,7 @@ const router = {
               <button type="submit" class="btn btn--primary btn--full-width">Login</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Don't have an account? <a href="#" onclick="router.navigate('/register'); return false;">Register here</a>
+              Don't have an account? <a href="#" onclick="event.preventDefault(); router.navigate('/register');">Register here</a>
             </p>
           </div>
         </div>
@@ -457,7 +452,7 @@ const router = {
               <button type="submit" class="btn btn--primary btn--full-width">Register</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Already have an account? <a href="#" onclick="router.navigate('/login'); return false;">Login here</a>
+              Already have an account? <a href="#" onclick="event.preventDefault(); router.navigate('/login');">Login here</a>
             </p>
           </div>
         </div>
@@ -487,29 +482,26 @@ const router = {
 
     try {
       const data = await api.get('/data/dashboard');
-      // Filter out archived documents for dashboard view
       this.allDocuments = (data.documents || []).filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
-        <!-- SIDEBAR LAYOUT -->
         <div class="app-layout">
-          <!-- Sidebar -->
           <aside class="sidebar">
             <div class="sidebar-header">
               <h1>📄 DocTrack</h1>
             </div>
             <nav class="sidebar-nav">
-              <a href="#" onclick="router.navigate('/dashboard'); return false;" class="sidebar-link active">
+              <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard');">
                 <span class="sidebar-icon">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link">
+              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
                 <span class="sidebar-icon">📦</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
-              <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
+              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
               </a>
@@ -527,14 +519,12 @@ const router = {
             </div>
           </aside>
 
-          <!-- Main Content -->
           <main class="main-content">
             <div class="content-header">
               <h2>My Documents</h2>
               <button onclick="openDocumentFormModal()" class="btn btn--primary">+ Upload Document</button>
             </div>
             
-            <!-- Search and Filter Bar - INLINE -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline">
@@ -564,7 +554,6 @@ const router = {
         </div>
       `;
 
-      // Attach search and filter listeners
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
@@ -581,33 +570,33 @@ const router = {
   },
 
   async showArchives() {
+    console.log('showArchives() called'); // DEBUG
     const user = auth.getUser();
 
     try {
       const data = await api.get('/data/dashboard');
-      // Filter only archived documents
       this.allDocuments = (data.documents || []).filter(doc => doc.is_archived === 1);
       this.filteredDocuments = [...this.allDocuments];
+      
+      console.log('Archived documents:', this.allDocuments.length); // DEBUG
 
       document.getElementById('app').innerHTML = `
-        <!-- SIDEBAR LAYOUT -->
         <div class="app-layout">
-          <!-- Sidebar -->
           <aside class="sidebar">
             <div class="sidebar-header">
               <h1>📄 DocTrack</h1>
             </div>
             <nav class="sidebar-nav">
-              <a href="#" onclick="router.navigate('/dashboard'); return false;" class="sidebar-link">
+              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
                 <span class="sidebar-icon">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="#" onclick="router.navigate('/archives'); return false;" class="sidebar-link active">
+              <a href="/archives" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/archives');">
                 <span class="sidebar-icon">📦</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
-              <a href="#" onclick="router.navigate('/admin'); return false;" class="sidebar-link">
+              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
               </a>
@@ -625,7 +614,6 @@ const router = {
             </div>
           </aside>
 
-          <!-- Main Content -->
           <main class="main-content">
             <div class="content-header">
               <div>
@@ -634,7 +622,6 @@ const router = {
               </div>
             </div>
             
-            <!-- Search Bar for Archives -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
               <select id="priorityFilter" class="form-control filter-inline">
@@ -657,12 +644,12 @@ const router = {
         </div>
       `;
 
-      // Attach search and filter listeners
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
 
       this.renderArchivedDocuments();
     } catch (error) {
+      console.error('Archive error:', error); // DEBUG
       if (error.message.includes('Authentication')) {
         auth.removeToken();
         this.navigate('/login');
@@ -695,7 +682,6 @@ const router = {
 
     this.currentPage = 1;
     
-    // Render appropriate view based on current route
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -714,7 +700,6 @@ const router = {
     this.filteredDocuments = [...this.allDocuments];
     this.currentPage = 1;
     
-    // Render appropriate view based on current route
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -749,7 +734,6 @@ const router = {
       return 0;
     });
 
-    // Render appropriate view based on current route
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -983,7 +967,6 @@ const router = {
     if (page < 1 || page > totalPages) return;
     this.currentPage = page;
     
-    // Render appropriate view based on current route
     if (this.currentRoute === '/archives') {
       this.renderArchivedDocuments();
     } else {
@@ -1022,7 +1005,6 @@ const router = {
     }
   }
 };
-
 
 // Global CRUD functions
 function logout() {
@@ -1176,7 +1158,6 @@ async function deleteDocument(id, title) {
     const result = await api.delete(`/data/documents?id=${id}`);
     alert(result.message || 'Document deleted successfully!');
     
-    // Refresh appropriate view
     if (router.currentRoute === '/archives') {
       router.showArchives();
     } else {
@@ -1189,6 +1170,7 @@ async function deleteDocument(id, title) {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('App initialized'); // DEBUG
   router.init();
 });
 
