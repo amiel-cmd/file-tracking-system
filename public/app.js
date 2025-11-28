@@ -1337,7 +1337,7 @@ async function archiveDocument(documentId) {
   if (!confirm('Archive this document?')) return;
 
   try {
-    const result = await api.post('/data/documents?action=archive', { document_id: documentId });
+    const result = await api.post('/data/documents?action=restore', { document_id: documentId });
     alert(result.message || 'Document archived successfully!');
     router.handleRoute();
   } catch (error) {
@@ -1362,7 +1362,7 @@ async function routeDocument(documentId) {
   if (!destination) return;
 
   try {
-    const result = await api.post('/data/documents/route', {
+    const result = await api.post('/data/documents', {
       document_id: documentId,
       destination: destination
     });
@@ -1375,7 +1375,7 @@ async function routeDocument(documentId) {
 
 async function viewDocumentHistory(documentId, title) {
   try {
-    const data = await api.get(`/data/documents/history?id=${documentId}`);
+    const data = await api.get(`/data/documents?id=${documentId}&history=true`);
     if (data.success && data.history) {
       let historyHtml = `
         <div id="historyModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
