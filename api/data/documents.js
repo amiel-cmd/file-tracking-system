@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing + ARCHIVE & RESTORE + ADMIN ALL DOCS
+// api/data/documents.js - FIXED Admin Query
 
 // Core imports
 const pool = require('../db');
@@ -244,12 +244,13 @@ module.exports = async function handler(req, res) {
           }
 
           try {
+            // FIXED QUERY: Changed d.user_id to d.uploaded_by
             const allDocsQuery = `
               SELECT d.*, 
                      u.full_name as uploaded_by_name, 
                      u.username as uploaded_by_username 
               FROM documents d 
-              LEFT JOIN users u ON d.user_id = u.user_id 
+              LEFT JOIN users u ON d.uploaded_by = u.user_id 
               ORDER BY d.uploaded_at DESC
             `;
             const result = await pool.query(allDocsQuery);
@@ -260,7 +261,12 @@ module.exports = async function handler(req, res) {
             });
           } catch (error) {
             console.error('Error fetching all documents:', error);
-            return res.status(500).json({ success: false, error: 'Failed to fetch all documents' });
+            // Log the actual SQL error to console for debugging
+            return res.status(500).json({ 
+              success: false, 
+              error: 'Failed to fetch all documents',
+              details: error.message 
+            });
           }
         }
         // ------------------------------------------------
