@@ -300,8 +300,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   TABLE STYLES - DISTINCT HEADER (UPDATED)
-   Matched to image: Dark gray header, white text, vertical separators
+   TABLE STYLES - DISTINCT HEADER & ICON BUTTONS
    ============================================ */
 
 .table {
@@ -333,13 +332,15 @@ h1, h2, h3, h4, h5, h6 {
     border-right: none;
 }
 
-/* Sort icon color fix for dark header */
+/* --- CHANGED: Simplified Sort Icon (No background/box) --- */
 .table th i, .table th svg {
     display: inline-block;
     vertical-align: middle;
-    margin-left: 4px;
-    opacity: 0.8;
+    margin-left: 6px;
+    opacity: 0.6;
     color: white;
+    font-size: 0.8rem; /* Make it smaller */
+    /* Removed any background styling here */
 }
 
 .table tbody tr {
@@ -367,7 +368,7 @@ h1, h2, h3, h4, h5, h6 {
     border-right: none;
 }
 
-/* Action Button Alignment */
+/* Action Button Alignment - Horizontal */
 .table td > div {
     display: flex !important;
     flex-direction: row !important;
@@ -383,67 +384,180 @@ h1, h2, h3, h4, h5, h6 {
     width: 1%;
 }
 
+/* --- CHANGED: Icon-Only Button Styles --- */
 .table td .btn {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
+    padding: 0; /* Remove padding for icon centering */
+    width: 32px; /* Fixed width for square shape */
+    height: 32px; /* Fixed height for square shape */
     border-radius: var(--radius-md);
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* HIDE TEXT BUT KEEP EMOJI */
+    font-size: 0; /* Hide text */
 }
 
-/* Specific Button Styles for Actions */
-.table td .btn[onclick*="viewDocument"],
-.table td .btn[onclick*="editDocument"] {
+/* Re-enable font size for the emoji/icon inside */
+.table td .btn::before, 
+.table td .btn::after,
+.table td .btn span {
+    /* Note: Since your HTML likely has "👁️ View", the emoji is part of the text node. 
+       The simplest pure CSS way to show only the emoji is to assume the emoji is the first character 
+       and rely on font-size: 0 hiding text but emojis sometimes rendering differently, 
+       OR better yet, we just use a fixed font size for content and hide overflow if needed.
+       
+       BUT since your HTML is generated in JS like `👁️ View`, the cleanest CSS-only way 
+       without changing HTML is to set font-size back up and use width/overflow to clip the text.
+    */
+    font-size: 1.1rem; 
+}
+
+/* Force only first character (emoji) to be visible via width clipping technique */
+.table td .btn {
+    font-size: 1rem; /* Reset font size so emoji is visible */
+    overflow: hidden; /* Clip the text " View" */
+    color: transparent !important; /* Hide the text color */
+    text-shadow: 0 0 0 var(--icon-color); /* Reveal the emoji/icon via text-shadow hack or color override */
+}
+
+/* Since emojis have their own color, color: transparent works well for text. 
+   However, for pure CSS reliability with your current HTML `👁️ View`: */
+
+.table td .btn {
+    color: transparent !important; /* Hide text "View" */
+    font-size: 0 !important; /* Shrink text space */
+}
+
+.table td .btn::first-letter {
+    font-size: 1.2rem !important; /* Show emoji large */
+    opacity: 1 !important;
+    color: initial !important; /* Reset emoji color */
+}
+/* NOTE: ::first-letter doesn't work on inline-flex/flex items perfectly in all browsers for this specific hack.
+   
+   BETTER APPROACH FOR YOUR JS HTML (`👁️ View`):
+   We will style them to look good as icons by strictly controlling width and centering.
+*/
+
+.table td .btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0 !important; /* Hide the text "View", "Edit", etc. */
+}
+
+/* Use pseudo-elements to inject icons if we wanted pure CSS icons, 
+   but since you have emojis in HTML, we need to make sure they are visible.
+   
+   The `font-size: 0` hides the text. Now we need to ensure the Emoji remains visible.
+   Browsers handle emojis inside `font-size: 0` differently.
+   
+   SAFE FIX: We will assume you might update the HTML to just `👁️` later, 
+   but for now, let's try to render the emoji by setting font-size back on the first-line or via a trick?
+   
+   ACTUALLY, the most robust CSS-only fix for "👁️ View" -> Icon Only 
+   is to rely on the fact that emojis are often distinct characters.
+   
+   However, simpler is to just update the HTML in your `app.js`.
+   BUT since you asked for `style.css` only, we will use this trick:
+*/
+
+/* Specific Button Styles & Colors */
+.table td .btn[onclick*="viewDocument"] {
+    --icon-color: #64748b;
     background-color: white;
     border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
+    color: transparent; /* Hide text */
+}
+/* Using ::before to display icon if we hide original text */
+.table td .btn[onclick*="viewDocument"]::before {
+    content: "👁️";
+    font-size: 1.1rem;
+    color: var(--icon-color);
+    visibility: visible;
+    position: absolute;
 }
 
-.table td .btn[onclick*="viewDocument"]:hover,
-.table td .btn[onclick*="editDocument"]:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background-color: #eff6ff;
+.table td .btn[onclick*="editDocument"] {
+    --icon-color: #64748b;
+    background-color: white;
+    border: 1px solid var(--color-border);
+    color: transparent;
+}
+.table td .btn[onclick*="editDocument"]::before {
+    content: "✏️";
+    font-size: 1.1rem;
+    color: var(--icon-color);
+    visibility: visible;
+    position: absolute;
 }
 
 .table td .btn[onclick*="viewDocumentHistory"] {
+    --icon-color: #4338ca;
     background-color: #e0e7ff;
-    color: #4338ca;
     border: 1px solid transparent;
+    color: transparent;
 }
-
-.table td .btn[onclick*="viewDocumentHistory"]:hover {
-    background-color: #c7d2fe;
+.table td .btn[onclick*="viewDocumentHistory"]::before {
+    content: "📜";
+    font-size: 1.1rem;
+    visibility: visible;
+    position: absolute;
 }
 
 .table td .btn[onclick*="routeDocument"] {
     background-color: #dbeafe;
-    color: #1e40af;
     border: 1px solid transparent;
+    color: transparent;
 }
-
-.table td .btn[onclick*="routeDocument"]:hover {
-    background-color: #bfdbfe;
+.table td .btn[onclick*="routeDocument"]::before {
+    content: "➡️";
+    font-size: 1.1rem;
+    visibility: visible;
+    position: absolute;
 }
 
 .table td .btn[onclick*="archiveDocument"] {
     background-color: #fef3c7;
-    color: #92400e;
     border: 1px solid transparent;
+    color: transparent;
 }
-
-.table td .btn[onclick*="archiveDocument"]:hover {
-    background-color: #fde68a;
+.table td .btn[onclick*="archiveDocument"]::before {
+    content: "📦";
+    font-size: 1.1rem;
+    visibility: visible;
+    position: absolute;
 }
 
 .table td .btn[onclick*="deleteDocument"] {
     background-color: #fee2e2;
-    color: #991b1b;
     border: 1px solid transparent;
+    color: transparent;
+}
+.table td .btn[onclick*="deleteDocument"]::before {
+    content: "🗑️";
+    font-size: 1.1rem;
+    visibility: visible;
+    position: absolute;
 }
 
-.table td .btn[onclick*="deleteDocument"]:hover {
-    background-color: #fecaca;
+/* Hover States */
+.table td .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+.table td .btn[onclick*="viewDocument"]:hover,
+.table td .btn[onclick*="editDocument"]:hover {
+    border-color: var(--color-primary);
+    background-color: #eff6ff;
+}
+.table td .btn[onclick*="viewDocumentHistory"]:hover { background-color: #c7d2fe; }
+.table td .btn[onclick*="routeDocument"]:hover { background-color: #bfdbfe; }
+.table td .btn[onclick*="archiveDocument"]:hover { background-color: #fde68a; }
+.table td .btn[onclick*="deleteDocument"]:hover { background-color: #fecaca; }
+
 
 /* Sidebar Layout - Modern Dark Theme */
 .app-layout {
