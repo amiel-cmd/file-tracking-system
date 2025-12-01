@@ -20,65 +20,37 @@ module.exports = async function handler(req, res) {
     
     try {
         const userId = req.user.userId;
-        const userRole = req.user.role;
+        // const userRole = req.user.role; // Not needed for "My Documents" filtering anymore
         
-        // Get ALL documents (including archived) based on user role
-        let documentsQuery;
-        let documentsParams;
+        // PATCHED: Always get specific user's documents (My Documents), regardless of role.
+        // Admins have a separate "All Documents" page for global views.
+        const documentsQuery = `
+            SELECT d.*, 
+                   u.full_name as uploaded_by_name,
+                   h.full_name as current_holder_name
+            FROM documents d
+            LEFT JOIN users u ON d.uploaded_by = u.user_id
+            LEFT JOIN users h ON d.current_holder = h.user_id
+            WHERE (d.uploaded_by = $1 OR d.current_holder = $1)
+            ORDER BY d.uploaded_at DESC
+            LIMIT 100
+        `;
         
-        if (userRole === 'admin') {
-            // Admin sees all documents (including archived)
-            documentsQuery = `SELECT d.*, 
-                            u.full_name as uploaded_by_name,
-                            h.full_name as current_holder_name
-                            FROM documents d
-                            LEFT JOIN users u ON d.uploaded_by = u.user_id
-                            LEFT JOIN users h ON d.current_holder = h.user_id
-                            ORDER BY d.uploaded_at DESC
-                            LIMIT 100`;
-            documentsParams = [];
-        } else {
-            // Regular users see documents they uploaded or are current holder (including archived)
-            documentsQuery = `SELECT d.*, 
-                            u.full_name as uploaded_by_name,
-                            h.full_name as current_holder_name
-                            FROM documents d
-                            LEFT JOIN users u ON d.uploaded_by = u.user_id
-                            LEFT JOIN users h ON d.current_holder = h.user_id
-                            WHERE (d.uploaded_by = $1 OR d.current_holder = $1)
-                            ORDER BY d.uploaded_at DESC
-                            LIMIT 100`;
-            documentsParams = [userId];
-        }
+        const documentsResult = await pool.query(documentsQuery, [userId]);
         
-        const documentsResult = await pool.query(documentsQuery, documentsParams);
+        // PATCHED: Always get statistics specific to the user's own documents
+        const statsQuery = `
+            SELECT 
+                COUNT(*) FILTER (WHERE is_archived = 0) as total_documents,
+                COUNT(*) FILTER (WHERE status = 'pending' AND is_archived = 0) as pending,
+                COUNT(*) FILTER (WHERE status = 'in_progress' AND is_archived = 0) as in_progress,
+                COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed,
+                COUNT(*) FILTER (WHERE is_archived = 1) as archived
+            FROM documents
+            WHERE uploaded_by = $1 OR current_holder = $1
+        `;
         
-        // Get statistics
-        let statsQuery;
-        let statsParams;
-        
-        if (userRole === 'admin') {
-            statsQuery = `SELECT 
-                        COUNT(*) FILTER (WHERE is_archived = 0) as total_documents,
-                        COUNT(*) FILTER (WHERE status = 'pending' AND is_archived = 0) as pending,
-                        COUNT(*) FILTER (WHERE status = 'in_progress' AND is_archived = 0) as in_progress,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed,
-                        COUNT(*) FILTER (WHERE is_archived = 1) as archived
-                        FROM documents`;
-            statsParams = [];
-        } else {
-            statsQuery = `SELECT 
-                        COUNT(*) FILTER (WHERE is_archived = 0) as total_documents,
-                        COUNT(*) FILTER (WHERE status = 'pending' AND is_archived = 0) as pending,
-                        COUNT(*) FILTER (WHERE status = 'in_progress' AND is_archived = 0) as in_progress,
-                        COUNT(*) FILTER (WHERE status = 'completed' AND is_archived = 0) as completed,
-                        COUNT(*) FILTER (WHERE is_archived = 1) as archived
-                        FROM documents
-                        WHERE uploaded_by = $1 OR current_holder = $1`;
-            statsParams = [userId];
-        }
-        
-        const statsResult = await pool.query(statsQuery, statsParams);
+        const statsResult = await pool.query(statsQuery, [userId]);
         
         res.status(200).json({
             success: true,
