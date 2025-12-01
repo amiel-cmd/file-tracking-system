@@ -391,7 +391,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   ACTION BUTTONS - ICON ONLY (Final Fix)
+   ACTION BUTTONS - ICON ONLY (FINAL FIX)
    ============================================ */
 
 /* Common Base Style for Table Action Buttons */
@@ -404,73 +404,105 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem; /* Set font size for emoji */
-    overflow: hidden; /* Clip the text label */
+    
+    /* CRITICAL: Hide the text "View", "Edit" etc. */
+    font-size: 0 !important; 
+    color: transparent !important;
+    
+    overflow: visible; /* Allow our ::before icon to show */
     transition: all 0.2s ease;
-    gap: 0; /* Remove gap between icon and clipped text */
-    white-space: nowrap; /* Ensure text doesn't wrap */
-    color: inherit; /* Reset color to be visible */
+    vertical-align: middle;
 }
 
-/* --- SPECIFIC BUTTON STYLES (BACKGROUNDS & COLORS) --- */
+/* Common style for the REPLACEMENT icon */
+.table td .btn::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* CRITICAL: Reset font size so icon is visible */
+    font-size: 1.1rem !important; 
+    line-height: 1;
+    
+    visibility: visible;
+    opacity: 1;
+    pointer-events: none; /* Click passes through to button */
+}
 
-/* View */
+/* --- SPECIFIC BUTTON STYLES --- */
+
+/* View - Eye Icon */
 .table td .btn[onclick*="viewDocument"] {
     background-color: white;
     border: 1px solid var(--color-border);
-    color: #334155;
+}
+.table td .btn[onclick*="viewDocument"]::before {
+    content: "👁️";
 }
 
-/* Edit */
+/* Edit - Pencil Icon */
 .table td .btn[onclick*="editDocument"] {
     background-color: white;
     border: 1px solid var(--color-border);
-    color: #334155;
+}
+.table td .btn[onclick*="editDocument"]::before {
+    content: "✏️"; 
 }
 
-/* History */
+/* History - Scroll Icon */
 .table td .btn[onclick*="viewDocumentHistory"] {
     background-color: #e0e7ff;
-    border-color: transparent;
-    color: #4338ca;
+    border: 1px solid transparent;
+}
+.table td .btn[onclick*="viewDocumentHistory"]::before {
+    content: "📜";
 }
 
-/* Route */
+/* Route - Arrow Icon */
 .table td .btn[onclick*="routeDocument"] {
     background-color: #dbeafe;
-    border-color: transparent;
-    color: #1e40af;
+    border: 1px solid transparent;
+}
+.table td .btn[onclick*="routeDocument"]::before {
+    content: "➡️";
 }
 
-/* Archive */
+/* Archive - Box Icon */
 .table td .btn[onclick*="archiveDocument"] {
     background-color: #fef3c7;
-    border-color: transparent;
-    color: #92400e;
+    border: 1px solid transparent;
+}
+.table td .btn[onclick*="archiveDocument"]::before {
+    content: "📦";
 }
 
-/* Restore */
+/* Restore - Undo Arrow */
 .table td .btn[onclick*="restoreDocument"] {
     background-color: #d1fae5;
-    border-color: transparent;
-    color: #065f46;
+    border: 1px solid transparent;
+}
+.table td .btn[onclick*="restoreDocument"]::before {
+    content: "↩️";
 }
 
-/* Delete */
+/* Delete - Trash Icon */
 .table td .btn[onclick*="deleteDocument"] {
     background-color: #fee2e2;
-    border-color: transparent;
-    color: #991b1b;
+    border: 1px solid transparent;
 }
-
+.table td .btn[onclick*="deleteDocument"]::before {
+    content: "🗑️";
+}
 
 /* Hover Effects */
 .table td .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    opacity: 0.95;
+    opacity: 1;
     z-index: 10;
 }
+
 .table td .btn[onclick*="viewDocument"]:hover,
 .table td .btn[onclick*="editDocument"]:hover {
     border-color: var(--color-primary);
@@ -481,7 +513,6 @@ h1, h2, h3, h4, h5, h6 {
 .table td .btn[onclick*="archiveDocument"]:hover { background-color: #fde68a; }
 .table td .btn[onclick*="restoreDocument"]:hover { background-color: #a7f3d0; }
 .table td .btn[onclick*="deleteDocument"]:hover { background-color: #fecaca; }
-
 
 /* Sidebar Layout - Modern Dark Theme */
 .app-layout {
