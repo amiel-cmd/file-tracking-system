@@ -1,7 +1,7 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations
 // Search, Pagination, Sorting
-// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS
 
 const API_BASE = '/api';
 
@@ -40,7 +40,7 @@ const api = {
       });
 
       const text = await response.text();
-      console.log('API raw response for', endpoint, ':', text);
+      // console.log('API raw response for', endpoint, ':', text);
 
       let data;
       try {
@@ -349,6 +349,18 @@ const router = {
         return;
       }
       this.showAdminPanel();
+    } else if (path === '/admin/documents') { // NEW ROUTE
+      if (!auth.isAuthenticated()) {
+        this.navigate('/login');
+        return;
+      }
+      const user = auth.getUser();
+      if (user.role !== 'admin') {
+        alert('Access denied: Admin only');
+        this.navigate('/dashboard');
+        return;
+      }
+      this.showAdminAllDocuments();
     } else {
       this.navigate('/dashboard');
     }
@@ -451,6 +463,7 @@ const router = {
       }
     });
   },
+
   async showDashboard() {
     const user = auth.getUser();
 
@@ -475,9 +488,14 @@ const router = {
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
+              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
               <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
+              </a>
+              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
+                <span class="sidebar-icon">📂</span>
+                <span>All Documents</span>
               </a>` : ''}
             </nav>
             <div class="sidebar-footer">
@@ -498,7 +516,7 @@ const router = {
               <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
             </div>
 
-            <!-- Search and Filters WITH DATE FILTERS -->
+            <!-- Search and Filters -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline">
@@ -547,6 +565,117 @@ const router = {
     }
   },
 
+  // NEW FUNCTION: Show All Documents (Admin View)
+  async showAdminAllDocuments() {
+    console.log('showAdminAllDocuments() called');
+    const user = auth.getUser();
+
+    try {
+      // Call the new API endpoint endpoint with ?all=true
+      const data = await api.get('/data/documents?all=true');
+      
+      // Filter out archives from the main list if desired, or keep them.
+      // Typically admin "All Docs" view might show everything or filter archives out.
+      // Let's show non-archived by default, similar to dashboard.
+      this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
+      this.filteredDocuments = [...this.allDocuments];
+
+      document.getElementById('app').innerHTML = `
+        <div class="app-layout">
+          <aside class="sidebar">
+            <div class="sidebar-header">
+              <h1>📄 DocTrack</h1>
+            </div>
+            <nav class="sidebar-nav">
+              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
+                <span class="sidebar-icon">📋</span>
+                <span>My Documents</span>
+              </a>
+              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
+                <span class="sidebar-icon">🗄️</span>
+                <span>Archives</span>
+              </a>
+              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
+              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
+                <span class="sidebar-icon">⚙️</span>
+                <span>Admin Panel</span>
+              </a>
+              <a href="/admin/documents" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin/documents');">
+                <span class="sidebar-icon">📂</span>
+                <span>All Documents</span>
+              </a>
+            </nav>
+            <div class="sidebar-footer">
+              <div class="user-info">
+                <div class="user-avatar"></div>
+                <div class="user-details">
+                  <div class="user-name">${user.fullName || user.username}</div>
+                  <div class="user-role">${user.role || 'User'}</div>
+                </div>
+              </div>
+              <button onclick="logout()" class="btn-logout">Logout</button>
+            </div>
+          </aside>
+
+          <main class="main-content">
+            <div class="content-header">
+              <div>
+                <h2>📂 System Documents</h2>
+                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
+              </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="search-filters-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search all docs..." class="form-control search-inline">
+              <select id="statusFilter" class="form-control filter-inline">
+                <option value="">Status</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="routed">Routed</option>
+                <option value="completed">Completed</option>
+              </select>
+              <select id="priorityFilter" class="form-control filter-inline">
+                <option value="">Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
+              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+            </div>
+
+            <div id="message"></div>
+
+            <div class="documents-container">
+              <div id="documentsList"></div>
+              <div id="pagination"></div>
+            </div>
+          </main>
+        </div>
+      `;
+
+      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
+
+      // Reuse the same render function, but it now works on the 'allDocuments' data we just fetched
+      this.renderDocuments(); 
+    } catch (error) {
+      console.error('Admin All Docs error:', error);
+      if (error.message.includes('Authentication')) {
+        auth.removeToken();
+        this.navigate('/login');
+      } else {
+        this.showMessage(error.message, 'error');
+      }
+    }
+  },
+
   async showArchives() {
     console.log('showArchives() called');
     const user = auth.getUser();
@@ -573,9 +702,14 @@ const router = {
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
+              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
               <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
+              </a>
+              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
+                <span class="sidebar-icon">📂</span>
+                <span>All Documents</span>
               </a>` : ''}
             </nav>
             <div class="sidebar-footer">
@@ -598,7 +732,7 @@ const router = {
               </div>
             </div>
 
-            <!-- Search and Filters WITH DATE FILTERS -->
+            <!-- Search and Filters -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
               <select id="priorityFilter" class="form-control filter-inline">
@@ -666,10 +800,16 @@ const router = {
                 <span class="sidebar-icon">🗄️</span>
                 <span>Archives</span>
               </a>
+              ${user.role === 'admin' ? `
+              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
               <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
                 <span>Admin Panel</span>
               </a>
+              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
+                <span class="sidebar-icon">📂</span>
+                <span>All Documents</span>
+              </a>` : ''}
             </nav>
             <div class="sidebar-footer">
               <div class="user-info">
@@ -925,7 +1065,7 @@ const router = {
           <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">
             ${this.allDocuments.length === 0 ? 'Get started by adding your first document' : 'Try adjusting your search or filters'}
           </p>
-          ${this.allDocuments.length === 0 ? '<button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>' : ''}
+          ${this.allDocuments.length === 0 && this.currentRoute !== '/admin/documents' ? '<button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>' : ''}
         </div>
       `;
       if (paginationContainer) paginationContainer.innerHTML = '';
@@ -1435,4 +1575,4 @@ window.router = router;
 window.api = api;
 window.auth = auth;
 window.openDocumentFormModal = openDocumentFormModal;
-window.logout = logout;   
+window.logout = logout;

@@ -1,4 +1,4 @@
-// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing + ARCHIVE & RESTORE
+// api/data/documents.js - SECURED VERSION with Optional File Upload + Full History Logging + Text-Based Routing + ARCHIVE & RESTORE + ADMIN ALL DOCS
 
 // Core imports
 const pool = require('../db');
@@ -237,6 +237,34 @@ module.exports = async function handler(req, res) {
       case 'GET': {
         const documentId = query.id || query.document_id;
         
+        // --- NEW: Admin endpoint to get ALL documents ---
+        if (query.all === 'true') {
+          if (userRole !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Unauthorized: Admin access required' });
+          }
+
+          try {
+            const allDocsQuery = `
+              SELECT d.*, 
+                     u.full_name as uploaded_by_name, 
+                     u.username as uploaded_by_username 
+              FROM documents d 
+              LEFT JOIN users u ON d.user_id = u.user_id 
+              ORDER BY d.uploaded_at DESC
+            `;
+            const result = await pool.query(allDocsQuery);
+            
+            return res.status(200).json({
+              success: true,
+              documents: result.rows
+            });
+          } catch (error) {
+            console.error('Error fetching all documents:', error);
+            return res.status(500).json({ success: false, error: 'Failed to fetch all documents' });
+          }
+        }
+        // ------------------------------------------------
+
         // Handle /documents/history endpoint
         if (urlPath.includes('/history')) {
           if (!documentId) {
