@@ -244,6 +244,8 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    /* --- FIXED: Prevent Header Wrapping --- */
+    white-space: nowrap; 
 }
 
 .table td {
@@ -251,6 +253,13 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid var(--color-border);
     color: var(--color-text);
     vertical-align: middle;
+}
+
+/* Ensure the sort icon stays inline with text */
+.table th i, .table th svg {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 4px;
 }
 
 .table tbody tr {
@@ -265,14 +274,21 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: none;
 }
 
-/* Action Buttons in Table - Horizontal Row */
+/* --- FIXED: Action Buttons in Table - Horizontal Row --- */
+/* Forces the div holding buttons to stay in one line */
 .table td > div {
     display: flex !important;
     flex-direction: row !important;
     gap: 6px !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important; /* CHANGED: wrap to nowrap */
     align-items: center !important;
     justify-content: flex-start !important;
+}
+
+/* Forces the Actions column to fit content and not wrap */
+.table td:last-child {
+    white-space: nowrap;
+    width: 1%; /* Optional: ensures the column shrinks to fit the buttons */
 }
 
 .table td .btn {
@@ -551,7 +567,8 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--color-border);
-    overflow: hidden;
+    /* --- FIXED: Allow horizontal scroll if table is wide --- */
+    overflow-x: auto; 
 }
 
 /* Empty State */
@@ -626,6 +643,7 @@ body > nav {
     .search-filters-inline { flex-direction: column; align-items: stretch; gap: 8px; }
     .search-inline, .filter-inline, .btn-clear { width: 100% !important; max-width: none !important; min-width: 0 !important; }
 }
+
 /* ============================================
    End of Modern Document Tracking System Styles
    ============================================ */
