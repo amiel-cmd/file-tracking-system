@@ -299,95 +299,94 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
 }
 
-/* Tables - Clean & Airy */
+/* ============================================
+   TABLE STYLES - DISTINCT HEADER (UPDATED)
+   Matched to image: Dark gray header, white text, vertical separators
+   ============================================ */
+
 .table {
     width: 100%;
-    border-collapse: separate; /* Allows border-radius on rows */
-    border-spacing: 0;
+    border-collapse: collapse; /* Essential for the grid-like look */
     font-size: var(--font-size-sm);
+    background-color: white;
+    border: 1px solid #d1d5db; /* Outer light border */
 }
 
 .table thead {
-    background-color: #f8fafc;
+    background-color: #4a4a4a; /* Distinct Dark Gray Background */
+    color: #ffffff;
 }
 
 .table th {
-    padding: 1rem 1.5rem;
+    padding: 1rem;
     text-align: left;
     font-weight: 600;
-    color: var(--color-text-secondary);
-    border-bottom: 1px solid var(--color-border);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    /* --- FIXED: Prevent Header Wrapping --- */
-    white-space: nowrap; 
+    color: #ffffff; /* White text for header */
+    border-right: 1px solid rgba(255, 255, 255, 0.2); /* Distinct white vertical separator */
+    border-bottom: none;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    position: relative;
 }
 
-.table td {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text);
-    vertical-align: middle;
+.table th:last-child {
+    border-right: none;
 }
 
-/* Ensure the sort icon stays inline with text */
+/* Sort icon color fix for dark header */
 .table th i, .table th svg {
     display: inline-block;
     vertical-align: middle;
     margin-left: 4px;
+    opacity: 0.8;
+    color: white;
 }
 
 .table tbody tr {
+    background-color: #f9fafb; /* Light gray background for rows */
+    border-bottom: 1px solid #e2e8f0;
     transition: background-color var(--duration-fast);
-    /* Row Entry Animation */
-    animation: rowFadeIn 0.3s ease forwards;
-    opacity: 0;
 }
 
-/* Stagger row animations */
-.table tbody tr:nth-child(1) { animation-delay: 0.05s; }
-.table tbody tr:nth-child(2) { animation-delay: 0.1s; }
-.table tbody tr:nth-child(3) { animation-delay: 0.15s; }
-.table tbody tr:nth-child(4) { animation-delay: 0.2s; }
-.table tbody tr:nth-child(5) { animation-delay: 0.25s; }
-.table tbody tr:nth-child(n+6) { animation-delay: 0.3s; }
-
-@keyframes rowFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.table tbody tr:nth-child(even) {
+    background-color: #f1f5f9; /* Slightly darker for striping/alternating */
 }
 
 .table tbody tr:hover {
-    background-color: #f1f5f9; /* Subtle hover highlight */
+    background-color: #e2e8f0; /* Darker gray on hover */
 }
 
-.table tbody tr:last-child td {
-    border-bottom: none;
+.table td {
+    padding: 1rem;
+    color: var(--color-text);
+    vertical-align: middle;
+    border-right: 1px solid #e2e8f0; /* Faint vertical line in body */
 }
 
-/* --- FIXED: Action Buttons in Table - Horizontal Row --- */
-/* Forces the div holding buttons to stay in one line */
+.table td:last-child {
+    border-right: none;
+}
+
+/* Action Button Alignment */
 .table td > div {
     display: flex !important;
     flex-direction: row !important;
     gap: 6px !important;
-    flex-wrap: nowrap !important; /* CHANGED: wrap to nowrap */
+    flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-start !important;
 }
 
-/* Forces the Actions column to fit content and not wrap */
+/* Force Action Column to fit content */
 .table td:last-child {
     white-space: nowrap;
-    width: 1%; /* Optional: ensures the column shrinks to fit the buttons */
+    width: 1%;
 }
 
 .table td .btn {
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
     border-radius: var(--radius-md);
-    min-width: auto; /* Reset min-width for cleaner look */
     white-space: nowrap;
 }
 
