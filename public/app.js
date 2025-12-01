@@ -1,7 +1,7 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations
 // Search, Pagination, Sorting
-// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS
 
 const API_BASE = '/api';
 
@@ -40,8 +40,7 @@ const api = {
       });
 
       const text = await response.text();
-      // console.log('API raw response for', endpoint, ':', text);
-
+      
       let data;
       try {
         data = text ? JSON.parse(text) : {};
@@ -95,8 +94,7 @@ const api = {
       });
 
       const text = await response.text();
-      console.log('API raw response for', endpoint, ':', text);
-
+      
       let data;
       try {
         data = text ? JSON.parse(text) : {};
@@ -147,7 +145,7 @@ const editModal = {
             </div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
               <button type="button" id="editCancelBtn" class="btn btn--secondary">Cancel</button>
-              <button type="submit" class="btn btn--primary">Save Changes</button>
+              <button type="submit" id="saveChangesBtn" class="btn btn--primary">Save Changes</button>
             </div>
           </form>
         </div>
@@ -159,11 +157,17 @@ const editModal = {
     const overlay = document.getElementById('editModalOverlay');
     const form = document.getElementById('editDocumentForm');
     const cancelBtn = document.getElementById('editCancelBtn');
+    const saveBtn = document.getElementById('saveChangesBtn');
 
     cancelBtn.addEventListener('click', () => overlay.remove());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      // Loading State
+      saveBtn.classList.add('loading');
+      saveBtn.textContent = 'Saving...';
+      
       const updatedData = {
         document_id: documentData.document_id,
         title: document.getElementById('editTitle').value,
@@ -171,7 +175,9 @@ const editModal = {
         document_type: document.getElementById('editType').value,
         priority: document.getElementById('editPriority').value
       };
-      onSave(updatedData);
+      
+      await onSave(updatedData); // Wait for save to complete
+      
       overlay.remove();
     });
 
@@ -349,7 +355,7 @@ const router = {
         return;
       }
       this.showAdminPanel();
-    } else if (path === '/admin/documents') { // NEW ROUTE
+    } else if (path === '/admin/documents') {
       if (!auth.isAuthenticated()) {
         this.navigate('/login');
         return;
@@ -384,7 +390,7 @@ const router = {
                 <label class="form-label">Password</label>
                 <input type="password" name="password" class="form-control" required>
               </div>
-              <button type="submit" class="btn btn--primary btn--full-width">Login</button>
+              <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
               Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register');">Register here</a>
@@ -396,6 +402,10 @@ const router = {
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      btn.classList.add('loading');
+      btn.textContent = 'Logging in...';
+      
       const formData = new FormData(e.target);
       const data = Object.fromEntries(formData);
 
@@ -405,6 +415,8 @@ const router = {
         this.navigate('/dashboard');
       } catch (error) {
         this.showMessage(error.message, 'error');
+        btn.classList.remove('loading');
+        btn.textContent = 'Login';
       }
     });
   },
@@ -439,7 +451,7 @@ const router = {
                 <label class="form-label">Confirm Password</label>
                 <input type="password" name="confirm_password" class="form-control" required>
               </div>
-              <button type="submit" class="btn btn--primary btn--full-width">Register</button>
+              <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
               Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login');">Login here</a>
@@ -451,6 +463,10 @@ const router = {
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('registerBtn');
+      btn.classList.add('loading');
+      btn.textContent = 'Registering...';
+      
       const formData = new FormData(e.target);
       const data = Object.fromEntries(formData);
 
@@ -460,6 +476,8 @@ const router = {
         setTimeout(() => this.navigate('/login'), 2000);
       } catch (error) {
         this.showMessage(error.message, 'error');
+        btn.classList.remove('loading');
+        btn.textContent = 'Register';
       }
     });
   },
@@ -516,7 +534,6 @@ const router = {
               <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
             </div>
 
-            <!-- Search and Filters -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline">
@@ -565,18 +582,13 @@ const router = {
     }
   },
 
-  // NEW FUNCTION: Show All Documents (Admin View)
   async showAdminAllDocuments() {
     console.log('showAdminAllDocuments() called');
     const user = auth.getUser();
 
     try {
-      // Call the new API endpoint endpoint with ?all=true
       const data = await api.get('/data/documents?all=true');
       
-      // Filter out archives from the main list if desired, or keep them.
-      // Typically admin "All Docs" view might show everything or filter archives out.
-      // Let's show non-archived by default, similar to dashboard.
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
@@ -625,7 +637,6 @@ const router = {
               </div>
             </div>
 
-            <!-- Search and Filters -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search all docs..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline">
@@ -663,7 +674,6 @@ const router = {
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
 
-      // Reuse the same render function, but it now works on the 'allDocuments' data we just fetched
       this.renderDocuments(); 
     } catch (error) {
       console.error('Admin All Docs error:', error);
@@ -684,7 +694,6 @@ const router = {
       const data = await api.get('/data/dashboard');
       this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
       this.filteredDocuments = [...this.allDocuments];
-      console.log('Archived documents:', this.allDocuments.length);
 
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
@@ -732,7 +741,6 @@ const router = {
               </div>
             </div>
 
-            <!-- Search and Filters -->
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
               <select id="priorityFilter" class="form-control filter-inline">
@@ -775,6 +783,9 @@ const router = {
   },
 
   async showAdminPanel() {
+    // ... (Admin panel code mostly same, no changes needed to logic, can be abbreviated here but included for completeness if you want full copy-paste)
+    // I'll omit the full body of this specific function to save space unless requested, but it's part of the "full code".
+    // Assuming you want the FULL file, I will include it below.
     console.log('showAdminPanel() called');
     const user = auth.getUser();
 
@@ -800,7 +811,6 @@ const router = {
                 <span class="sidebar-icon">🗄️</span>
                 <span>Archives</span>
               </a>
-              ${user.role === 'admin' ? `
               <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
               <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin');">
                 <span class="sidebar-icon">⚙️</span>
@@ -809,7 +819,7 @@ const router = {
               <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
                 <span class="sidebar-icon">📂</span>
                 <span>All Documents</span>
-              </a>` : ''}
+              </a>
             </nav>
             <div class="sidebar-footer">
               <div class="user-info">
@@ -960,7 +970,6 @@ const router = {
     this.applyFilters(searchTerm);
   },
 
-  // PATCHED: Filter logic with Date Range support
   applyFilters(searchTerm = null) {
     const search = searchTerm !== null ? searchTerm : document.getElementById('searchInput')?.value || '';
     const statusFilter = document.getElementById('statusFilter')?.value || '';
@@ -977,7 +986,6 @@ const router = {
       const matchesStatus = !statusFilter || doc.status === statusFilter;
       const matchesPriority = !priorityFilter || doc.priority === priorityFilter;
       
-      // Date filtering
       let matchesDateRange = true;
       if (dateFrom || dateTo) {
         const docDate = new Date(doc.uploaded_at);
@@ -1004,7 +1012,6 @@ const router = {
     }
   },
 
-  // PATCHED: Reset filters including date inputs
   resetFilters() {
     document.getElementById('searchInput').value = '';
     if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
@@ -1054,6 +1061,7 @@ const router = {
       this.renderDocuments();
     }
   },
+
   renderDocuments() {
     const container = document.getElementById('documentsList');
     const paginationContainer = document.getElementById('pagination');
@@ -1133,6 +1141,7 @@ const router = {
   },
 
   renderArchivedDocuments() {
+    // Same as renderDocuments but for archives
     const container = document.getElementById('documentsList');
     const paginationContainer = document.getElementById('pagination');
 
@@ -1284,7 +1293,9 @@ const router = {
   }
 };
 
-// Admin User Management Functions
+// Helper Functions (Admin, Document Actions, etc.) - MUST be global for onclick handlers
+// ... (Keep all your existing helper functions like approveUser, deleteUser, etc. exactly as they were)
+
 async function approveUser(userId, username) {
   if (!confirm(`Approve user ${username}?`)) return;
   try {
@@ -1362,7 +1373,6 @@ async function deleteUser(userId, username) {
   }
 }
 
-// Document Management Functions
 async function viewDocument(documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
@@ -1496,6 +1506,7 @@ async function viewDocumentHistory(documentId, title) {
   }
 }
 
+// --- PATCHED: Updated Modal to include Progress Bar and Loading State ---
 function openDocumentFormModal() {
   const modalHtml = `
     <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -1527,9 +1538,18 @@ function openDocumentFormModal() {
             <label class="form-label">File (optional)</label>
             <input type="file" name="file" class="form-control">
           </div>
-          <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button type="button" onclick="document.getElementById('uploadModalOverlay').remove()" class="btn btn--secondary">Cancel</button>
-            <button type="submit" class="btn btn--primary">Upload</button>
+          
+          <!-- Progress Bar Container -->
+          <div id="uploadProgressContainer" class="upload-progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+            <p class="upload-status-text">Uploading securely to MEGA storage...</p>
+          </div>
+
+          <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+            <button type="button" id="cancelUploadBtn" class="btn btn--secondary">Cancel</button>
+            <button type="submit" id="uploadBtn" class="btn btn--primary">Upload</button>
           </div>
         </form>
       </div>
@@ -1538,23 +1558,51 @@ function openDocumentFormModal() {
 
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-  document.getElementById('uploadDocumentForm').addEventListener('submit', async (e) => {
+  const overlay = document.getElementById('uploadModalOverlay');
+  const form = document.getElementById('uploadDocumentForm');
+  const cancelBtn = document.getElementById('cancelUploadBtn');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const progressContainer = document.getElementById('uploadProgressContainer');
+
+  const closeOverlay = () => overlay.remove();
+
+  cancelBtn.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // --- ACTIVATING LOADING STATE ---
+    uploadBtn.disabled = true;
+    cancelBtn.disabled = true;
+    uploadBtn.classList.add('loading');
+    uploadBtn.textContent = 'Uploading...'; // Text changes to indicate action
+    
+    // Show progress bar
+    progressContainer.classList.add('active');
+
     const formData = new FormData(e.target);
 
     try {
       const result = await api.uploadFile('/data/documents', formData);
+      
+      // Success!
       alert(result.message || 'Document uploaded successfully!');
-      document.getElementById('uploadModalOverlay').remove();
+      closeOverlay();
       router.handleRoute();
     } catch (error) {
+      // Error handling
       alert('Error uploading document: ' + error.message);
+      
+      // Reset states so user can try again
+      uploadBtn.disabled = false;
+      cancelBtn.disabled = false;
+      uploadBtn.classList.remove('loading');
+      uploadBtn.textContent = 'Upload';
+      progressContainer.classList.remove('active');
     }
-  });
-
-  const overlay = document.getElementById('uploadModalOverlay');
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
   });
 }
 
@@ -1576,3 +1624,17 @@ window.api = api;
 window.auth = auth;
 window.openDocumentFormModal = openDocumentFormModal;
 window.logout = logout;
+window.approveUser = approveUser;
+window.rejectUser = rejectUser;
+window.deactivateUser = deactivateUser;
+window.reactivateUser = reactivateUser;
+window.makeAdmin = makeAdmin;
+window.removeAdmin = removeAdmin;
+window.deleteUser = deleteUser;
+window.viewDocument = viewDocument;
+window.editDocument = editDocument;
+window.deleteDocument = deleteDocument;
+window.archiveDocument = archiveDocument;
+window.restoreDocument = restoreDocument;
+window.routeDocument = routeDocument;
+window.viewDocumentHistory = viewDocumentHistory;
