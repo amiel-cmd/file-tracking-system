@@ -1196,12 +1196,13 @@ const router = {
                 <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
-                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit" style="min-width: 50px;">✏️ Edit</button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
-                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">➡️ Route</button>
-                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white; min-width: 65px;">📦 Archive</button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
+                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
+                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History">📜</button>
+                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--primary" title="Route">➡️</button>
+                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive">📦</button>
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete">🗑️</button>
+
                   </div>
                 </td>
               </tr>
@@ -1275,7 +1276,7 @@ const router = {
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                     <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
                     <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
-                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Restore" style="background: #10b981; color: white; min-width: 65px;">↩️ Restore</button>
+                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm" title="Restore">↩️</button>
                     <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
                   </div>
                 </td>
