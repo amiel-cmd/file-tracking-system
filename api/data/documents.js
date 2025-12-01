@@ -1,4 +1,4 @@
-// api/data/documents.js - FIXED Admin Query
+// api/data/documents.js - COMPLETE & PATCHED
 
 // Core imports
 const pool = require('../db');
@@ -745,7 +745,8 @@ module.exports = async function handler(req, res) {
       case 'PATCH': {
         // Route document with TEXT-BASED destination OR user-based routing
         const body = await parseJsonBody(req);
-        const { document_id, new_holder, destination_text } = body;
+        // --- UPDATED: Added remarks to destructuring ---
+        const { document_id, new_holder, destination_text, remarks } = body;
 
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
@@ -788,12 +789,15 @@ module.exports = async function handler(req, res) {
 
           const routeResult = await pool.query(routeQuery, [sanitize(destination_text), document_id]);
 
-          // Log routing to history with free-text destination
+          // --- UPDATED: Include remarks in history log ---
+          const actionDetails = `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}` + 
+                                (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
+          
           await logHistory(
             document_id, 
             userId, 
             'Document Routed', 
-            `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}`
+            actionDetails
           );
 
           console.log(`✓ Document ${document_id} routed to destination: ${destination_text}`);
@@ -820,15 +824,19 @@ module.exports = async function handler(req, res) {
           const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
           const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
           
+          // --- UPDATED: Include remarks in history log ---
+          const actionDetails = `Document "${sanitize(doc.title)}" routed to ${holderName}` + 
+                                (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
+          
           await logHistory(
             document_id, 
             userId, 
             'Document Routed', 
-            `Document "${sanitize(doc.title)}" routed to ${holderName}`
+            actionDetails
           );
         } catch (error) {
           console.error('Failed to get holder info for history:', error);
-          await logHistory(document_id, userId, 'Document Routed', `Document routed to another user`);
+          await logHistory(document_id, userId, 'Document Routed', `Document routed to another user | Remarks: ${sanitize(remarks || '')}`);
         }
 
         return res.status(200).json({

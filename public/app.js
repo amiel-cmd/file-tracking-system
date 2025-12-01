@@ -1,7 +1,7 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations
 // Search, Pagination, Sorting
-// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS + ROUTE MODAL
 
 const API_BASE = '/api';
 
@@ -111,6 +111,83 @@ const api = {
       console.error('API Error:', error);
       throw error;
     }
+  }
+};
+
+// --- NEW: Route Document Modal ---
+const routeModal = {
+  open(documentId, documentTitle) {
+    const modalHtml = `
+      <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">Route Document</h2>
+          <p style="margin: 0 0 1.5rem 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
+          
+          <form id="routeDocumentForm">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Destination / Recipient <span style="color:red">*</span></label>
+              <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Action Taken / Remarks <span style="color:red">*</span></label>
+              <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+              <button type="button" id="routeCancelBtn" class="btn btn--secondary">Cancel</button>
+              <button type="submit" id="routeSubmitBtn" class="btn btn--primary">➡️ Route Document</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay = document.getElementById('routeModalOverlay');
+    const form = document.getElementById('routeDocumentForm');
+    const cancelBtn = document.getElementById('routeCancelBtn');
+    const submitBtn = document.getElementById('routeSubmitBtn');
+
+    const close = () => overlay.remove();
+
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const destination = document.getElementById('routeDestination').value;
+      const remarks = document.getElementById('routeRemarks').value;
+
+      // Loading state
+      submitBtn.disabled = true;
+      submitBtn.classList.add('loading');
+      submitBtn.textContent = 'Routing...';
+
+      try {
+        const result = await api.request('/data/documents', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            document_id: documentId,
+            destination_text: destination,
+            remarks: remarks // Sending the new remarks field
+          })
+        });
+        
+        alert(result.message || 'Document routed successfully!');
+        close();
+        router.handleRoute(); // Refresh list
+      } catch (error) {
+        alert('Error routing document: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = '➡️ Route Document';
+      }
+    });
   }
 };
 
@@ -783,9 +860,6 @@ const router = {
   },
 
   async showAdminPanel() {
-    // ... (Admin panel code mostly same, no changes needed to logic, can be abbreviated here but included for completeness if you want full copy-paste)
-    // I'll omit the full body of this specific function to save space unless requested, but it's part of the "full code".
-    // Assuming you want the FULL file, I will include it below.
     console.log('showAdminPanel() called');
     const user = auth.getUser();
 
@@ -1125,7 +1199,7 @@ const router = {
                     <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
                     <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit" style="min-width: 50px;">✏️ Edit</button>
                     <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
-                    <button onclick="routeDocument(${doc.document_id})" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">➡️ Route</button>
+                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--primary" title="Route" style="min-width: 55px;">➡️ Route</button>
                     <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive" style="background: #f59e0b; color: white; min-width: 65px;">📦 Archive</button>
                     <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
                   </div>
@@ -1293,9 +1367,7 @@ const router = {
   }
 };
 
-// Helper Functions (Admin, Document Actions, etc.) - MUST be global for onclick handlers
-// ... (Keep all your existing helper functions like approveUser, deleteUser, etc. exactly as they were)
-
+// --- UPDATED: Helper functions ---
 async function approveUser(userId, username) {
   if (!confirm(`Approve user ${username}?`)) return;
   try {
@@ -1439,23 +1511,10 @@ async function restoreDocument(documentId) {
   }
 }
 
-async function routeDocument(documentId) {
-  const destination = prompt('Enter destination/recipient:');
-  if (!destination) return;
-
-  try {
-    const result = await api.request('/data/documents', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        document_id: documentId,
-        destination_text: destination
-      })
-    });
-    alert(result.message || 'Document routed successfully!');
-    router.handleRoute();
-  } catch (error) {
-    alert('Error routing document: ' + error.message);
-  }
+// --- UPDATED: Route Document Logic to use Modal ---
+function routeDocument(documentId, title) {
+  // Open the new route modal instead of using prompt
+  routeModal.open(documentId, title);
 }
 
 async function viewDocumentHistory(documentId, title) {
@@ -1506,7 +1565,6 @@ async function viewDocumentHistory(documentId, title) {
   }
 }
 
-// --- PATCHED: Updated Modal to include Progress Bar and Loading State ---
 function openDocumentFormModal() {
   const modalHtml = `
     <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -1574,13 +1632,12 @@ function openDocumentFormModal() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // --- ACTIVATING LOADING STATE ---
+    // Loading state
     uploadBtn.disabled = true;
     cancelBtn.disabled = true;
     uploadBtn.classList.add('loading');
-    uploadBtn.textContent = 'Uploading...'; // Text changes to indicate action
+    uploadBtn.textContent = 'Uploading...';
     
-    // Show progress bar
     progressContainer.classList.add('active');
 
     const formData = new FormData(e.target);
@@ -1588,15 +1645,11 @@ function openDocumentFormModal() {
     try {
       const result = await api.uploadFile('/data/documents', formData);
       
-      // Success!
       alert(result.message || 'Document uploaded successfully!');
       closeOverlay();
       router.handleRoute();
     } catch (error) {
-      // Error handling
       alert('Error uploading document: ' + error.message);
-      
-      // Reset states so user can try again
       uploadBtn.disabled = false;
       cancelBtn.disabled = false;
       uploadBtn.classList.remove('loading');
