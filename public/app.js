@@ -1526,22 +1526,26 @@ async function viewDocumentHistory(documentId, title) {
           <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
             <h2 style="margin: 0 0 1.5rem 0;">Document History: ${title}</h2>
             <div style="overflow-x: auto;">
-              <table class="table">
+              <table class="table" style="width: 100%; border-collapse: collapse;">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Action</th>
-                    <th>User</th>
-                    <th>Details</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Date</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Action</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 15%;">User</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%;">Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${data.history.map(h => `
-                    <tr>
-                      <td style="font-size: 0.875rem;">${new Date(h.created_at).toLocaleString()}</td>
-                      <td><strong>${h.action}</strong></td>
-                      <td>${h.user_name || 'System'}</td>
-                      <td style="max-width: 300px;">${h.details || '-'}</td>
+                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                      <td style="padding: 0.75rem; vertical-align: top; font-size: 0.875rem; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
+                      <td style="padding: 0.75rem; vertical-align: top;"><strong>${h.action}</strong></td>
+                      <td style="padding: 0.75rem; vertical-align: top;">${h.user_name || 'System'}</td>
+                      
+                      <!-- FIXED WRAPPING HERE -->
+                      <td style="padding: 0.75rem; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; max-width: 300px;">
+                        ${h.details || '-'}
+                      </td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -1564,6 +1568,7 @@ async function viewDocumentHistory(documentId, title) {
     alert('Error loading document history: ' + error.message);
   }
 }
+
 
 function openDocumentFormModal() {
   const modalHtml = `
