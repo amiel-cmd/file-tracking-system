@@ -40,7 +40,7 @@ const api = {
       });
 
       const text = await response.text();
-      
+
       let data;
       try {
         data = text ? JSON.parse(text) : {};
@@ -94,7 +94,7 @@ const api = {
       });
 
       const text = await response.text();
-      
+
       let data;
       try {
         data = text ? JSON.parse(text) : {};
@@ -118,25 +118,25 @@ const api = {
 const routeModal = {
   open(documentId, documentTitle) {
     const modalHtml = `
-      <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">Route Document</h2>
-          <p style="margin: 0 0 1.5rem 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
+      <div id=\"routeModalOverlay\" class=\"modal-overlay\" style=\"position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;\">
+        <div class=\"modal\" style=\"background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;\">
+          <h2 style=\"margin: 0 0 0.5rem 0; font-size: 1.5rem;\">Route Document</h2>
+          <p style=\"margin: 0 0 1.5rem 0; color: #64748b; font-size: 0.9rem;\">${documentTitle}</p>
           
-          <form id="routeDocumentForm">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Destination / Recipient <span style="color:red">*</span></label>
-              <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;">
+          <form id=\"routeDocumentForm\">
+            <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Destination / Recipient <span style=\"color:red\">*</span></label>
+              <input type=\"text\" id=\"routeDestination\" class=\"form-control\" placeholder=\"e.g., Finance Dept, Mr. Smith\" required style=\"width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;\">
             </div>
             
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Action Taken / Remarks <span style="color:red">*</span></label>
-              <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            <div class=\"form-group\" style=\"margin-bottom: 1.5rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Action Taken / Remarks <span style=\"color:red\">*</span></label>
+              <textarea id=\"routeRemarks\" class=\"form-control\" rows=\"3\" placeholder=\"What did you do to this document? (e.g., Signed and approved, Reviewed for errors)\" required style=\"width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;\"></textarea>
             </div>
 
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-              <button type="button" id="routeCancelBtn" class="btn btn--secondary">Cancel</button>
-              <button type="submit" id="routeSubmitBtn" class="btn btn--primary">➡️ Route Document</button>
+            <div style=\"display: flex; gap: 1rem; justify-content: flex-end;\">
+              <button type=\"button\" id=\"routeCancelBtn\" class=\"btn btn--secondary\">Cancel</button>
+              <button type=\"submit\" id=\"routeSubmitBtn\" class=\"btn btn--primary\">➡️ Route Document</button>
             </div>
           </form>
         </div>
@@ -190,39 +190,38 @@ const routeModal = {
     });
   }
 };
-
 // Edit Document Modal
 const editModal = {
   open(documentData, onSave) {
     const modalHtml = `
-      <div id="editModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem;">Edit Document</h2>
-          <form id="editDocumentForm">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Title</label>
-              <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      <div id=\"editModalOverlay\" class=\"modal-overlay\" style=\"position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;\">
+        <div class=\"modal\" style=\"background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;\">
+          <h2 style=\"margin: 0 0 1.5rem 0; font-size: 1.5rem;\">Edit Document</h2>
+          <form id=\"editDocumentForm\">
+            <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Title</label>
+              <input type=\"text\" id=\"editTitle\" class=\"form-control\" value=\"${documentData.title}\" required style=\"width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;\">
             </div>
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-              <textarea id="editDescription" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">${documentData.description || ''}</textarea>
+            <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Description</label>
+              <textarea id=\"editDescription\" class=\"form-control\" rows=\"3\" style=\"width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;\">${documentData.description || ''}</textarea>
             </div>
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Document Type</label>
-              <input type="text" id="editType" class="form-control" value="${documentData.document_type}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Document Type</label>
+              <input type=\"text\" id=\"editType\" class=\"form-control\" value=\"${documentData.document_type}\" required style=\"width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;\">
             </div>
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-              <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="low" ${documentData.priority === 'low' ? 'selected' : ''}>Low</option>
-                <option value="medium" ${documentData.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                <option value="high" ${documentData.priority === 'high' ? 'selected' : ''}>High</option>
-                <option value="urgent" ${documentData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+            <div class=\"form-group\" style=\"margin-bottom: 1.5rem;\">
+              <label class=\"form-label\" style=\"display: block; margin-bottom: 0.5rem; font-weight: 500;\">Priority</label>
+              <select id=\"editPriority\" class=\"form-control\" required style=\"width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;\">
+                <option value=\"low\" ${documentData.priority === 'low' ? 'selected' : ''}>Low</option>
+                <option value=\"medium\" ${documentData.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                <option value=\"high\" ${documentData.priority === 'high' ? 'selected' : ''}>High</option>
+                <option value=\"urgent\" ${documentData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
               </select>
             </div>
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-              <button type="button" id="editCancelBtn" class="btn btn--secondary">Cancel</button>
-              <button type="submit" id="saveChangesBtn" class="btn btn--primary">Save Changes</button>
+            <div style=\"display: flex; gap: 1rem; justify-content: flex-end;\">
+              <button type=\"button\" id=\"editCancelBtn\" class=\"btn btn--secondary\">Cancel</button>
+              <button type=\"submit\" id=\"saveChangesBtn\" class=\"btn btn--primary\">Save Changes</button>
             </div>
           </form>
         </div>
@@ -280,62 +279,61 @@ const viewModal = {
     const previewUrl = isOffice 
       ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
       : viewUrl;
-
     const modalHtml = `
-      <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
-          <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+      <div id=\"viewModalOverlay\" class=\"modal-overlay\" style=\"position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;\">
+        <div class=\"modal\" style=\"background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;\">
+          <div style=\"padding: 1rem 1.5rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;\">
             <div>
-              <h2 style="margin: 0; font-size: 1.5rem;">${documentData.title}</h2>
-              <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
+              <h2 style=\"margin: 0; font-size: 1.5rem;\">${documentData.title}</h2>
+              <p style=\"margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;\">
                 📄 Document ${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority}
               </p>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">📥 Download</a>` : ''}
-              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">✕</button>
+            <div style=\"display: flex; gap: 0.5rem; align-items: center;\">
+              ${hasFile ? `<a href=\"${downloadUrl}\" class=\"btn btn--sm btn--primary\" style=\"text-decoration: none;\">📥 Download</a>` : ''}
+              <button id=\"viewCloseBtn\" class=\"btn btn--sm\" style=\"padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;\">✕</button>
             </div>
           </div>
-          <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
+          <div style=\"flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;\">
             ${hasFile && isViewable ? (
               isPDF || isOffice 
-                ? `<iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>`
-                : `<img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">`
+                ? `<iframe src=\"${previewUrl}\" style=\"width: 100%; height: 100%; border: none; background: white;\"></iframe>`
+                : `<img src=\"${viewUrl}\" style=\"max-width: 100%; max-height: 100%; object-fit: contain;\" alt=\"${documentData.title}\">`
             ) : `
-              <div style="text-align: center; padding: 2rem;">
-                <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
-                <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${hasFile ? filePath : 'No file attached'}</p>
-                <p style="color: #666; margin-bottom: 1.5rem;">
+              <div style=\"text-align: center; padding: 2rem;\">
+                <p style=\"font-size: 3rem; margin-bottom: 1rem;\">📄</p>
+                <p style=\"font-size: 1.25rem; margin-bottom: 0.5rem;\">${hasFile ? filePath : 'No file attached'}</p>
+                <p style=\"color: #666; margin-bottom: 1.5rem;\">
                   ${hasFile ? 'Preview not available for this file type' : 'This document has no attached file'}
                 </p>
-                ${hasFile ? `<a href="${downloadUrl}" class="btn btn--primary">Download to View</a>` : ''}
+                ${hasFile ? `<a href=\"${downloadUrl}\" class=\"btn btn--primary\">Download to View</a>` : ''}
               </div>
             `}
           </div>
-          <div style="padding: 1rem 1.5rem; border-top: 1px solid #ddd; background: #f9f9f9;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div style=\"padding: 1rem 1.5rem; border-top: 1px solid #ddd; background: #f9f9f9;\">
+            <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;\">
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Status</strong>
-                <p style="margin: 0.25rem 0 0 0;">${documentData.status}</p>
+                <strong style=\"color: #666; font-size: 0.875rem;\">Status</strong>
+                <p style=\"margin: 0.25rem 0 0 0;\">${documentData.status}</p>
               </div>
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Uploaded By</strong>
-                <p style="margin: 0.25rem 0 0 0;">${documentData.uploaded_by_name || 'N/A'}</p>
+                <strong style=\"color: #666; font-size: 0.875rem;\">Uploaded By</strong>
+                <p style=\"margin: 0.25rem 0 0 0;\">${documentData.uploaded_by_name || 'N/A'}</p>
               </div>
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">Date</strong>
-                <p style="margin: 0.25rem 0 0 0;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
+                <strong style=\"color: #666; font-size: 0.875rem;\">Date</strong>
+                <p style=\"margin: 0.25rem 0 0 0;\">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
               </div>
               ${hasFile ? `
               <div>
-                <strong style="color: #666; font-size: 0.875rem;">File Size</strong>
-                <p style="margin: 0.25rem 0 0 0;">${formatFileSize(documentData.file_size)}</p>
+                <strong style=\"color: #666; font-size: 0.875rem;\">File Size</strong>
+                <p style=\"margin: 0.25rem 0 0 0;\">${formatFileSize(documentData.file_size)}</p>
               </div>` : ''}
             </div>
             ${documentData.description ? `
-            <div style="margin-top: 1rem;">
-              <strong style="color: #666; font-size: 0.875rem;">Description</strong>
-              <p style="margin: 0.25rem 0 0 0;">${documentData.description}</p>
+            <div style=\"margin-top: 1rem;\">
+              <strong style=\"color: #666; font-size: 0.875rem;\">Description</strong>
+              <p style=\"margin: 0.25rem 0 0 0;\">${documentData.description}</p>
             </div>` : ''}
           </div>
         </div>
@@ -381,6 +379,14 @@ const router = {
   sortDirection: 'desc',
 
   init() {
+    // Inject Lucide Icons script
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/lucide@latest';
+    script.onload = () => {
+        lucide.createIcons();
+    };
+    document.head.appendChild(script);
+
     this.handleRoute();
     window.addEventListener('popstate', () => this.handleRoute());
   },
@@ -448,29 +454,28 @@ const router = {
       this.navigate('/dashboard');
     }
   },
-
   showLogin() {
     document.getElementById('app').innerHTML = `
-      <div class="container">
-        <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card__header">
-            <h2 style="margin: 0; text-align: center;">Login</h2>
+      <div class=\"container\">
+        <div class=\"card\" style=\"max-width: 450px; margin: 80px auto;\">
+          <div class=\"card__header\">
+            <h2 style=\"margin: 0; text-align: center;\">Login</h2>
           </div>
-          <div class="card__body">
-            <div id="message"></div>
-            <form id="loginForm">
-              <div class="form-group">
-                <label class="form-label">Username or Email</label>
-                <input type="text" name="username" class="form-control" required autofocus>
+          <div class=\"card__body\">
+            <div id=\"message\"></div>
+            <form id=\"loginForm\">
+              <div class=\"form-group\">
+                <label class=\"form-label\">Username or Email</label>
+                <input type=\"text\" name=\"username\" class=\"form-control\" required autofocus>
               </div>
-              <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+              <div class=\"form-group\">
+                <label class=\"form-label\">Password</label>
+                <input type=\"password\" name=\"password\" class=\"form-control\" required>
               </div>
-              <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
+              <button type=\"submit\" id=\"loginBtn\" class=\"btn btn--primary btn--full-width\">Login</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register');">Register here</a>
+            <p style=\"text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);\">
+              Don't have an account? <a href=\"/register\" onclick=\"event.preventDefault(); router.navigate('/register');\">Register here</a>
             </p>
           </div>
         </div>
@@ -500,38 +505,38 @@ const router = {
 
   showRegister() {
     document.getElementById('app').innerHTML = `
-      <div class="container">
-        <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card__header">
-            <h2 style="margin: 0; text-align: center;">Register</h2>
+      <div class=\"container\">
+        <div class=\"card\" style=\"max-width: 450px; margin: 80px auto;\">
+          <div class=\"card__header\">
+            <h2 style=\"margin: 0; text-align: center;\">Register</h2>
           </div>
-          <div class="card__body">
-            <div id="message"></div>
-            <form id="registerForm">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="full_name" class="form-control" required>
+          <div class=\"card__body\">
+            <div id=\"message\"></div>
+            <form id=\"registerForm\">
+              <div class=\"form-group\">
+                <label class=\"form-label\">Full Name</label>
+                <input type=\"text\" name=\"full_name\" class=\"form-control\" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
+              <div class=\"form-group\">
+                <label class=\"form-label\">Username</label>
+                <input type=\"text\" name=\"username\" class=\"form-control\" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" required>
+              <div class=\"form-group\">
+                <label class=\"form-label\">Email</label>
+                <input type=\"email\" name=\"email\" class=\"form-control\" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+              <div class=\"form-group\">
+                <label class=\"form-label\">Password</label>
+                <input type=\"password\" name=\"password\" class=\"form-control\" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" name="confirm_password" class="form-control" required>
+              <div class=\"form-group\">
+                <label class=\"form-label\">Confirm Password</label>
+                <input type=\"password\" name=\"confirm_password\" class=\"form-control\" required>
               </div>
-              <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
+              <button type=\"submit\" id=\"registerBtn\" class=\"btn btn--primary btn--full-width\">Register</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login');">Login here</a>
+            <p style=\"text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);\">
+              Already have an account? <a href=\"/login\" onclick=\"event.preventDefault(); router.navigate('/login');\">Login here</a>
             </p>
           </div>
         </div>
@@ -558,7 +563,6 @@ const router = {
       }
     });
   },
-
   async showDashboard() {
     const user = auth.getUser();
 
@@ -568,75 +572,75 @@ const router = {
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
+        <div class=\"app-layout\">
+          <aside class=\"sidebar\">
+            <div class=\"sidebar-header\">
               <h1>📄 DocTrack</h1>
             </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard');">
-                <span class="sidebar-icon">📋</span>
+            <nav class=\"sidebar-nav\">
+              <a href=\"/dashboard\" class=\"sidebar-link active\" onclick=\"event.preventDefault(); router.navigate('/dashboard');\">
+                <span class=\"sidebar-icon\">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">🗄️</span>
+              <a href=\"/archives\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/archives');\">
+                <span class=\"sidebar-icon\">🗄️</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
-                <span class="sidebar-icon">⚙️</span>
+              <div style=\"margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;\">Admin</div>
+              <a href=\"/admin\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin');\">
+                <span class=\"sidebar-icon\">⚙️</span>
                 <span>Admin Panel</span>
               </a>
-              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
-                <span class="sidebar-icon">📂</span>
+              <a href=\"/admin/documents\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin/documents');\">
+                <span class=\"sidebar-icon\">📂</span>
                 <span>All Documents</span>
               </a>` : ''}
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar"></div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role || 'User'}</div>
+            <div class=\"sidebar-footer\">
+              <div class=\"user-info\">
+                <div class=\"user-avatar\"></div>
+                <div class=\"user-details\">
+                  <div class=\"user-name\">${user.fullName || user.username}</div>
+                  <div class=\"user-role\">${user.role || 'User'}</div>
                 </div>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
+              <button onclick=\"logout()\" class=\"btn-logout\">Logout</button>
             </div>
           </aside>
 
-          <main class="main-content">
-            <div class="content-header">
+          <main class=\"main-content\">
+            <div class=\"content-header\">
               <h2>My Documents</h2>
-              <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
+              <button onclick=\"openDocumentFormModal()\" class=\"btn btn--primary\">📤 Upload Document</button>
             </div>
 
-            <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
-              <select id="statusFilter" class="form-control filter-inline">
-                <option value="">Status</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="routed">Routed</option>
-                <option value="completed">Completed</option>
+            <div class=\"search-filters-inline\">
+              <input type=\"text\" id=\"searchInput\" placeholder=\"🔍 Search...\" class=\"form-control search-inline\">
+              <select id=\"statusFilter\" class=\"form-control filter-inline\">
+                <option value=\"\">Status</option>
+                <option value=\"pending\">Pending</option>
+                <option value=\"in_progress\">In Progress</option>
+                <option value=\"routed\">Routed</option>
+                <option value=\"completed\">Completed</option>
               </select>
-              <select id="priorityFilter" class="form-control filter-inline">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+              <select id=\"priorityFilter\" class=\"form-control filter-inline\">
+                <option value=\"\">Priority</option>
+                <option value=\"low\">Low</option>
+                <option value=\"medium\">Medium</option>
+                <option value=\"high\">High</option>
+                <option value=\"urgent\">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+              <input type=\"date\" id=\"dateFromFilter\" class=\"form-control filter-inline\" placeholder=\"From Date\" style=\"max-width: 150px;\">
+              <input type=\"date\" id=\"dateToFilter\" class=\"form-control filter-inline\" placeholder=\"To Date\" style=\"max-width: 150px;\">
+              <button onclick=\"router.resetFilters()\" class=\"btn btn--secondary btn-clear\">Clear</button>
             </div>
 
-            <div id="message"></div>
+            <div id=\"message\"></div>
 
-            <div class="documents-container">
-              <div id="documentsList"></div>
-              <div id="pagination"></div>
+            <div class=\"documents-container\">
+              <div id=\"documentsList\"></div>
+              <div id=\"pagination\"></div>
             </div>
           </main>
         </div>
@@ -647,7 +651,6 @@ const router = {
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
       this.renderDocuments();
     } catch (error) {
       if (error.message.includes('Authentication')) {
@@ -670,76 +673,76 @@ const router = {
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
+        <div class=\"app-layout\">
+          <aside class=\"sidebar\">
+            <div class=\"sidebar-header\">
               <h1>📄 DocTrack</h1>
             </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
-                <span class="sidebar-icon">📋</span>
+            <nav class=\"sidebar-nav\">
+              <a href=\"/dashboard\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/dashboard');\">
+                <span class=\"sidebar-icon\">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">🗄️</span>
+              <a href=\"/archives\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/archives');\">
+                <span class=\"sidebar-icon\">🗄️</span>
                 <span>Archives</span>
               </a>
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
-                <span class="sidebar-icon">⚙️</span>
+              <div style=\"margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;\">Admin</div>
+              <a href=\"/admin\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin');\">
+                <span class=\"sidebar-icon\">⚙️</span>
                 <span>Admin Panel</span>
               </a>
-              <a href="/admin/documents" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin/documents');">
-                <span class="sidebar-icon">📂</span>
+              <a href=\"/admin/documents\" class=\"sidebar-link active\" onclick=\"event.preventDefault(); router.navigate('/admin/documents');\">
+                <span class=\"sidebar-icon\">📂</span>
                 <span>All Documents</span>
               </a>
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar"></div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role || 'User'}</div>
+            <div class=\"sidebar-footer\">
+              <div class=\"user-info\">
+                <div class=\"user-avatar\"></div>
+                <div class=\"user-details\">
+                  <div class=\"user-name\">${user.fullName || user.username}</div>
+                  <div class=\"user-role\">${user.role || 'User'}</div>
                 </div>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
+              <button onclick=\"logout()\" class=\"btn-logout\">Logout</button>
             </div>
           </aside>
 
-          <main class="main-content">
-            <div class="content-header">
+          <main class=\"main-content\">
+            <div class=\"content-header\">
               <div>
                 <h2>📂 System Documents</h2>
-                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
+                <p style=\"margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;\">Viewing all documents across the system</p>
               </div>
             </div>
 
-            <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search all docs..." class="form-control search-inline">
-              <select id="statusFilter" class="form-control filter-inline">
-                <option value="">Status</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="routed">Routed</option>
-                <option value="completed">Completed</option>
+            <div class=\"search-filters-inline\">
+              <input type=\"text\" id=\"searchInput\" placeholder=\"🔍 Search all docs...\" class=\"form-control search-inline\">
+              <select id=\"statusFilter\" class=\"form-control filter-inline\">
+                <option value=\"\">Status</option>
+                <option value=\"pending\">Pending</option>
+                <option value=\"in_progress\">In Progress</option>
+                <option value=\"routed\">Routed</option>
+                <option value=\"completed\">Completed</option>
               </select>
-              <select id="priorityFilter" class="form-control filter-inline">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+              <select id=\"priorityFilter\" class=\"form-control filter-inline\">
+                <option value=\"\">Priority</option>
+                <option value=\"low\">Low</option>
+                <option value=\"medium\">Medium</option>
+                <option value=\"high\">High</option>
+                <option value=\"urgent\">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+              <input type=\"date\" id=\"dateFromFilter\" class=\"form-control filter-inline\" placeholder=\"From Date\" style=\"max-width: 150px;\">
+              <input type=\"date\" id=\"dateToFilter\" class=\"form-control filter-inline\" placeholder=\"To Date\" style=\"max-width: 150px;\">
+              <button onclick=\"router.resetFilters()\" class=\"btn btn--secondary btn-clear\">Clear</button>
             </div>
 
-            <div id="message"></div>
+            <div id=\"message\"></div>
 
-            <div class="documents-container">
-              <div id="documentsList"></div>
-              <div id="pagination"></div>
+            <div class=\"documents-container\">
+              <div id=\"documentsList\"></div>
+              <div id=\"pagination\"></div>
             </div>
           </main>
         </div>
@@ -750,7 +753,6 @@ const router = {
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
       this.renderDocuments(); 
     } catch (error) {
       console.error('Admin All Docs error:', error);
@@ -773,75 +775,74 @@ const router = {
       this.filteredDocuments = [...this.allDocuments];
 
       document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
+        <div class=\"app-layout\">
+          <aside class=\"sidebar\">
+            <div class=\"sidebar-header\">
               <h1>📄 DocTrack</h1>
             </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
-                <span class="sidebar-icon">📋</span>
+            <nav class=\"sidebar-nav\">
+              <a href=\"/dashboard\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/dashboard');\">
+                <span class=\"sidebar-icon\">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="/archives" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">🗄️</span>
+              <a href=\"/archives\" class=\"sidebar-link active\" onclick=\"event.preventDefault(); router.navigate('/archives');\">
+                <span class=\"sidebar-icon\">🗄️</span>
                 <span>Archives</span>
               </a>
               ${user.role === 'admin' ? `
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin');">
-                <span class="sidebar-icon">⚙️</span>
+              <div style=\"margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;\">Admin</div>
+              <a href=\"/admin\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin');\">
+                <span class=\"sidebar-icon\">⚙️</span>
                 <span>Admin Panel</span>
               </a>
-              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
-                <span class="sidebar-icon">📂</span>
+              <a href=\"/admin/documents\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin/documents');\">
+                <span class=\"sidebar-icon\">📂</span>
                 <span>All Documents</span>
               </a>` : ''}
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar"></div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role || 'User'}</div>
+            <div class=\"sidebar-footer\">
+              <div class=\"user-info\">
+                <div class=\"user-avatar\"></div>
+                <div class=\"user-details\">
+                  <div class=\"user-name\">${user.fullName || user.username}</div>
+                  <div class=\"user-role\">${user.role || 'User'}</div>
                 </div>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
+              <button onclick=\"logout()\" class=\"btn-logout\">Logout</button>
             </div>
           </aside>
 
-          <main class="main-content">
-            <div class="content-header">
+          <main class=\"main-content\">
+            <div class=\"content-header\">
               <div>
                 <h2>🗄️ Archived Documents</h2>
-                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
+                <p style=\"margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;\">View and restore archived documents</p>
               </div>
             </div>
 
-            <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
-              <select id="priorityFilter" class="form-control filter-inline">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+            <div class=\"search-filters-inline\">
+              <input type=\"text\" id=\"searchInput\" placeholder=\"🔍 Search archives...\" class=\"form-control search-inline\">
+              <select id=\"priorityFilter\" class=\"form-control filter-inline\">
+                <option value=\"\">Priority</option>
+                <option value=\"low\">Low</option>
+                <option value=\"medium\">Medium</option>
+                <option value=\"high\">High</option>
+                <option value=\"urgent\">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+              <input type=\"date\" id=\"dateFromFilter\" class=\"form-control filter-inline\" placeholder=\"From Date\" style=\"max-width: 150px;\">
+              <input type=\"date\" id=\"dateToFilter\" class=\"form-control filter-inline\" placeholder=\"To Date\" style=\"max-width: 150px;\">
+              <button onclick=\"router.resetFilters()\" class=\"btn btn--secondary btn-clear\">Clear</button>
             </div>
 
-            <div id="message"></div>
+            <div id=\"message\"></div>
 
-            <div class="documents-container">
-              <div id="documentsList"></div>
-              <div id="pagination"></div>
+            <div class=\"documents-container\">
+              <div id=\"documentsList\"></div>
+              <div id=\"pagination\"></div>
             </div>
           </main>
         </div>
       `;
-
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
@@ -871,75 +872,75 @@ const router = {
       ]);
 
       document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
+        <div class=\"app-layout\">
+          <aside class=\"sidebar\">
+            <div class=\"sidebar-header\">
               <h1>📄 DocTrack</h1>
             </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard');">
-                <span class="sidebar-icon">📋</span>
+            <nav class=\"sidebar-nav\">
+              <a href=\"/dashboard\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/dashboard');\">
+                <span class=\"sidebar-icon\">📋</span>
                 <span>My Documents</span>
               </a>
-              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives');">
-                <span class="sidebar-icon">🗄️</span>
+              <a href=\"/archives\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/archives');\">
+                <span class=\"sidebar-icon\">🗄️</span>
                 <span>Archives</span>
               </a>
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin');">
-                <span class="sidebar-icon">⚙️</span>
+              <div style=\"margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;\">Admin</div>
+              <a href=\"/admin\" class=\"sidebar-link active\" onclick=\"event.preventDefault(); router.navigate('/admin');\">
+                <span class=\"sidebar-icon\">⚙️</span>
                 <span>Admin Panel</span>
               </a>
-              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents');">
-                <span class="sidebar-icon">📂</span>
+              <a href=\"/admin/documents\" class=\"sidebar-link\" onclick=\"event.preventDefault(); router.navigate('/admin/documents');\">
+                <span class=\"sidebar-icon\">📂</span>
                 <span>All Documents</span>
               </a>
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar"></div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role || 'User'}</div>
+            <div class=\"sidebar-footer\">
+              <div class=\"user-info\">
+                <div class=\"user-avatar\"></div>
+                <div class=\"user-details\">
+                  <div class=\"user-name\">${user.fullName || user.username}</div>
+                  <div class=\"user-role\">${user.role || 'User'}</div>
                 </div>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
+              <button onclick=\"logout()\" class=\"btn-logout\">Logout</button>
             </div>
           </aside>
 
-          <main class="main-content">
-            <div class="content-header">
+          <main class=\"main-content\">
+            <div class=\"content-header\">
               <h2>🛡️ Admin Panel</h2>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
+            <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;\">
+              <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">
+                <div style=\"font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;\">Total Users</div>
+                <div style=\"font-size: 2.5rem; font-weight: 700;\">${statsData.user_stats.total_users || 0}</div>
               </div>
-              <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
+              <div style=\"background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">
+                <div style=\"font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;\">Pending Approvals</div>
+                <div style=\"font-size: 2.5rem; font-weight: 700;\">${statsData.user_stats.pending_users || 0}</div>
               </div>
-              <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
+              <div style=\"background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">
+                <div style=\"font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;\">Active Users</div>
+                <div style=\"font-size: 2.5rem; font-weight: 700;\">${statsData.user_stats.active_users || 0}</div>
               </div>
-              <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
+              <div style=\"background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">
+                <div style=\"font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;\">Total Documents</div>
+                <div style=\"font-size: 2.5rem; font-weight: 700;\">${statsData.document_stats.total_documents || 0}</div>
               </div>
             </div>
 
-            <div id="adminMessage"></div>
+            <div id=\"adminMessage\"></div>
 
             ${pendingData.pending_users.length > 0 ? `
-            <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
-              <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+            <div style=\"background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;\">
+              <h3 style=\"margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;\">
                 <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
               </h3>
-              <div style="overflow-x: auto;">
-                <table class="table">
+              <div style=\"overflow-x: auto;\">
+                <table class=\"table\">
                   <thead>
                     <tr>
                       <th>Full Name</th>
@@ -959,9 +960,9 @@ const router = {
                         <td>${u.department || 'N/A'}</td>
                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
-                          <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">✅ Approve</button>
-                            <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">❌ Reject</button>
+                          <div style=\"display: flex; gap: 0.5rem;\">
+                            <button onclick=\"approveUser(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #10b981; color: white;\">✅ Approve</button>
+                            <button onclick=\"rejectUser(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #ef4444; color: white;\">❌ Reject</button>
                           </div>
                         </td>
                       </tr>
@@ -971,11 +972,10 @@ const router = {
               </div>
             </div>
             ` : ''}
-
-            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <h3 style="margin: 0 0 1rem 0;">👥 All Users</h3>
-              <div style="overflow-x: auto;">
-                <table class="table">
+            <div style=\"background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">
+              <h3 style=\"margin: 0 0 1rem 0;\">👥 All Users</h3>
+              <div style=\"overflow-x: auto;\">
+                <table class=\"table\">
                   <thead>
                     <tr>
                       <th>Full Name</th>
@@ -990,33 +990,33 @@ const router = {
                   </thead>
                   <tbody>
                     ${usersData.users.map(u => `
-                      <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
+                      <tr style=\"${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}\">
                         <td>${u.full_name}</td>
                         <td>${u.username}</td>
                         <td>${u.email}</td>
                         <td>${u.department || 'N/A'}</td>
                         <td>
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
+                          <span style=\"padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}\">
                             ${u.role === 'admin' ? 'Admin' : 'User'}
                           </span>
                         </td>
                         <td>
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
+                          <span style=\"padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}\">
                             ${u.is_active === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td style="font-size: 0.875rem;">${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td style=\"font-size: 0.875rem;\">${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
-                          <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                          <div style=\"display: flex; gap: 0.25rem; flex-wrap: wrap;\">
                             ${u.is_active === 1 
-                              ? `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Deactivate</button>`
-                              : `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Reactivate</button>`
+                              ? `<button onclick=\"deactivateUser(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;\">Deactivate</button>`
+                              : `<button onclick=\"reactivateUser(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;\">Reactivate</button>`
                             }
                             ${u.role !== 'admin' 
-                              ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Make Admin</button>`
-                              : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Remove Admin</button>`
+                              ? `<button onclick=\"makeAdmin(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;\">Make Admin</button>`
+                              : `<button onclick=\"removeAdmin(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;\">Remove Admin</button>`
                             }
-                            <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Delete</button>
+                            <button onclick=\"deleteUser(${u.user_id}, '${u.username}')\" class=\"btn btn--sm\" style=\"background: #ef4444; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;\">Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -1050,7 +1050,6 @@ const router = {
     const priorityFilter = document.getElementById('priorityFilter')?.value || '';
     const dateFrom = document.getElementById('dateFromFilter')?.value || '';
     const dateTo = document.getElementById('dateToFilter')?.value || '';
-
     this.filteredDocuments = this.allDocuments.filter(doc => {
       const matchesSearch = !search || 
         doc.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -1142,18 +1141,17 @@ const router = {
 
     if (this.filteredDocuments.length === 0) {
       container.innerHTML = `
-        <div class="empty-state">
-          <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No documents found</p>
-          <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">
+        <div class=\"empty-state\">
+          <p style=\"font-size: var(--font-size-lg); margin-bottom: var(--space-8);\">No documents found</p>
+          <p style=\"color: var(--color-text-secondary); margin-bottom: var(--space-24);\">
             ${this.allDocuments.length === 0 ? 'Get started by adding your first document' : 'Try adjusting your search or filters'}
           </p>
-          ${this.allDocuments.length === 0 && this.currentRoute !== '/admin/documents' ? '<button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>' : ''}
+          ${this.allDocuments.length === 0 && this.currentRoute !== '/admin/documents' ? '<button onclick=\"openDocumentFormModal()\" class=\"btn btn--primary\">Upload Document</button>' : ''}
         </div>
       `;
       if (paginationContainer) paginationContainer.innerHTML = '';
       return;
     }
-
     const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
@@ -1165,44 +1163,43 @@ const router = {
     };
 
     container.innerHTML = `
-      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
+      <div style=\"margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;\">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
       </div>
-      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="table" style="min-width: 1200px; table-layout: fixed;">
+      <div style=\"overflow-x: auto; -webkit-overflow-scrolling: touch;\">
+        <table class=\"table\" style=\"min-width: 1200px; table-layout: fixed;\">
           <thead>
             <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
-              <th style="width: 180px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('status')">Status ${getSortIcon('status')}</th>
-              <th style="width: 140px;">Current Location</th>
-              <th style="width: 120px;">Uploaded By</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Date ${getSortIcon('uploaded_at')}</th>
-              <th style="width: 380px;">Actions</th>
+              <th style=\"width: 140px; cursor: pointer;\" onclick=\"router.sortDocuments('document_number')\">Document ${getSortIcon('document_number')}</th>
+              <th style=\"width: 180px; cursor: pointer;\" onclick=\"router.sortDocuments('title')\">Title ${getSortIcon('title')}</th>
+              <th style=\"width: 100px; cursor: pointer;\" onclick=\"router.sortDocuments('document_type')\">Type ${getSortIcon('document_type')}</th>
+              <th style=\"width: 90px; cursor: pointer;\" onclick=\"router.sortDocuments('priority')\">Priority ${getSortIcon('priority')}</th>
+              <th style=\"width: 90px; cursor: pointer;\" onclick=\"router.sortDocuments('status')\">Status ${getSortIcon('status')}</th>
+              <th style=\"width: 140px;\">Current Location</th>
+              <th style=\"width: 120px;\">Uploaded By</th>
+              <th style=\"width: 100px; cursor: pointer;\" onclick=\"router.sortDocuments('uploaded_at')\">Date ${getSortIcon('uploaded_at')}</th>
+              <th style=\"width: 380px;\">Actions</th>
             </tr>
           </thead>
           <tbody>
             ${paginatedDocs.map(doc => `
               <tr>
-                <td style="font-size: 0.85rem;">${doc.document_number}</td>
-                <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.title}">${doc.title}</td>
+                <td style=\"font-size: 0.85rem;\">${doc.document_number}</td>
+                <td style=\"max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${doc.title}\">${doc.title}</td>
                 <td>${doc.document_type}</td>
                 <td>${this.getPriorityBadge(doc.priority)}</td>
                 <td>${this.getStatusBadge(doc.status)}</td>
-                <td style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.current_destination || doc.current_holder_name || '-'}">${doc.current_destination || doc.current_holder_name || '-'}</td>
+                <td style=\"max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${doc.current_destination || doc.current_holder_name || '-'}\">${doc.current_destination || doc.current_holder_name || '-'}</td>
                 <td>${doc.uploaded_by_name || 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                <td style=\"font-size: 0.85rem;\">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
-                    <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History">📜</button>
-                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--primary" title="Route">➡️</button>
-                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm" title="Archive">📦</button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete">🗑️</button>
-
+                  <div style=\"display: flex; gap: 4px; flex-wrap: wrap;\">
+                    <button onclick=\"viewDocument(${doc.document_id})\" class=\"btn btn--icon\" title=\"View\"><i data-lucide=\"eye\"></i></button>
+                    <button onclick=\"editDocument(${doc.document_id})\" class=\"btn btn--icon\" title=\"Edit\"><i data-lucide=\"pencil\"></i></button>
+                    <button onclick=\"viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\\'")}')\" class=\"btn btn--icon\" title=\"History\"><i data-lucide=\"history\"></i></button>
+                    <button onclick=\"routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\\'")}')\" class=\"btn btn--icon btn--primary\" title=\"Route\"><i data-lucide=\"send\"></i></button>
+                    <button onclick=\"archiveDocument(${doc.document_id})\" class=\"btn btn--icon\" title=\"Archive\"><i data-lucide=\"archive\"></i></button>
+                    <button onclick=\"deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\\'")}')\" class=\"btn btn--icon btn--danger\" title=\"Delete\"><i data-lucide=\"trash-2\"></i></button>
                   </div>
                 </td>
               </tr>
@@ -1213,6 +1210,9 @@ const router = {
     `;
 
     this.renderPagination(paginationContainer, totalPages);
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
   },
 
   renderArchivedDocuments() {
@@ -1222,10 +1222,10 @@ const router = {
 
     if (this.filteredDocuments.length === 0) {
       container.innerHTML = `
-        <div class="empty-state">
-          <p style="font-size: 3rem; margin-bottom: 1rem;">🗄️</p>
-          <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No archived documents</p>
-          <p style="color: var(--color-text-secondary);">
+        <div class=\"empty-state\">
+          <p style=\"font-size: 3rem; margin-bottom: 1rem;\">🗄️</p>
+          <p style=\"font-size: var(--font-size-lg); margin-bottom: var(--space-8);\">No archived documents</p>
+          <p style=\"color: var(--color-text-secondary);\">
             ${this.allDocuments.length === 0 ? 'Archived documents will appear here' : 'Try adjusting your search'}
           </p>
         </div>
@@ -1243,41 +1243,40 @@ const router = {
       if (this.sortColumn !== column) return '↕️';
       return this.sortDirection === 'asc' ? '↑' : '↓';
     };
-
     container.innerHTML = `
-      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
+      <div style=\"margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;\">
         Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} archived documents
       </div>
-      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="table" style="min-width: 1200px; table-layout: fixed;">
+      <div style=\"overflow-x: auto; -webkit-overflow-scrolling: touch;\">
+        <table class=\"table\" style=\"min-width: 1200px; table-layout: fixed;\">
           <thead>
             <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
-              <th style="width: 200px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
-              <th style="width: 140px;">Archived By</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('archived_at')">Archived Date ${getSortIcon('archived_at')}</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Upload Date ${getSortIcon('uploaded_at')}</th>
-              <th style="width: 300px;">Actions</th>
+              <th style=\"width: 140px; cursor: pointer;\" onclick=\"router.sortDocuments('document_number')\">Document ${getSortIcon('document_number')}</th>
+              <th style=\"width: 200px; cursor: pointer;\" onclick=\"router.sortDocuments('title')\">Title ${getSortIcon('title')}</th>
+              <th style=\"width: 120px; cursor: pointer;\" onclick=\"router.sortDocuments('document_type')\">Type ${getSortIcon('document_type')}</th>
+              <th style=\"width: 100px; cursor: pointer;\" onclick=\"router.sortDocuments('priority')\">Priority ${getSortIcon('priority')}</th>
+              <th style=\"width: 140px;\">Archived By</th>
+              <th style=\"width: 120px; cursor: pointer;\" onclick=\"router.sortDocuments('archived_at')\">Archived Date ${getSortIcon('archived_at')}</th>
+              <th style=\"width: 120px; cursor: pointer;\" onclick=\"router.sortDocuments('uploaded_at')\">Upload Date ${getSortIcon('uploaded_at')}</th>
+              <th style=\"width: 300px;\">Actions</th>
             </tr>
           </thead>
           <tbody>
             ${paginatedDocs.map(doc => `
               <tr>
-                <td style="font-size: 0.85rem;">${doc.document_number}</td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.title}">${doc.title}</td>
+                <td style=\"font-size: 0.85rem;\">${doc.document_number}</td>
+                <td style=\"max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${doc.title}\">${doc.title}</td>
                 <td>${doc.document_type}</td>
                 <td>${this.getPriorityBadge(doc.priority)}</td>
                 <td>${doc.uploaded_by_name || 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${doc.archived_at ? new Date(doc.archived_at).toLocaleDateString() : 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                <td style=\"font-size: 0.85rem;\">${doc.archived_at ? new Date(doc.archived_at).toLocaleDateString() : 'N/A'}</td>
+                <td style=\"font-size: 0.85rem;\">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View" style="min-width: 50px;">👁️ View</button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History" style="background: #6366f1; color: white; min-width: 60px;">📜 History</button>
-                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm" title="Restore">↩️</button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Delete" style="background: #ef4444; color: white; min-width: 60px;">🗑️ Delete</button>
+                  <div style=\"display: flex; gap: 4px; flex-wrap: wrap;\">
+                    <button onclick=\"viewDocument(${doc.document_id})\" class=\"btn btn--icon\" title=\"View\"><i data-lucide=\"eye\"></i></button>
+                    <button onclick=\"viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\\'")}')\" class=\"btn btn--icon\" title=\"History\"><i data-lucide=\"history\"></i></button>
+                    <button onclick=\"restoreDocument(${doc.document_id})\" class=\"btn btn--icon btn--primary\" title=\"Restore\"><i data-lucide=\"archive-restore\"></i></button>
+                    <button onclick=\"deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\\'")}')\" class=\"btn btn--icon btn--danger\" title=\"Delete\"><i data-lucide=\"trash-2\"></i></button>
                   </div>
                 </td>
               </tr>
@@ -1288,6 +1287,9 @@ const router = {
     `;
 
     this.renderPagination(paginationContainer, totalPages);
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
   },
 
   renderPagination(paginationContainer, totalPages) {
@@ -1296,19 +1298,19 @@ const router = {
       return;
     }
 
-    let paginationHTML = `<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">`;
+    let paginationHTML = `<div style=\"display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;\">`;
     
-    paginationHTML += `<button onclick="router.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Previous</button>`;
+    paginationHTML += `<button onclick=\"router.goToPage(${this.currentPage - 1})\" ${this.currentPage === 1 ? 'disabled' : ''} class=\"btn btn--sm\" style=\"${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}\">Previous</button>`;
 
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-        paginationHTML += `<button onclick="router.goToPage(${i})" class="btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}" style="min-width: 40px;">${i}</button>`;
+        paginationHTML += `<button onclick=\"router.goToPage(${i})\" class=\"btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}\" style=\"min-width: 40px;\">${i}</button>`;
       } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-        paginationHTML += `<span style="padding: 0 0.5rem;">...</span>`;
+        paginationHTML += `<span style=\"padding: 0 0.5rem;\">...</span>`;
       }
     }
 
-    paginationHTML += `<button onclick="router.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Next</button>`;
+    paginationHTML += `<button onclick=\"router.goToPage(${this.currentPage + 1})\" ${this.currentPage === totalPages ? 'disabled' : ''} class=\"btn btn--sm\" style=\"${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}\">Next</button>`;
     
     paginationHTML += `</div>`;
     paginationContainer.innerHTML = paginationHTML;
@@ -1333,7 +1335,7 @@ const router = {
       high: { background: '#fed7aa', color: '#9a3412' },
       urgent: { background: '#fee2e2', color: '#991b1b' }
     };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[priority] ? `background: ${colors[priority].background}; color: ${colors[priority].color};` : ''}">${priority}</span>`;
+    return `<span style=\"padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[priority] ? `background: ${colors[priority].background}; color: ${colors[priority].color};` : ''}\">${priority}</span>`;
   },
 
   getStatusBadge(status) {
@@ -1343,7 +1345,7 @@ const router = {
       routed: { background: '#e0e7ff', color: '#3730a3' },
       completed: { background: '#d1fae5', color: '#065f46' }
     };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[status] ? `background: ${colors[status].background}; color: ${colors[status].color};` : ''}">${status.replace('_', ' ')}</span>`;
+    return `<span style=\"padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[status] ? `background: ${colors[status].background}; color: ${colors[status].color};` : ''}\">${status.replace('_', ' ')}</span>`;
   },
 
   showMessage(message, type = 'info') {
@@ -1357,7 +1359,7 @@ const router = {
     };
 
     messageDiv.innerHTML = `
-      <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 4px; background: ${colors[type].background}; color: ${colors[type].color}; border-left: ${colors[type].borderLeft};">
+      <div style=\"padding: 1rem; margin-bottom: 1rem; border-radius: 4px; background: ${colors[type].background}; color: ${colors[type].color}; border-left: ${colors[type].borderLeft};\">
         ${message}
       </div>
     `;
@@ -1379,7 +1381,6 @@ async function approveUser(userId, username) {
     alert('Failed: ' + error.message);
   }
 }
-
 async function rejectUser(userId, username) {
   if (!confirm(`Reject ${username}? Cannot be undone.`)) return;
   try {
@@ -1477,7 +1478,7 @@ async function editDocument(documentId) {
 }
 
 async function deleteDocument(documentId, title) {
-  if (!confirm(`Are you sure you want to delete "${title}"? This will permanently delete the document and its file from storage.\n\nThis action CANNOT be undone!`)) return;
+  if (!confirm(`Are you sure you want to delete \"${title}\"? This will permanently delete the document and its file from storage.\\n\\nThis action CANNOT be undone!`)) return;
 
   try {
     const result = await api.delete(`/data/documents?id=${documentId}`);
@@ -1523,28 +1524,28 @@ async function viewDocumentHistory(documentId, title) {
     const data = await api.get(`/data/documents?id=${documentId}&history=true`);
     if (data.success && data.history) {
       let historyHtml = `
-        <div id="historyModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-          <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
-            <h2 style="margin: 0 0 1.5rem 0;">Document History: ${title}</h2>
-            <div style="overflow-x: auto;">
-              <table class="table" style="width: 100%; border-collapse: collapse;">
+        <div id=\"historyModalOverlay\" class=\"modal-overlay\" style=\"position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;\">
+          <div class=\"modal\" style=\"background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;\">
+            <h2 style=\"margin: 0 0 1.5rem 0;\">Document History: ${title}</h2>
+            <div style=\"overflow-x: auto;\">
+              <table class=\"table\" style=\"width: 100%; border-collapse: collapse;\">
                 <thead>
                   <tr>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Date</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Action</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 15%;">User</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%;">Details</th>
+                    <th style=\"text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;\">Date</th>
+                    <th style=\"text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;\">Action</th>
+                    <th style=\"text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 15%;\">User</th>
+                    <th style=\"text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%;\">Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${data.history.map(h => `
-                    <tr style="border-bottom: 1px solid #f0f0f0;">
-                      <td style="padding: 0.75rem; vertical-align: top; font-size: 0.875rem; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
-                      <td style="padding: 0.75rem; vertical-align: top;"><strong>${h.action}</strong></td>
-                      <td style="padding: 0.75rem; vertical-align: top;">${h.user_name || 'System'}</td>
+                    <tr style=\"border-bottom: 1px solid #f0f0f0;\">
+                      <td style=\"padding: 0.75rem; vertical-align: top; font-size: 0.875rem; white-space: nowrap;\">${new Date(h.created_at).toLocaleString()}</td>
+                      <td style=\"padding: 0.75rem; vertical-align: top;\"><strong>${h.action}</strong></td>
+                      <td style=\"padding: 0.75rem; vertical-align: top;\">${h.user_name || 'System'}</td>
                       
                       <!-- FIXED WRAPPING HERE -->
-                      <td style="padding: 0.75rem; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; max-width: 300px;">
+                      <td style=\"padding: 0.75rem; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; max-width: 300px;\">
                         ${h.details || '-'}
                       </td>
                     </tr>
@@ -1552,8 +1553,8 @@ async function viewDocumentHistory(documentId, title) {
                 </tbody>
               </table>
             </div>
-            <div style="margin-top: 1.5rem; text-align: right;">
-              <button onclick="document.getElementById('historyModalOverlay').remove()" class="btn btn--primary">Close</button>
+            <div style=\"margin-top: 1.5rem; text-align: right;\">
+              <button onclick=\"document.getElementById('historyModalOverlay').remove()\" class=\"btn btn--primary\">Close</button>
             </div>
           </div>
         </div>
@@ -1569,51 +1570,49 @@ async function viewDocumentHistory(documentId, title) {
     alert('Error loading document history: ' + error.message);
   }
 }
-
-
 function openDocumentFormModal() {
   const modalHtml = `
-    <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-      <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 90%;">
-        <h2 style="margin: 0 0 1.5rem 0;">Upload New Document</h2>
-        <form id="uploadDocumentForm">
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Title</label>
-            <input type="text" name="title" class="form-control" required>
+    <div id=\"uploadModalOverlay\" class=\"modal-overlay\" style=\"position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;\">
+      <div class=\"modal\" style=\"background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 90%;\">
+        <h2 style=\"margin: 0 0 1.5rem 0;\">Upload New Document</h2>
+        <form id=\"uploadDocumentForm\">
+          <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+            <label class=\"form-label\">Title</label>
+            <input type=\"text\" name=\"title\" class=\"form-control\" required>
           </div>
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Description</label>
-            <textarea name="description" class="form-control" rows="3"></textarea>
+          <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+            <label class=\"form-label\">Description</label>
+            <textarea name=\"description\" class=\"form-control\" rows=\"3\"></textarea>
           </div>
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Document Type</label>
-            <input type="text" name="document_type" class="form-control" required>
+          <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+            <label class=\"form-label\">Document Type</label>
+            <input type=\"text\" name=\"document_type\" class=\"form-control\" required>
           </div>
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Priority</label>
-            <select name="priority" class="form-control" required>
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+          <div class=\"form-group\" style=\"margin-bottom: 1rem;\">
+            <label class=\"form-label\">Priority</label>
+            <select name=\"priority\" class=\"form-control\" required>
+              <option value=\"low\">Low</option>
+              <option value=\"medium\" selected>Medium</option>
+              <option value=\"high\">High</option>
+              <option value=\"urgent\">Urgent</option>
             </select>
           </div>
-          <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label class="form-label">File (optional)</label>
-            <input type="file" name="file" class="form-control">
+          <div class=\"form-group\" style=\"margin-bottom: 1.5rem;\">
+            <label class=\"form-label\">File (optional)</label>
+            <input type=\"file\" name=\"file\" class=\"form-control\">
           </div>
           
           <!-- Progress Bar Container -->
-          <div id="uploadProgressContainer" class="upload-progress-container">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 100%;"></div>
+          <div id=\"uploadProgressContainer\" class=\"upload-progress-container\">
+            <div class=\"progress-bar\">
+              <div class=\"progress-fill\" style=\"width: 100%;\"></div>
             </div>
-            <p class="upload-status-text">Uploading securely to MEGA storage...</p>
+            <p class=\"upload-status-text\">Uploading securely to MEGA storage...</p>
           </div>
 
-          <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
-            <button type="button" id="cancelUploadBtn" class="btn btn--secondary">Cancel</button>
-            <button type="submit" id="uploadBtn" class="btn btn--primary">Upload</button>
+          <div style=\"display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;\">
+            <button type=\"button\" id=\"cancelUploadBtn\" class=\"btn btn--secondary\">Cancel</button>
+            <button type=\"submit\" id=\"uploadBtn\" class=\"btn btn--primary\">Upload</button>
           </div>
         </form>
       </div>
