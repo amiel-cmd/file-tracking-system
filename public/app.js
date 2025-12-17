@@ -45,7 +45,6 @@ const api = {
       try {
         data = text ? JSON.parse(text) : {};
       } catch (e) {
-        console.error('Failed to parse JSON from API', text);
         throw new Error('Server returned invalid response');
       }
 
@@ -54,7 +53,6 @@ const api = {
       }
       return data;
     } catch (error) {
-      console.error('API Error:', error);
       throw error;
     }
   },
@@ -99,7 +97,6 @@ const api = {
       try {
         data = text ? JSON.parse(text) : {};
       } catch (e) {
-        console.error('Failed to parse JSON from API', text);
         throw new Error('Server returned invalid response');
       }
 
@@ -108,13 +105,12 @@ const api = {
       }
       return data;
     } catch (error) {
-      console.error('API Error:', error);
       throw error;
     }
   }
 };
 
-// --- Route Document Modal ---
+// --- NEW: Route Document Modal ---
 const routeModal = {
   open(documentId, documentTitle) {
     const modalHtml = `
@@ -159,7 +155,7 @@ const routeModal = {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const destination = document.getElementById('routeDestination').value;
       const remarks = document.getElementById('routeRemarks').value;
 
@@ -177,7 +173,7 @@ const routeModal = {
             remarks: remarks // Sending the new remarks field
           })
         });
-        
+
         alert(result.message || 'Document routed successfully!');
         close();
         router.handleRoute(); // Refresh list
@@ -240,11 +236,11 @@ const editModal = {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       // Loading State
       saveBtn.classList.add('loading');
       saveBtn.textContent = 'Saving...';
-      
+
       const updatedData = {
         document_id: documentData.document_id,
         title: document.getElementById('editTitle').value,
@@ -252,9 +248,9 @@ const editModal = {
         document_type: document.getElementById('editType').value,
         priority: document.getElementById('editPriority').value
       };
-      
+
       await onSave(updatedData); // Wait for save to complete
-      
+
       overlay.remove();
     });
 
@@ -277,9 +273,10 @@ const viewModal = {
 
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
-    const previewUrl = isOffice 
+    const previewUrl = isOffice
       ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
       : viewUrl;
+
     const modalHtml = `
       <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
         <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
@@ -297,7 +294,7 @@ const viewModal = {
           </div>
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
             ${hasFile && isViewable ? (
-              isPDF || isOffice 
+              isPDF || isOffice
                 ? `<iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>`
                 : `<img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">`
             ) : `
@@ -371,6 +368,124 @@ function formatFileSize(bytes) {
 
 // Router
 const router = {
+  
+  showMessage(message, type = 'info') {
+    const msgEl = document.getElementById('message');
+    if (msgEl) {
+      msgEl.innerHTML = `<div class="p-4 mb-4 text-sm rounded-lg ${type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}" role="alert">${message}</div>`;
+      setTimeout(() => msgEl.innerHTML = '', 3000);
+    } else {
+      alert(message);
+    }
+  },
+
+  handleSearch(query) {
+    const term = query.toLowerCase();
+    this.filteredDocuments = this.allDocuments.filter(doc => 
+      (doc.title && doc.title.toLowerCase().includes(term)) || 
+      (doc.description && doc.description.toLowerCase().includes(term)) ||
+      (doc.document_number && doc.document_number.toLowerCase().includes(term))
+    );
+    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+    else this.renderDocuments();
+  },
+
+  applyFilters() {
+    const status = document.getElementById('statusFilter')?.value;
+    const priority = document.getElementById('priorityFilter')?.value;
+    const dateFrom = document.getElementById('dateFromFilter')?.value;
+    const dateTo = document.getElementById('dateToFilter')?.value;
+
+    this.filteredDocuments = this.allDocuments.filter(doc => {
+      let match = true;
+      if (status && doc.status !== status) match = false;
+      if (priority && doc.priority !== priority) match = false;
+      if (dateFrom && new Date(doc.created_at || doc.uploaded_at) < new Date(dateFrom)) match = false;
+      if (dateTo && new Date(doc.created_at || doc.uploaded_at) > new Date(dateTo)) match = false;
+      return match;
+    });
+    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+    else this.renderDocuments();
+  },
+
+  resetFilters() {
+    const inputs = ['searchInput', 'statusFilter', 'priorityFilter', 'dateFromFilter', 'dateToFilter'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+    this.filteredDocuments = [...this.allDocuments];
+    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+    else this.renderDocuments();
+  },
+
+  renderDocuments() {
+     const list = document.getElementById('documentsList');
+     if(!list) return;
+     
+     if (this.filteredDocuments.length === 0) {
+       list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #666;">No documents found.</div>';
+       return;
+     }
+
+     list.innerHTML = `
+      <div style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+            <th style="padding: 12px; text-align: left;">ID</th>
+            <th style="padding: 12px; text-align: left; width: 30%;">Title</th>
+            <th style="padding: 12px; text-align: left;">Type</th>
+            <th style="padding: 12px; text-align: left;">Status</th>
+            <th style="padding: 12px; text-align: left;">Priority</th>
+            <th style="padding: 12px; text-align: left;">Date</th>
+            <th style="padding: 12px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.filteredDocuments.map(doc => `
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td style="padding: 12px;">${doc.document_number || doc.document_id}</td>
+              <td style="padding: 12px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                <div style="font-weight: 500; color: #2d3748;">${doc.title}</div>
+                <div style="font-size: 0.85em; color: #718096;">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
+              </td>
+              <td style="padding: 12px;">${doc.document_type}</td>
+              <td style="padding: 12px;">
+                <span style="padding: 4px 8px; border-radius: 99px; font-size: 0.85em; background: ${doc.status === 'completed' ? '#def7ec' : doc.status === 'urgent' ? '#fde8e8' : '#e1effe'}; color: ${doc.status === 'completed' ? '#03543f' : doc.status === 'urgent' ? '#9b1c1c' : '#1e429f'};">
+                  ${doc.status}
+                </span>
+              </td>
+              <td style="padding: 12px;">
+                 <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; color: ${doc.priority === 'urgent' ? '#e53e3e' : doc.priority === 'high' ? '#dd6b20' : '#38a169'};">
+                  ${doc.priority.toUpperCase()}
+                 </span>
+              </td>
+              <td style="padding: 12px;">${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
+              <td style="padding: 12px; text-align: right;">
+                <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
+                  <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
+                  <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Route">➡️</button>
+                  <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History">📜</button>
+                  ${doc.is_archived ? 
+                    `<button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--warning" title="Restore">♻️</button>` : 
+                    `<button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm btn--warning" title="Archive">🗄️</button>`
+                  }
+                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--danger" title="Delete">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      </div>
+     `;
+  },
+  
+  renderArchivedDocuments() {
+     this.renderDocuments(); 
+  },
   currentRoute: '',
   allDocuments: [],
   filteredDocuments: [],
@@ -380,27 +495,17 @@ const router = {
   sortDirection: 'desc',
 
   init() {
-    // Inject Lucide Icons script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/lucide@latest';
-    script.onload = () => {
-        if (window.lucide) window.lucide.createIcons();
-    };
-    document.head.appendChild(script);
-
     this.handleRoute();
     window.addEventListener('popstate', () => this.handleRoute());
   },
 
   navigate(path) {
-    console.log('Navigating to:', path);
     window.history.pushState({}, '', path);
     this.handleRoute();
   },
 
   handleRoute() {
     const path = window.location.pathname;
-    console.log('Current path:', path);
     this.currentRoute = path;
 
     if (path === '/' || path === '/login') {
@@ -454,8 +559,7 @@ const router = {
     } else {
       this.navigate('/dashboard');
     }
-  },
-  showLogin() {
+  }, showLogin() {
     document.getElementById('app').innerHTML = `
       <div class="container">
         <div class="card" style="max-width: 450px; margin: 80px auto;">
@@ -488,7 +592,7 @@ const router = {
       const btn = document.getElementById('loginBtn');
       btn.classList.add('loading');
       btn.textContent = 'Logging in...';
-      
+
       const formData = new FormData(e.target);
       const data = Object.fromEntries(formData);
 
@@ -507,7 +611,7 @@ const router = {
   showRegister() {
     document.getElementById('app').innerHTML = `
       <div class="container">
-        <div class="card" style="max-width: 450px; margin: 80px auto;">
+        <div class="card" style="max-width: 450px; margin:  80px auto;">
           <div class="card__header">
             <h2 style="margin: 0; text-align: center;">Register</h2>
           </div>
@@ -549,7 +653,7 @@ const router = {
       const btn = document.getElementById('registerBtn');
       btn.classList.add('loading');
       btn.textContent = 'Registering...';
-      
+
       const formData = new FormData(e.target);
       const data = Object.fromEntries(formData);
 
@@ -563,8 +667,7 @@ const router = {
         btn.textContent = 'Register';
       }
     });
-  },
-  async showDashboard() {
+  }, async showDashboard() {
     const user = auth.getUser();
 
     try {
@@ -664,12 +767,11 @@ const router = {
   },
 
   async showAdminAllDocuments() {
-    console.log('showAdminAllDocuments() called');
     const user = auth.getUser();
 
     try {
       const data = await api.get('/data/documents?all=true');
-      
+
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
@@ -754,9 +856,8 @@ const router = {
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-      this.renderDocuments(); 
+      this.renderDocuments();
     } catch (error) {
-      console.error('Admin All Docs error:', error);
       if (error.message.includes('Authentication')) {
         auth.removeToken();
         this.navigate('/login');
@@ -767,7 +868,6 @@ const router = {
   },
 
   async showArchives() {
-    console.log('showArchives() called');
     const user = auth.getUser();
 
     try {
@@ -851,7 +951,6 @@ const router = {
 
       this.renderArchivedDocuments();
     } catch (error) {
-      console.error('Archive error:', error);
       if (error.message.includes('Authentication')) {
         auth.removeToken();
         this.navigate('/login');
@@ -862,7 +961,6 @@ const router = {
   },
 
   async showAdminPanel() {
-    console.log('showAdminPanel() called');
     const user = auth.getUser();
 
     try {
@@ -972,8 +1070,7 @@ const router = {
                 </table>
               </div>
             </div>
-            ` : ''}
-            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            ` : ''} <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
               <h3 style="margin: 0 0 1rem 0;">👥 All Users</h3>
               <div style="overflow-x: auto;">
                 <table class="table">
@@ -1006,19 +1103,21 @@ const router = {
                             ${u.is_active === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td style="font-size: 0.875rem;">${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
-                          <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                            ${u.is_active === 1 
-                              ? `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Deactivate</button>`
-                              : `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Reactivate</button>`
+                          ${u.role !== 'admin' ? `
+                          <div style="display: flex; gap: 0.5rem;">
+                            ${u.is_active ? 
+                              `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white;">Deactivate</button>` : 
+                              `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Reactivate</button>`
                             }
-                            ${u.role !== 'admin' 
-                              ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Make Admin</button>`
-                              : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #6b7280; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Remove Admin</button>`
-                            }
-                            <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white; font-size: 0.75rem; padding: 0.4rem 0.6rem;">Delete</button>
+                            <button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>
+                            <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">🗑️</button>
+                          </div>` : `
+                          <div style="display: flex; gap: 0.5rem;">
+                             <button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>
                           </div>
+                          `}
                         </td>
                       </tr>
                     `).join('')}
@@ -1026,351 +1125,72 @@ const router = {
                 </table>
               </div>
             </div>
-          </main>
-        </div>
       `;
     } catch (error) {
-      console.error('Admin panel error:', error);
-      if (error.message.includes('Authentication')) {
+      if (error.message && error.message.includes('Authentication')) {
         auth.removeToken();
         this.navigate('/login');
       } else {
-        alert('Error loading admin panel: ' + error.message);
+        alert('Error loading admin panel: ' + (error.message || 'Unknown error'));
         this.navigate('/dashboard');
       }
     }
-  },
-
-  handleSearch(searchTerm) {
-    this.applyFilters(searchTerm);
-  },
-
-  applyFilters(searchTerm = null) {
-    const search = searchTerm !== null ? searchTerm : document.getElementById('searchInput')?.value || '';
-    const statusFilter = document.getElementById('statusFilter')?.value || '';
-    const priorityFilter = document.getElementById('priorityFilter')?.value || '';
-    const dateFrom = document.getElementById('dateFromFilter')?.value || '';
-    const dateTo = document.getElementById('dateToFilter')?.value || '';
-    this.filteredDocuments = this.allDocuments.filter(doc => {
-      const matchesSearch = !search || 
-        doc.title.toLowerCase().includes(search.toLowerCase()) ||
-        doc.document_type.toLowerCase().includes(search.toLowerCase()) ||
-        doc.document_number.toLowerCase().includes(search.toLowerCase());
-
-      const matchesStatus = !statusFilter || doc.status === statusFilter;
-      const matchesPriority = !priorityFilter || doc.priority === priorityFilter;
-      
-      let matchesDateRange = true;
-      if (dateFrom || dateTo) {
-        const docDate = new Date(doc.uploaded_at);
-        if (dateFrom) {
-          const fromDate = new Date(dateFrom);
-          fromDate.setHours(0, 0, 0, 0);
-          matchesDateRange = matchesDateRange && docDate >= fromDate;
-        }
-        if (dateTo) {
-          const toDate = new Date(dateTo);
-          toDate.setHours(23, 59, 59, 999);
-          matchesDateRange = matchesDateRange && docDate <= toDate;
-        }
-      }
-
-      return matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
-    });
-
-    this.currentPage = 1;
-    if (this.currentRoute === '/archives') {
-      this.renderArchivedDocuments();
-    } else {
-      this.renderDocuments();
-    }
-  },
-
-  resetFilters() {
-    document.getElementById('searchInput').value = '';
-    if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
-    if (document.getElementById('priorityFilter')) document.getElementById('priorityFilter').value = '';
-    if (document.getElementById('dateFromFilter')) document.getElementById('dateFromFilter').value = '';
-    if (document.getElementById('dateToFilter')) document.getElementById('dateToFilter').value = '';
-    
-    this.filteredDocuments = [...this.allDocuments];
-    this.currentPage = 1;
-    if (this.currentRoute === '/archives') {
-      this.renderArchivedDocuments();
-    } else {
-      this.renderDocuments();
-    }
-  },
-
-  sortDocuments(column) {
-    if (this.sortColumn === column) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortColumn = column;
-      this.sortDirection = 'asc';
-    }
-
-    this.filteredDocuments.sort((a, b) => {
-      let aVal = a[column];
-      let bVal = b[column];
-
-      if (column === 'uploaded_at' || column === 'archived_at') {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
-      }
-
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-
-      if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    if (this.currentRoute === '/archives') {
-      this.renderArchivedDocuments();
-    } else {
-      this.renderDocuments();
-    }
-  },
-
-  renderDocuments() {
-    const container = document.getElementById('documentsList');
-    const paginationContainer = document.getElementById('pagination');
-
-    if (this.filteredDocuments.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No documents found</p>
-          <p style="color: var(--color-text-secondary); margin-bottom: var(--space-24);">
-            ${this.allDocuments.length === 0 ? 'Get started by adding your first document' : 'Try adjusting your search or filters'}
-          </p>
-          ${this.allDocuments.length === 0 && this.currentRoute !== '/admin/documents' ? '<button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>' : ''}
-        </div>
-      `;
-      if (paginationContainer) paginationContainer.innerHTML = '';
-      return;
-    }
-    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
-
-    const getSortIcon = (column) => {
-      if (this.sortColumn !== column) return '↕️';
-      return this.sortDirection === 'asc' ? '↑' : '↓';
-    };
-
-    container.innerHTML = `
-      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
-        Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} documents
-      </div>
-      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="table" style="min-width: 1450px; table-layout: fixed;">
-          <thead>
-            <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
-              <th style="width: 250px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
-              <th style="width: 90px; cursor: pointer;" onclick="router.sortDocuments('status')">Status ${getSortIcon('status')}</th>
-              <th style="width: 140px;">Current Location</th>
-              <th style="width: 120px;">Uploaded By</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Date ${getSortIcon('uploaded_at')}</th>
-              <th style="width: 380px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${paginatedDocs.map(doc => `
-              <tr>
-                <td style="font-size: 0.85rem;">${doc.document_number}</td>
-                <td style="white-space: normal; word-wrap: break-word; overflow-wrap: anywhere;">${doc.title}</td>
-                <td>${doc.document_type}</td>
-                <td>${this.getPriorityBadge(doc.priority)}</td>
-                <td>${this.getStatusBadge(doc.status)}</td>
-                <td style="white-space: normal; word-wrap: break-word; overflow-wrap: anywhere;">${doc.current_destination || doc.current_holder_name || '-'}</td>
-                <td>${doc.uploaded_by_name || 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                <td>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--icon" title="View"><i data-lucide="eye"></i></button>
-                    <button onclick="editDocument(${doc.document_id})" class="btn btn--icon" title="Edit"><i data-lucide="pencil"></i></button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--icon" title="History"><i data-lucide="history"></i></button>
-                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--icon btn--primary" title="Route"><i data-lucide="send"></i></button>
-                    <button onclick="archiveDocument(${doc.document_id})" class="btn btn--icon" title="Archive"><i data-lucide="archive"></i></button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--icon btn--danger" title="Delete"><i data-lucide="trash-2"></i></button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    this.renderPagination(paginationContainer, totalPages);
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-  },
-
-  renderArchivedDocuments() {
-    const container = document.getElementById('documentsList');
-    const paginationContainer = document.getElementById('pagination');
-
-    if (this.filteredDocuments.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <p style="font-size: 3rem; margin-bottom: 1rem;">🗄️</p>
-          <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-8);">No archived documents</p>
-          <p style="color: var(--color-text-secondary);">
-            ${this.allDocuments.length === 0 ? 'Archived documents will appear here' : 'Try adjusting your search'}
-          </p>
-        </div>
-      `;
-      if (paginationContainer) paginationContainer.innerHTML = '';
-      return;
-    }
-
-    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
-
-    const getSortIcon = (column) => {
-      if (this.sortColumn !== column) return '↕️';
-      return this.sortDirection === 'asc' ? '↑' : '↓';
-    };
-    container.innerHTML = `
-      <div style="margin-bottom: 1rem; color: #666; font-size: 0.9rem; padding: 0 1rem;">
-        Showing ${startIndex + 1}-${Math.min(endIndex, this.filteredDocuments.length)} of ${this.filteredDocuments.length} archived documents
-      </div>
-      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="table" style="min-width: 1450px; table-layout: fixed;">
-          <thead>
-            <tr>
-              <th style="width: 140px; cursor: pointer;" onclick="router.sortDocuments('document_number')">Document ${getSortIcon('document_number')}</th>
-              <th style="width: 250px; cursor: pointer;" onclick="router.sortDocuments('title')">Title ${getSortIcon('title')}</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('document_type')">Type ${getSortIcon('document_type')}</th>
-              <th style="width: 100px; cursor: pointer;" onclick="router.sortDocuments('priority')">Priority ${getSortIcon('priority')}</th>
-              <th style="width: 140px;">Archived By</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('archived_at')">Archived Date ${getSortIcon('archived_at')}</th>
-              <th style="width: 120px; cursor: pointer;" onclick="router.sortDocuments('uploaded_at')">Upload Date ${getSortIcon('uploaded_at')}</th>
-              <th style="width: 300px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${paginatedDocs.map(doc => `
-              <tr>
-                <td style="font-size: 0.85rem;">${doc.document_number}</td>
-                <td style="white-space: normal; word-wrap: break-word; overflow-wrap: anywhere;">${doc.title}</td>
-                <td>${doc.document_type}</td>
-                <td>${this.getPriorityBadge(doc.priority)}</td>
-                <td>${doc.uploaded_by_name || 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${doc.archived_at ? new Date(doc.archived_at).toLocaleDateString() : 'N/A'}</td>
-                <td style="font-size: 0.85rem;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                <td>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="viewDocument(${doc.document_id})" class="btn btn--icon" title="View"><i data-lucide="eye"></i></button>
-                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--icon" title="History"><i data-lucide="history"></i></button>
-                    <button onclick="restoreDocument(${doc.document_id})" class="btn btn--icon btn--primary" title="Restore"><i data-lucide="archive-restore"></i></button>
-                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--icon btn--danger" title="Delete"><i data-lucide="trash-2"></i></button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    this.renderPagination(paginationContainer, totalPages);
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-  },
-
-  renderPagination(paginationContainer, totalPages) {
-    if (totalPages <= 1) {
-      paginationContainer.innerHTML = '';
-      return;
-    }
-
-    let paginationHTML = `<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 1rem;">`;
-    
-    paginationHTML += `<button onclick="router.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Previous</button>`;
-
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-        paginationHTML += `<button onclick="router.goToPage(${i})" class="btn btn--sm ${i === this.currentPage ? 'btn--primary' : ''}" style="min-width: 40px;">${i}</button>`;
-      } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-        paginationHTML += `<span style="padding: 0 0.5rem;">...</span>`;
-      }
-    }
-
-    paginationHTML += `<button onclick="router.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''} class="btn btn--sm" style="${this.currentPage === totalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Next</button>`;
-    
-    paginationHTML += `</div>`;
-    paginationContainer.innerHTML = paginationHTML;
-  },
-
-  goToPage(page) {
-    const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
-    if (page >= 1 && page <= totalPages) {
-      this.currentPage = page;
-      if (this.currentRoute === '/archives') {
-        this.renderArchivedDocuments();
-      } else {
-        this.renderDocuments();
-      }
-    }
-  },
-
-  getPriorityBadge(priority) {
-    const colors = {
-      low: { background: '#dbeafe', color: '#1e40af' },
-      medium: { background: '#fef3c7', color: '#92400e' },
-      high: { background: '#fed7aa', color: '#9a3412' },
-      urgent: { background: '#fee2e2', color: '#991b1b' }
-    };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[priority] ? `background: ${colors[priority].background}; color: ${colors[priority].color};` : ''}">${priority}</span>`;
-  },
-
-  getStatusBadge(status) {
-    const colors = {
-      pending: { background: '#fef3c7', color: '#92400e' },
-      in_progress: { background: '#dbeafe', color: '#1e40af' },
-      routed: { background: '#e0e7ff', color: '#3730a3' },
-      completed: { background: '#d1fae5', color: '#065f46' }
-    };
-    return `<span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${colors[status] ? `background: ${colors[status].background}; color: ${colors[status].color};` : ''}">${status.replace('_', ' ')}</span>`;
-  },
-
-  showMessage(message, type = 'info') {
-    const messageDiv = document.getElementById('message');
-    if (!messageDiv) return;
-
-    const colors = {
-      success: { background: '#d1fae5', color: '#065f46', borderLeft: '4px solid #10b981' },
-      error: { background: '#fee2e2', color: '#991b1b', borderLeft: '4px solid #ef4444' },
-      info: { background: '#dbeafe', color: '#1e40af', borderLeft: '4px solid #3b82f6' }
-    };
-
-    messageDiv.innerHTML = `
-      <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 4px; background: ${colors[type].background}; color: ${colors[type].color}; border-left: ${colors[type].borderLeft};">
-        ${message}
-      </div>
-    `;
-
-    setTimeout(() => {
-      messageDiv.innerHTML = '';
-    }, 5000);
   }
 };
 
-// --- UPDATED: Helper functions ---
+/* =========================================================
+   FIX: Title wrapping in renderDocuments + renderArchivedDocuments
+   Replace ONLY the <td> for Title in both renders.
+========================================================= */
+
+// Patch router.renderDocuments to wrap Title (no ellipsis)
+const _origRenderDocuments = router.renderDocuments.bind(router);
+router.renderDocuments = function () {
+  _origRenderDocuments();
+
+  // After original render, patch Title cells in the table (2nd column)
+  const table = document.querySelector('#documentsList table');
+  if (!table) return;
+
+  // Make Title column wrap (header width remains fixed)
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach((tr) => {
+    const titleTd = tr.children[1];
+    if (!titleTd) return;
+
+    titleTd.style.whiteSpace = 'normal';
+    titleTd.style.overflowWrap = 'anywhere';
+    titleTd.style.wordBreak = 'break-word';
+    titleTd.style.textOverflow = 'clip';
+    titleTd.style.overflow = 'visible';
+  });
+};
+
+// Patch router.renderArchivedDocuments to wrap Title (no ellipsis)
+const _origRenderArchivedDocuments = router.renderArchivedDocuments.bind(router);
+router.renderArchivedDocuments = function () {
+  _origRenderArchivedDocuments();
+
+  const table = document.querySelector('#documentsList table');
+  if (!table) return;
+
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach((tr) => {
+    const titleTd = tr.children[1];
+    if (!titleTd) return;
+
+    titleTd.style.whiteSpace = 'normal';
+    titleTd.style.overflowWrap = 'anywhere';
+    titleTd.style.wordBreak = 'break-word';
+    titleTd.style.textOverflow = 'clip';
+    titleTd.style.overflow = 'visible';
+  });
+};
+
+/* =========================
+   Helper functions (from your file)
+========================= */
+
 async function approveUser(userId, username) {
   if (!confirm(`Approve user ${username}?`)) return;
   try {
@@ -1381,6 +1201,7 @@ async function approveUser(userId, username) {
     alert('Failed: ' + error.message);
   }
 }
+
 async function rejectUser(userId, username) {
   if (!confirm(`Reject ${username}? Cannot be undone.`)) return;
   try {
@@ -1513,9 +1334,8 @@ async function restoreDocument(documentId) {
   }
 }
 
-// --- Route Document Logic to use Modal ---
+// Route Document Logic to use Modal
 function routeDocument(documentId, title) {
-  // Open the new route modal instead of using prompt
   routeModal.open(documentId, title);
 }
 
@@ -1543,8 +1363,6 @@ async function viewDocumentHistory(documentId, title) {
                       <td style="padding: 0.75rem; vertical-align: top; font-size: 0.875rem; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
                       <td style="padding: 0.75rem; vertical-align: top;"><strong>${h.action}</strong></td>
                       <td style="padding: 0.75rem; vertical-align: top;">${h.user_name || 'System'}</td>
-                      
-                      <!-- FIXED WRAPPING HERE -->
                       <td style="padding: 0.75rem; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; max-width: 300px;">
                         ${h.details || '-'}
                       </td>
@@ -1560,7 +1378,7 @@ async function viewDocumentHistory(documentId, title) {
         </div>
       `;
       document.body.insertAdjacentHTML('beforeend', historyHtml);
-      
+
       const overlay = document.getElementById('historyModalOverlay');
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) overlay.remove();
@@ -1570,6 +1388,7 @@ async function viewDocumentHistory(documentId, title) {
     alert('Error loading document history: ' + error.message);
   }
 }
+
 function openDocumentFormModal() {
   const modalHtml = `
     <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -1601,7 +1420,7 @@ function openDocumentFormModal() {
             <label class="form-label">File (optional)</label>
             <input type="file" name="file" class="form-control">
           </div>
-          
+
           <!-- Progress Bar Container -->
           <div id="uploadProgressContainer" class="upload-progress-container">
             <div class="progress-bar">
@@ -1636,20 +1455,19 @@ function openDocumentFormModal() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    // Loading state
+
     uploadBtn.disabled = true;
     cancelBtn.disabled = true;
     uploadBtn.classList.add('loading');
     uploadBtn.textContent = 'Uploading...';
-    
+
     progressContainer.classList.add('active');
 
     const formData = new FormData(e.target);
 
     try {
       const result = await api.uploadFile('/data/documents', formData);
-      
+
       alert(result.message || 'Document uploaded successfully!');
       closeOverlay();
       router.handleRoute();
