@@ -116,18 +116,18 @@ const routeModal = {
     const modalHtml = `
       <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
         <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">Route Document</h2>
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #1f2937;">Route Document</h2>
           <p style="margin: 0 0 1.5rem 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
           
           <form id="routeDocumentForm">
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Destination / Recipient <span style="color:red">*</span></label>
-              <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Destination / Recipient <span style="color:red">*</span></label>
+              <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
             
             <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Action Taken / Remarks <span style="color:red">*</span></label>
-              <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Action Taken / Remarks <span style="color:red">*</span></label>
+              <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; color: #333;"></textarea>
             </div>
 
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
@@ -170,7 +170,7 @@ const routeModal = {
           body: JSON.stringify({
             document_id: documentId,
             destination_text: destination,
-            remarks: remarks // Sending the new remarks field
+            remarks: remarks
           })
         });
 
@@ -193,23 +193,23 @@ const editModal = {
     const modalHtml = `
       <div id="editModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
         <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem;">Edit Document</h2>
+          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Edit Document</h2>
           <form id="editDocumentForm">
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Title</label>
-              <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
+              <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-              <textarea id="editDescription" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">${documentData.description || ''}</textarea>
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Description</label>
+              <textarea id="editDescription" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">${documentData.description || ''}</textarea>
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Document Type</label>
-              <input type="text" id="editType" class="form-control" value="${documentData.document_type}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
+              <input type="text" id="editType" class="form-control" value="${documentData.document_type}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
             <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-              <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
+              <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
                 <option value="low" ${documentData.priority === 'low' ? 'selected' : ''}>Low</option>
                 <option value="medium" ${documentData.priority === 'medium' ? 'selected' : ''}>Medium</option>
                 <option value="high" ${documentData.priority === 'high' ? 'selected' : ''}>High</option>
@@ -236,8 +236,6 @@ const editModal = {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      // Loading State
       saveBtn.classList.add('loading');
       saveBtn.textContent = 'Saving...';
 
@@ -249,8 +247,7 @@ const editModal = {
         priority: document.getElementById('editPriority').value
       };
 
-      await onSave(updatedData); // Wait for save to complete
-
+      await onSave(updatedData);
       overlay.remove();
     });
 
@@ -282,14 +279,14 @@ const viewModal = {
         <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
           <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <h2 style="margin: 0; font-size: 1.5rem;">${documentData.title}</h2>
+              <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">${documentData.title}</h2>
               <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
                 📄 Document ${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority}
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">📥 Download</a>` : ''}
-              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1;">✕</button>
+              <button id="viewCloseBtn" class="btn btn--sm" style="padding: 0.5rem; cursor: pointer; font-size: 1.5rem; line-height: 1; color: #333;">✕</button>
             </div>
           </div>
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
@@ -300,7 +297,7 @@ const viewModal = {
             ) : `
               <div style="text-align: center; padding: 2rem;">
                 <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
-                <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">${hasFile ? filePath : 'No file attached'}</p>
+                <p style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #333;">${hasFile ? filePath : 'No file attached'}</p>
                 <p style="color: #666; margin-bottom: 1.5rem;">
                   ${hasFile ? 'Preview not available for this file type' : 'This document has no attached file'}
                 </p>
@@ -312,26 +309,26 @@ const viewModal = {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">Status</strong>
-                <p style="margin: 0.25rem 0 0 0;">${documentData.status}</p>
+                <p style="margin: 0.25rem 0 0 0; color: #333;">${documentData.status}</p>
               </div>
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">Uploaded By</strong>
-                <p style="margin: 0.25rem 0 0 0;">${documentData.uploaded_by_name || 'N/A'}</p>
+                <p style="margin: 0.25rem 0 0 0; color: #333;">${documentData.uploaded_by_name || 'N/A'}</p>
               </div>
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">Date</strong>
-                <p style="margin: 0.25rem 0 0 0;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
+                <p style="margin: 0.25rem 0 0 0; color: #333;">${new Date(documentData.uploaded_at).toLocaleDateString()}</p>
               </div>
               ${hasFile ? `
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">File Size</strong>
-                <p style="margin: 0.25rem 0 0 0;">${formatFileSize(documentData.file_size)}</p>
+                <p style="margin: 0.25rem 0 0 0; color: #333;">${formatFileSize(documentData.file_size)}</p>
               </div>` : ''}
             </div>
             ${documentData.description ? `
             <div style="margin-top: 1rem;">
               <strong style="color: #666; font-size: 0.875rem;">Description</strong>
-              <p style="margin: 0.25rem 0 0 0;">${documentData.description}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #333;">${documentData.description}</p>
             </div>` : ''}
           </div>
         </div>
@@ -432,7 +429,7 @@ const router = {
       <div style="overflow-x: auto;">
       <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;"> <!-- FIXED: Added color -->
             <th style="padding: 12px; text-align: left;">ID</th>
             <th style="padding: 12px; text-align: left; width: 30%;">Title</th>
             <th style="padding: 12px; text-align: left;">Type</th>
@@ -442,7 +439,7 @@ const router = {
             <th style="padding: 12px; text-align: right;">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style="color: #333;">
           ${this.filteredDocuments.map(doc => `
             <tr style="border-bottom: 1px solid #e9ecef;">
               <td style="padding: 12px;">${doc.document_number || doc.document_id}</td>
@@ -564,18 +561,18 @@ const router = {
       <div class="container">
         <div class="card" style="max-width: 450px; margin: 80px auto;">
           <div class="card__header">
-            <h2 style="margin: 0; text-align: center;">Login</h2>
+            <h2 style="margin: 0; text-align: center; color: #1f2937;">Login</h2>
           </div>
           <div class="card__body">
             <div id="message"></div>
             <form id="loginForm">
               <div class="form-group">
-                <label class="form-label">Username or Email</label>
-                <input type="text" name="username" class="form-control" required autofocus>
+                <label class="form-label" style="color: #333;">Username or Email</label>
+                <input type="text" name="username" class="form-control" required autofocus style="color: #333;">
               </div>
               <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+                <label class="form-label" style="color: #333;">Password</label>
+                <input type="password" name="password" class="form-control" required style="color: #333;">
               </div>
               <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
             </form>
@@ -613,30 +610,30 @@ const router = {
       <div class="container">
         <div class="card" style="max-width: 450px; margin:  80px auto;">
           <div class="card__header">
-            <h2 style="margin: 0; text-align: center;">Register</h2>
+            <h2 style="margin: 0; text-align: center; color: #1f2937;">Register</h2>
           </div>
           <div class="card__body">
             <div id="message"></div>
             <form id="registerForm">
               <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="full_name" class="form-control" required>
+                <label class="form-label" style="color: #333;">Full Name</label>
+                <input type="text" name="full_name" class="form-control" required style="color: #333;">
               </div>
               <div class="form-group">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
+                <label class="form-label" style="color: #333;">Username</label>
+                <input type="text" name="username" class="form-control" required style="color: #333;">
               </div>
               <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" required>
+                <label class="form-label" style="color: #333;">Email</label>
+                <input type="email" name="email" class="form-control" required style="color: #333;">
               </div>
               <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+                <label class="form-label" style="color: #333;">Password</label>
+                <input type="password" name="password" class="form-control" required style="color: #333;">
               </div>
               <div class="form-group">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" name="confirm_password" class="form-control" required>
+                <label class="form-label" style="color: #333;">Confirm Password</label>
+                <input type="password" name="confirm_password" class="form-control" required style="color: #333;">
               </div>
               <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
             </form>
@@ -715,28 +712,28 @@ const router = {
 
           <main class="main-content">
             <div class="content-header">
-              <h2>My Documents</h2>
+              <h2 style="color: #1f2937;">My Documents</h2>
               <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
             </div>
 
             <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline">
-              <select id="statusFilter" class="form-control filter-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search..." class="form-control search-inline" style="color: #333;">
+              <select id="statusFilter" class="form-control filter-inline" style="color: #333;">
                 <option value="">Status</option>
                 <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
                 <option value="routed">Routed</option>
                 <option value="completed">Completed</option>
               </select>
-              <select id="priorityFilter" class="form-control filter-inline">
+              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
                 <option value="">Priority</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
 
@@ -815,29 +812,29 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <div>
-                <h2>📂 System Documents</h2>
+                <h2 style="color: #1f2937;">📂 System Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
               </div>
             </div>
 
             <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search all docs..." class="form-control search-inline">
-              <select id="statusFilter" class="form-control filter-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search all docs..." class="form-control search-inline" style="color: #333;">
+              <select id="statusFilter" class="form-control filter-inline" style="color: #333;">
                 <option value="">Status</option>
                 <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
                 <option value="routed">Routed</option>
                 <option value="completed">Completed</option>
               </select>
-              <select id="priorityFilter" class="form-control filter-inline">
+              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
                 <option value="">Priority</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
 
@@ -916,22 +913,22 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <div>
-                <h2>🗄️ Archived Documents</h2>
+                <h2 style="color: #1f2937;">🗄️ Archived Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
               </div>
             </div>
 
             <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline">
-              <select id="priorityFilter" class="form-control filter-inline">
+              <input type="text" id="searchInput" placeholder="🔍 Search archives..." class="form-control search-inline" style="color: #333;">
+              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
                 <option value="">Priority</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px;">
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
+              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
 
@@ -1009,7 +1006,7 @@ const router = {
 
           <main class="main-content">
             <div class="content-header">
-              <h2>🛡️ Admin Panel</h2>
+              <h2 style="color: #1f2937;">🛡️ Admin Panel</h2>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
@@ -1039,26 +1036,26 @@ const router = {
                 <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
               </h3>
               <div style="overflow-x: auto;">
-                <table class="table">
-                  <thead>
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                  <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                     <tr>
-                      <th>Full Name</th>
-                      <th>Username</th>
-                      <th>Email</th>
-                      <th>Department</th>
-                      <th>Registered</th>
-                      <th>Actions</th>
+                      <th style="padding: 12px; text-align: left;">Full Name</th>
+                      <th style="padding: 12px; text-align: left;">Username</th>
+                      <th style="padding: 12px; text-align: left;">Email</th>
+                      <th style="padding: 12px; text-align: left;">Department</th>
+                      <th style="padding: 12px; text-align: left;">Registered</th>
+                      <th style="padding: 12px; text-align: left;">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody style="color: #333;">
                     ${pendingData.pending_users.map(u => `
-                      <tr>
-                        <td>${u.full_name}</td>
-                        <td>${u.username}</td>
-                        <td>${u.email}</td>
-                        <td>${u.department || 'N/A'}</td>
-                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td>
+                      <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px;">${u.full_name}</td>
+                        <td style="padding: 12px;">${u.username}</td>
+                        <td style="padding: 12px;">${u.email}</td>
+                        <td style="padding: 12px;">${u.department || 'N/A'}</td>
+                        <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td style="padding: 12px;">
                           <div style="display: flex; gap: 0.5rem;">
                             <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">✅ Approve</button>
                             <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">❌ Reject</button>
@@ -1070,41 +1067,43 @@ const router = {
                 </table>
               </div>
             </div>
-            ` : ''} <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <h3 style="margin: 0 0 1rem 0;">👥 All Users</h3>
+            ` : ''} 
+            
+            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <h3 style="margin: 0 0 1rem 0; color: #1f2937;">👥 All Users</h3>
               <div style="overflow-x: auto;">
-                <table class="table">
-                  <thead>
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                  <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                     <tr>
-                      <th>Full Name</th>
-                      <th>Username</th>
-                      <th>Email</th>
-                      <th>Department</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Registered</th>
-                      <th>Actions</th>
+                      <th style="padding: 12px; text-align: left;">Full Name</th>
+                      <th style="padding: 12px; text-align: left;">Username</th>
+                      <th style="padding: 12px; text-align: left;">Email</th>
+                      <th style="padding: 12px; text-align: left;">Department</th>
+                      <th style="padding: 12px; text-align: left;">Role</th>
+                      <th style="padding: 12px; text-align: left;">Status</th>
+                      <th style="padding: 12px; text-align: left;">Registered</th>
+                      <th style="padding: 12px; text-align: left;">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody style="color: #333;">
                     ${usersData.users.map(u => `
-                      <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
-                        <td>${u.full_name}</td>
-                        <td>${u.username}</td>
-                        <td>${u.email}</td>
-                        <td>${u.department || 'N/A'}</td>
-                        <td>
+                      <tr style="border-bottom: 1px solid #eee; ${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
+                        <td style="padding: 12px;">${u.full_name}</td>
+                        <td style="padding: 12px;">${u.username}</td>
+                        <td style="padding: 12px;">${u.email}</td>
+                        <td style="padding: 12px;">${u.department || 'N/A'}</td>
+                        <td style="padding: 12px;">
                           <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
                             ${u.role === 'admin' ? 'Admin' : 'User'}
                           </span>
                         </td>
-                        <td>
+                        <td style="padding: 12px;">
                           <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
                             ${u.is_active === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td>
+                        <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td style="padding: 12px;">
                           ${u.role !== 'admin' ? `
                           <div style="display: flex; gap: 0.5rem;">
                             ${u.is_active ? 
@@ -1346,10 +1345,10 @@ async function viewDocumentHistory(documentId, title) {
       let historyHtml = `
         <div id="historyModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
           <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
-            <h2 style="margin: 0 0 1.5rem 0;">Document History: ${title}</h2>
+            <h2 style="margin: 0 0 1.5rem 0; color: #1f2937;">Document History: ${title}</h2>
             <div style="overflow-x: auto;">
               <table class="table" style="width: 100%; border-collapse: collapse;">
-                <thead>
+                <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                   <tr>
                     <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Date</th>
                     <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Action</th>
@@ -1357,7 +1356,7 @@ async function viewDocumentHistory(documentId, title) {
                     <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%;">Details</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody style="color: #333;">
                   ${data.history.map(h => `
                     <tr style="border-bottom: 1px solid #f0f0f0;">
                       <td style="padding: 0.75rem; vertical-align: top; font-size: 0.875rem; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
@@ -1393,23 +1392,23 @@ function openDocumentFormModal() {
   const modalHtml = `
     <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
       <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 90%;">
-        <h2 style="margin: 0 0 1.5rem 0;">Upload New Document</h2>
+        <h2 style="margin: 0 0 1.5rem 0; color: #1f2937;">Upload New Document</h2>
         <form id="uploadDocumentForm">
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Title</label>
-            <input type="text" name="title" class="form-control" required>
+            <label class="form-label" style="color: #333;">Title</label>
+            <input type="text" name="title" class="form-control" required style="color: #333;">
           </div>
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Description</label>
-            <textarea name="description" class="form-control" rows="3"></textarea>
+            <label class="form-label" style="color: #333;">Description</label>
+            <textarea name="description" class="form-control" rows="3" style="color: #333;"></textarea>
           </div>
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Document Type</label>
-            <input type="text" name="document_type" class="form-control" required>
+            <label class="form-label" style="color: #333;">Document Type</label>
+            <input type="text" name="document_type" class="form-control" required style="color: #333;">
           </div>
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label class="form-label">Priority</label>
-            <select name="priority" class="form-control" required>
+            <label class="form-label" style="color: #333;">Priority</label>
+            <select name="priority" class="form-control" required style="color: #333;">
               <option value="low">Low</option>
               <option value="medium" selected>Medium</option>
               <option value="high">High</option>
@@ -1417,8 +1416,8 @@ function openDocumentFormModal() {
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label class="form-label">File (optional)</label>
-            <input type="file" name="file" class="form-control">
+            <label class="form-label" style="color: #333;">File (optional)</label>
+            <input type="file" name="file" class="form-control" style="color: #333;">
           </div>
 
           <!-- Progress Bar Container -->
@@ -1514,3 +1513,4 @@ window.archiveDocument = archiveDocument;
 window.restoreDocument = restoreDocument;
 window.routeDocument = routeDocument;
 window.viewDocumentHistory = viewDocumentHistory;
+window.openDocumentFormModal = openDocumentFormModal; 
