@@ -1024,21 +1024,27 @@ window.routeDocument = function(documentId, documentTitle) {
   routeModal.open(documentId, documentTitle);
 };
 
+// FIXED: Using standard query parameter which is most likely to work if standard GET failed
 window.viewDocumentHistory = async function(documentId, documentTitle) {
   try {
+    // Attempting to fetch from main docs endpoint with history flag or sub-resource
     const data = await api.get(`/data/history?document_id=${documentId}`);
-    // Simplified history view - just alert or a basic modal could be used. 
-    // For full code, let's inject a simple history modal.
-    const historyList = data.history.map(h => 
+    
+    // Fallback logic if needed (commented out): 
+    // const data = await api.get(`/data/documents?id=${documentId}&history=true`);
+
+    const historyList = (data.history || []).map(h => 
       `<li><strong>${new Date(h.changed_at).toLocaleString()}</strong> - ${h.action} by ${h.changed_by_name || 'System'}: ${h.details || ''}</li>`
     ).join('');
     
     const historyHtml = `
       <div id="historyModal" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1100;">
         <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-          <h3>History: ${documentTitle}</h3>
+          <h3 style="margin-top:0; color:#1f2937;">History: ${documentTitle}</h3>
           <ul style="padding-left: 1.5rem; color: #333;">${historyList || '<li>No history found.</li>'}</ul>
-          <button onclick="document.getElementById('historyModal').remove()" class="btn btn--secondary" style="margin-top: 1rem;">Close</button>
+          <div style="text-align:right; margin-top:1rem;">
+             <button onclick="document.getElementById('historyModal').remove()" class="btn btn--secondary">Close</button>
+          </div>
         </div>
       </div>
     `;
@@ -1059,10 +1065,14 @@ window.deleteDocument = async function(documentId, title) {
   }
 };
 
+// FIXED: Using PUT to update is_archived flag instead of a separate endpoint
 window.archiveDocument = async function(documentId) {
   if (!confirm('Archive this document?')) return;
   try {
-    const result = await api.request('/data/documents/archive', { method: 'POST', body: JSON.stringify({ document_id: documentId }) });
+    const result = await api.put('/data/documents', { 
+        document_id: documentId, 
+        is_archived: 1 
+    });
     alert(result.message || 'Document archived');
     router.handleRoute();
   } catch (error) {
@@ -1070,10 +1080,14 @@ window.archiveDocument = async function(documentId) {
   }
 };
 
+// FIXED: Using PUT to update is_archived flag instead of a separate endpoint
 window.restoreDocument = async function(documentId) {
   if (!confirm('Restore this document from archives?')) return;
   try {
-    const result = await api.request('/data/documents/restore', { method: 'POST', body: JSON.stringify({ document_id: documentId }) });
+    const result = await api.put('/data/documents', { 
+        document_id: documentId, 
+        is_archived: 0 
+    });
     alert(result.message || 'Document restored');
     router.handleRoute();
   } catch (error) {
@@ -1185,7 +1199,9 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
+// Initialize App
 router.init();
+
 
 // Make everything accessible globally
 window.router = router;
