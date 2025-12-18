@@ -422,7 +422,6 @@ const router = {
     else this.renderDocuments();
   },
 
-  // FIXED: Table header is now dark and row lines are more visible
   renderDocuments() {
       const list = document.getElementById('documentsList');
       if(!list) return;
@@ -767,136 +766,126 @@ const router = {
                 <span>All Documents</span>
               </a>
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div>
+            
+            <main class="main-content">
+              <div class="content-header">
+                <h2 style="color: #1f2937;">Admin Panel</h2>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
+                  <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
+                  <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
+                  <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
+                  <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
                 </div>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
-            </div>
-          </aside>
-          
-          <main class="main-content">
-            <div class="content-header">
-              <h2 style="color: #1f2937;">Admin Panel</h2>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
-              </div>
-              <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
-              </div>
-              <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
-              </div>
-              <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
-              </div>
-            </div>
 
-            <div id="adminMessage"></div>
+              <div id="adminMessage"></div>
 
-            ${pendingData.pending_users.length > 0 ? `
-            <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
-              <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
-                <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
-              </h3>
-              <div style="overflow-x: auto;">
-                <table class="table" style="width: 100%; border-collapse: collapse;">
-                  <thead style="background: #f8f9fa; color: #1f2937;">
-                    <tr>
-                      <th style="padding: 12px; text-align: left;">Full Name</th>
-                      <th style="padding: 12px; text-align: left;">Username</th>
-                      <th style="padding: 12px; text-align: left;">Email</th>
-                      <th style="padding: 12px; text-align: left;">Department</th>
-                      <th style="padding: 12px; text-align: left;">Registered</th>
-                      <th style="padding: 12px; text-align: left;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody style="color: #333;">
-                    ${pendingData.pending_users.map(u => `
-                      <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 12px;">${u.full_name}</td>
-                        <td style="padding: 12px;">${u.username}</td>
-                        <td style="padding: 12px;">${u.email}</td>
-                        <td style="padding: 12px;">${u.department || 'N/A'}</td>
-                        <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td style="padding: 12px;">
-                          <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Approve</button>
-                            <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">Reject</button>
-                          </div>
-                        </td>
+              ${pendingData.pending_users.length > 0 ? `
+              <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
+                <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
+                </h3>
+                <div style="overflow-x: auto;">
+                  <table class="table" style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f8f9fa; color: #1f2937;">
+                      <tr>
+                        <th style="padding: 12px; text-align: left;">Full Name</th>
+                        <th style="padding: 12px; text-align: left;">Username</th>
+                        <th style="padding: 12px; text-align: left;">Email</th>
+                        <th style="padding: 12px; text-align: left;">Department</th>
+                        <th style="padding: 12px; text-align: left;">Registered</th>
+                        <th style="padding: 12px; text-align: left;">Actions</th>
                       </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            ` : ''}
-
-            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <h3 style="margin: 0 0 1rem 0; color: #1f2937;">All Users</h3>
-              <div style="overflow-x: auto;">
-                <table class="table" style="width: 100%; border-collapse: collapse;">
-                  <thead style="background: #f8f9fa; color: #1f2937;">
-                    <tr>
-                      <th style="padding: 12px; text-align: left;">Full Name</th>
-                      <th style="padding: 12px; text-align: left;">Username</th>
-                      <th style="padding: 12px; text-align: left;">Email</th>
-                      <th style="padding: 12px; text-align: left;">Department</th>
-                      <th style="padding: 12px; text-align: left;">Role</th>
-                      <th style="padding: 12px; text-align: left;">Status</th>
-                      <th style="padding: 12px; text-align: left;">Registered</th>
-                      <th style="padding: 12px; text-align: left;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody style="color: #333;">
-                    ${usersData.users.map(u => `
-                      <tr style="border-bottom: 1px solid #eee; ${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
-                        <td style="padding: 12px;">${u.full_name}</td>
-                        <td style="padding: 12px;">${u.username}</td>
-                        <td style="padding: 12px;">${u.email}</td>
-                        <td style="padding: 12px;">${u.department || 'N/A'}</td>
-                        <td style="padding: 12px;">
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
-                            ${u.role === 'admin' ? 'Admin' : 'User'}
-                          </span>
-                        </td>
-                        <td style="padding: 12px;">
-                          <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
-                            ${u.is_active === 1 ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td style="padding: 12px;">
-                          ${u.role !== 'admin' || user.role === 'admin' ? `
+                    </thead>
+                    <tbody style="color: #333;">
+                      ${pendingData.pending_users.map(u => `
+                        <tr style="border-bottom: 1px solid #eee;">
+                          <td style="padding: 12px;">${u.full_name}</td>
+                          <td style="padding: 12px;">${u.username}</td>
+                          <td style="padding: 12px;">${u.email}</td>
+                          <td style="padding: 12px;">${u.department || 'N/A'}</td>
+                          <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
+                          <td style="padding: 12px;">
                             <div style="display: flex; gap: 0.5rem;">
-                              ${u.is_active ? 
-                                `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white;">Deactivate</button>` : 
-                                `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Reactivate</button>`
-                              }
-                              ${u.role !== 'admin' ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>` : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>`}
-                              <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">🗑️</button>
+                              <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Approve</button>
+                              <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">Reject</button>
                             </div>
-                          ` : ''}
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </main>
+              ` : ''}
+
+              <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 1rem 0; color: #1f2937;">All Users</h3>
+                <div style="overflow-x: auto;">
+                  <table class="table" style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f8f9fa; color: #1f2937;">
+                      <tr>
+                        <th style="padding: 12px; text-align: left;">Full Name</th>
+                        <th style="padding: 12px; text-align: left;">Username</th>
+                        <th style="padding: 12px; text-align: left;">Email</th>
+                        <th style="padding: 12px; text-align: left;">Department</th>
+                        <th style="padding: 12px; text-align: left;">Role</th>
+                        <th style="padding: 12px; text-align: left;">Status</th>
+                        <th style="padding: 12px; text-align: left;">Registered</th>
+                        <th style="padding: 12px; text-align: left;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody style="color: #333;">
+                      ${usersData.users.map(u => `
+                        <tr style="border-bottom: 1px solid #eee; ${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
+                          <td style="padding: 12px;">${u.full_name}</td>
+                          <td style="padding: 12px;">${u.username}</td>
+                          <td style="padding: 12px;">${u.email}</td>
+                          <td style="padding: 12px;">${u.department || 'N/A'}</td>
+                          <td style="padding: 12px;">
+                            <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
+                              ${u.role === 'admin' ? 'Admin' : 'User'}
+                            </span>
+                          </td>
+                          <td style="padding: 12px;">
+                            <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
+                              ${u.is_active === 1 ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
+                          <td style="padding: 12px;">
+                            ${u.role !== 'admin' || user.role === 'admin' ? `
+                              <div style="display: flex; gap: 0.5rem;">
+                                ${u.is_active ? 
+                                  `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white;">Deactivate</button>` : 
+                                  `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Reactivate</button>`
+                                }
+                                ${u.role !== 'admin' ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>` : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>`}
+                                <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">🗑️</button>
+                              </div>
+                            ` : ''}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </main>
+          </aside>
         </div>
       `;
     } catch (e) {
@@ -1142,7 +1131,8 @@ window.openDocumentFormModal = function() {
           </div>
           <div class="form-group" style="margin-bottom: 1rem;">
             <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
-            <input type="text" name="documentType" class="form-control" required placeholder="e.g. Memo, Invoice, Report" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+            <!-- FIXED: Changed name="documentType" to name="document_type" to match backend expectation -->
+            <input type="text" name="document_type" class="form-control" required placeholder="e.g. Memo, Invoice, Report" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
           </div>
           <div class="form-group" style="margin-bottom: 1rem;">
             <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
@@ -1230,9 +1220,7 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
-
 router.init();
-
 
 
 // Make everything accessible globally
