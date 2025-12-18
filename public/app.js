@@ -425,23 +425,23 @@ const router = {
        return;
      }
 
+     /* CHANGED: Removed the download button from here (moved to content-header in showDashboard/showAdminAllDocuments)
+      * ADDED: New Column "Current Location"
+      * CHANGED: Table Header Styles to ensure visibility
+      */
      list.innerHTML = `
-      <div style="margin-bottom: 1rem;">
-        <button onclick="downloadTableToExcel('Documents')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-          📥 Download to Excel
-        </button>
-      </div>
       <div style="overflow-x: auto;">
       <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;">
-            <th style="padding: 12px; text-align: left;">ID</th>
-            <th style="padding: 12px; text-align: left; width: 30%;">Title</th>
-            <th style="padding: 12px; text-align: left;">Type</th>
-            <th style="padding: 12px; text-align: left;">Status</th>
-            <th style="padding: 12px; text-align: left;">Priority</th>
-            <th style="padding: 12px; text-align: left;">Date</th>
-            <th style="padding: 12px; text-align: right;">Actions</th>
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">ID</th>
+            <th style="padding: 12px; text-align: left; width: 30%; color: #1f2937; font-weight: 600;">Title</th>
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Type</th>
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th> <!-- NEW COLUMN -->
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Status</th>
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Priority</th>
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Date</th>
+            <th style="padding: 12px; text-align: right; color: #1f2937; font-weight: 600;">Actions</th>
           </tr>
         </thead>
         <tbody style="color: #333;">
@@ -453,6 +453,7 @@ const router = {
                 <div style="font-size: 0.85em; color: #718096;">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
               </td>
               <td style="padding: 12px;">${doc.document_type}</td>
+              <td style="padding: 12px;">${doc.destination_text || 'Origin'}</td> <!-- NEW COLUMN DATA -->
               <td style="padding: 12px;">
                 <span style="padding: 4px 8px; border-radius: 99px; font-size: 0.85em; background: ${doc.status === 'completed' ? '#def7ec' : doc.status === 'urgent' ? '#fde8e8' : '#e1effe'}; color: ${doc.status === 'completed' ? '#03543f' : doc.status === 'urgent' ? '#9b1c1c' : '#1e429f'};">
                   ${doc.status}
@@ -608,9 +609,7 @@ const router = {
         btn.textContent = 'Login';
       }
     });
-  },
-
-  showRegister() {
+  }, showRegister() {
     document.getElementById('app').innerHTML = `
       <div class="container">
         <div class="card" style="max-width: 450px; margin:  80px auto;">
@@ -677,6 +676,7 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
+      // CHANGED: Added download button to content-header and button wrapper
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -718,7 +718,13 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <h2 style="color: #1f2937;">My Documents</h2>
-              <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
+              <!-- CHANGED: Buttons container for Upload and Download -->
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="downloadTableToExcel('MyDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  📥 Download Excel
+                </button>
+                <button onclick="openDocumentFormModal()" class="btn btn--primary">📤 Upload Document</button>
+              </div>
             </div>
 
             <div class="search-filters-inline">
@@ -777,6 +783,7 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
+      // CHANGED: Added download button to content-header in Admin view
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -819,6 +826,12 @@ const router = {
               <div>
                 <h2 style="color: #1f2937;">📂 System Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
+              </div>
+              <!-- CHANGED: Added download button -->
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="downloadTableToExcel('AllSystemDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  📥 Download Excel
+                </button>
               </div>
             </div>
 
@@ -867,9 +880,7 @@ const router = {
         this.showMessage(error.message, 'error');
       }
     }
-  },
-
-  async showArchives() {
+  }, async showArchives() {
     const user = auth.getUser();
 
     try {
@@ -921,6 +932,12 @@ const router = {
                 <h2 style="color: #1f2937;">🗄️ Archived Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
               </div>
+               <!-- CHANGED: Added download button for archives too -->
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="downloadTableToExcel('ArchivedDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  📥 Download Excel
+                </button>
+              </div>
             </div>
 
             <div class="search-filters-inline">
@@ -950,7 +967,6 @@ const router = {
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
       this.renderArchivedDocuments();
     } catch (error) {
       if (error.message.includes('Authentication')) {
@@ -1044,12 +1060,12 @@ const router = {
                 <table class="table" style="width: 100%; border-collapse: collapse;">
                   <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                     <tr>
-                      <th style="padding: 12px; text-align: left;">Full Name</th>
-                      <th style="padding: 12px; text-align: left;">Username</th>
-                      <th style="padding: 12px; text-align: left;">Email</th>
-                      <th style="padding: 12px; text-align: left;">Department</th>
-                      <th style="padding: 12px; text-align: left;">Registered</th>
-                      <th style="padding: 12px; text-align: left;">Actions</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Full Name</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Username</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Email</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Department</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Registered</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Actions</th>
                     </tr>
                   </thead>
                   <tbody style="color: #333;">
@@ -1080,14 +1096,14 @@ const router = {
                 <table class="table" style="width: 100%; border-collapse: collapse;">
                   <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                     <tr>
-                      <th style="padding: 12px; text-align: left;">Full Name</th>
-                      <th style="padding: 12px; text-align: left;">Username</th>
-                      <th style="padding: 12px; text-align: left;">Email</th>
-                      <th style="padding: 12px; text-align: left;">Department</th>
-                      <th style="padding: 12px; text-align: left;">Role</th>
-                      <th style="padding: 12px; text-align: left;">Status</th>
-                      <th style="padding: 12px; text-align: left;">Registered</th>
-                      <th style="padding: 12px; text-align: left;">Actions</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Full Name</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Username</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Email</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Department</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Role</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Status</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Registered</th>
+                      <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Actions</th>
                     </tr>
                   </thead>
                   <tbody style="color: #333;">
@@ -1190,6 +1206,7 @@ router.renderArchivedDocuments = function () {
     titleTd.style.overflow = 'visible';
   });
 };
+
 function downloadTableToExcel(filename = 'Documents') {
   const table = document.getElementById('documentsTable');
   
@@ -1204,6 +1221,7 @@ function downloadTableToExcel(filename = 'Documents') {
   // Get headers (skip Actions column)
   const headers = [];
   table.querySelectorAll('thead tr th').forEach((th, index) => {
+    // Only grab headers that are not the last column (Actions)
     if (index < table.querySelectorAll('thead tr th').length - 1) {
       headers.push(th.innerText);
     }
@@ -1214,6 +1232,7 @@ function downloadTableToExcel(filename = 'Documents') {
   table.querySelectorAll('tbody tr').forEach(row => {
     const rowData = [];
     row.querySelectorAll('td').forEach((td, index) => {
+      // Only grab cells that are not the last column (Actions)
       if (index < row.querySelectorAll('td').length - 1) {
         rowData.push(td.innerText);
       }
@@ -1225,11 +1244,12 @@ function downloadTableToExcel(filename = 'Documents') {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
   
-  // Set column widths
+  // Set column widths (including new Location column)
   ws['!cols'] = [
     { wch: 8 },  // ID
     { wch: 30 }, // Title
     { wch: 12 }, // Type
+    { wch: 20 }, // Location (New)
     { wch: 12 }, // Status
     { wch: 10 }, // Priority
     { wch: 12 }  // Date
@@ -1238,6 +1258,7 @@ function downloadTableToExcel(filename = 'Documents') {
   XLSX.utils.book_append_sheet(wb, ws, 'Documents');
   XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
+
 /* =========================
    Helper functions (from your file)
 ========================= */
@@ -1402,10 +1423,10 @@ async function viewDocumentHistory(documentId, title) {
               <table class="table" style="width: 100%; border-collapse: collapse;">
                 <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
                   <tr>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Date</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%;">Action</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 15%;">User</th>
-                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%;">Details</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%; color: #1f2937; font-weight: 600;">Date</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 20%; color: #1f2937; font-weight: 600;">Action</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 15%; color: #1f2937; font-weight: 600;">User</th>
+                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #eee; width: 45%; color: #1f2937; font-weight: 600;">Details</th>
                   </tr>
                 </thead>
                 <tbody style="color: #333;">
@@ -1545,7 +1566,6 @@ document.addEventListener('DOMContentLoaded', () => {
   router.init();
 });
 
-// Make everything accessible globally
 // Make everything accessible globally
 window.router = router;
 window.api = api;
