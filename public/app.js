@@ -416,7 +416,7 @@ const router = {
     else this.renderDocuments();
   },
 
-  renderDocuments() {
+ renderDocuments() {
      const list = document.getElementById('documentsList');
      if(!list) return;
      
@@ -426,10 +426,15 @@ const router = {
      }
 
      list.innerHTML = `
+      <div style="margin-bottom: 1rem;">
+        <button onclick="downloadTableToExcel('Documents')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          📥 Download to Excel
+        </button>
+      </div>
       <div style="overflow-x: auto;">
-      <table class="table" style="width: 100%; border-collapse: collapse;">
+      <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;"> <!-- FIXED: Added color -->
+          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;">
             <th style="padding: 12px; text-align: left;">ID</th>
             <th style="padding: 12px; text-align: left; width: 30%;">Title</th>
             <th style="padding: 12px; text-align: left;">Type</th>
@@ -1185,7 +1190,54 @@ router.renderArchivedDocuments = function () {
     titleTd.style.overflow = 'visible';
   });
 };
+function downloadTableToExcel(filename = 'Documents') {
+  const table = document.getElementById('documentsTable');
+  
+  if (!table) {
+    alert('Table not found!');
+    return;
+  }
 
+  // Extract data from table
+  const data = [];
+  
+  // Get headers (skip Actions column)
+  const headers = [];
+  table.querySelectorAll('thead tr th').forEach((th, index) => {
+    if (index < table.querySelectorAll('thead tr th').length - 1) {
+      headers.push(th.innerText);
+    }
+  });
+  data.push(headers);
+
+  // Get rows (skip Actions column)
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const rowData = [];
+    row.querySelectorAll('td').forEach((td, index) => {
+      if (index < row.querySelectorAll('td').length - 1) {
+        rowData.push(td.innerText);
+      }
+    });
+    data.push(rowData);
+  });
+
+  // Create Excel workbook
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 8 },  // ID
+    { wch: 30 }, // Title
+    { wch: 12 }, // Type
+    { wch: 12 }, // Status
+    { wch: 10 }, // Priority
+    { wch: 12 }  // Date
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Documents');
+  XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 /* =========================
    Helper functions (from your file)
 ========================= */
@@ -1494,6 +1546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Make everything accessible globally
+// Make everything accessible globally
 window.router = router;
 window.api = api;
 window.auth = auth;
@@ -1513,4 +1566,5 @@ window.archiveDocument = archiveDocument;
 window.restoreDocument = restoreDocument;
 window.routeDocument = routeDocument;
 window.viewDocumentHistory = viewDocumentHistory;
-window.openDocumentFormModal = openDocumentFormModal; 
+window.openDocumentFormModal = openDocumentFormModal;
+window.downloadTableToExcel = downloadTableToExcel;
