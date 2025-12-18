@@ -1024,17 +1024,14 @@ window.routeDocument = function(documentId, documentTitle) {
   routeModal.open(documentId, documentTitle);
 };
 
-// FIXED: Using standard query parameter which is most likely to work if standard GET failed
+// FIXED: Now uses the correct query param `history=true` expected by your backend
 window.viewDocumentHistory = async function(documentId, documentTitle) {
   try {
-    // Attempting to fetch from main docs endpoint with history flag or sub-resource
-    const data = await api.get(`/data/history?document_id=${documentId}`);
+    // Calling /data/documents with history=true because that's what your backend checks for
+    const data = await api.get(`/data/documents?id=${documentId}&history=true`);
     
-    // Fallback logic if needed (commented out): 
-    // const data = await api.get(`/data/documents?id=${documentId}&history=true`);
-
     const historyList = (data.history || []).map(h => 
-      `<li><strong>${new Date(h.changed_at).toLocaleString()}</strong> - ${h.action} by ${h.changed_by_name || 'System'}: ${h.details || ''}</li>`
+      `<li><strong>${new Date(h.created_at).toLocaleString()}</strong> - ${h.action} by ${h.user_name || 'System'}: ${h.details || ''}</li>`
     ).join('');
     
     const historyHtml = `
@@ -1065,13 +1062,13 @@ window.deleteDocument = async function(documentId, title) {
   }
 };
 
-// FIXED: Using PUT to update is_archived flag instead of a separate endpoint
+// FIXED: Uses POST with ?action=archive as required by your backend
 window.archiveDocument = async function(documentId) {
   if (!confirm('Archive this document?')) return;
   try {
-    const result = await api.put('/data/documents', { 
-        document_id: documentId, 
-        is_archived: 1 
+    // Backend expects POST to /data/documents?action=archive
+    const result = await api.post('/data/documents?action=archive', { 
+        document_id: documentId 
     });
     alert(result.message || 'Document archived');
     router.handleRoute();
@@ -1080,13 +1077,13 @@ window.archiveDocument = async function(documentId) {
   }
 };
 
-// FIXED: Using PUT to update is_archived flag instead of a separate endpoint
+// FIXED: Uses POST with ?action=restore as required by your backend
 window.restoreDocument = async function(documentId) {
   if (!confirm('Restore this document from archives?')) return;
   try {
-    const result = await api.put('/data/documents', { 
-        document_id: documentId, 
-        is_archived: 0 
+    // Backend expects POST to /data/documents?action=restore
+    const result = await api.post('/data/documents?action=restore', { 
+        document_id: documentId
     });
     alert(result.message || 'Document restored');
     router.handleRoute();
@@ -1154,7 +1151,7 @@ window.openDocumentFormModal = function() {
 
     const formData = new FormData(e.target);
     try {
-      const result = await api.uploadFile('/data/upload', formData);
+      const result = await api.uploadFile('/data/documents', formData);
       alert(result.message || 'Upload successful!');
       close();
       router.handleRoute();
