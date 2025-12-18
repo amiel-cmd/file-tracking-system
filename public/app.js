@@ -1,7 +1,7 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations
 // Search, Pagination, Sorting
-// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS + ROUTE MODAL
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS + ROUTE MODAL + EXCEL EXPORT
 
 const API_BASE = '/api';
 
@@ -110,7 +110,7 @@ const api = {
   }
 };
 
-// --- NEW: Route Document Modal ---
+// --- Route Document Modal ---
 const routeModal = {
   open(documentId, documentTitle) {
     const modalHtml = `
@@ -122,7 +122,6 @@ const routeModal = {
           <form id="routeDocumentForm">
             <div class="form-group" style="margin-bottom: 1rem;">
               <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Destination / Recipient <span style="color:red">*</span></label>
-              <!-- UPDATED: ID changed to routeDestination to match internal logic, but we send 'current_destination' to backend -->
               <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
             
@@ -160,7 +159,6 @@ const routeModal = {
       const destination = document.getElementById('routeDestination').value;
       const remarks = document.getElementById('routeRemarks').value;
 
-      // Loading state
       submitBtn.disabled = true;
       submitBtn.classList.add('loading');
       submitBtn.textContent = 'Routing...';
@@ -170,14 +168,14 @@ const routeModal = {
           method: 'PATCH',
           body: JSON.stringify({
             document_id: documentId,
-            current_destination: destination, // <--- UPDATED: Sending current_destination
+            destination_text: destination, 
             remarks: remarks
           })
         });
 
         alert(result.message || 'Document routed successfully!');
         close();
-        router.handleRoute(); // Refresh list
+        router.handleRoute(); 
       } catch (error) {
         alert('Error routing document: ' + error.message);
         submitBtn.disabled = false;
@@ -366,7 +364,14 @@ function formatFileSize(bytes) {
 
 // Router
 const router = {
-  
+  currentRoute: '',
+  allDocuments: [],
+  filteredDocuments: [],
+  currentPage: 1,
+  itemsPerPage: 10,
+  sortColumn: 'uploaded_at',
+  sortDirection: 'desc',
+
   showMessage(message, type = 'info') {
     const msgEl = document.getElementById('message');
     if (msgEl) {
@@ -432,6 +437,11 @@ const router = {
      }
 
      list.innerHTML = `
+      <div style="margin-bottom: 1rem;">
+        <button onclick="downloadTableToExcel('documentsTable', 'documents_export.xlsx')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          📥 Download to Excel
+        </button>
+      </div>
       <div style="overflow-x: auto;">
       <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
@@ -439,7 +449,7 @@ const router = {
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">ID</th>
             <th style="padding: 12px; text-align: left; width: 30%; color: #1f2937; font-weight: 600;">Title</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Type</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th> <!-- LOCATION HEADER -->
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Status</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Priority</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Date</th>
@@ -455,7 +465,6 @@ const router = {
                 <div style="font-size: 0.85em; color: #718096;">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
               </td>
               <td style="padding: 12px;">${doc.document_type}</td>
-              <!-- UPDATED: Explicitly use current_destination -->
               <td style="padding: 12px;">${doc.current_destination || 'Origin'}</td>
               <td style="padding: 12px;">
                 <span style="padding: 4px 8px; border-radius: 99px; font-size: 0.85em; background: ${doc.status === 'completed' ? '#def7ec' : doc.status === 'urgent' ? '#fde8e8' : '#e1effe'}; color: ${doc.status === 'completed' ? '#03543f' : doc.status === 'urgent' ? '#9b1c1c' : '#1e429f'};">
@@ -492,24 +501,17 @@ const router = {
   renderArchivedDocuments() {
      this.renderDocuments(); 
   },
-  currentRoute: '',
-  allDocuments: [],
-  filteredDocuments: [],
-  currentPage: 1,
-  itemsPerPage: 10,
-  sortColumn: 'uploaded_at',
-  sortDirection: 'desc',
 
   init() {
     this.handleRoute();
     window.addEventListener('popstate', () => this.handleRoute());
   },
-
+  
   navigate(path) {
     window.history.pushState({}, '', path);
     this.handleRoute();
   },
-
+  
   handleRoute() {
     const path = window.location.pathname;
     this.currentRoute = path;
@@ -567,118 +569,58 @@ const router = {
     }
   },
 
-  // ... (Login/Register/Admin views remain the same, truncated for brevity)
-  // IMPORTANT: Ensure showDashboard() calls renderDocuments() which uses the updated HTML above.
-  
   showLogin() {
-    // ... same as before
     document.getElementById('app').innerHTML = `
       <div class="container">
         <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header">
-            <h2 style="margin: 0; text-align: center; color: #1f2937;">Login</h2>
-          </div>
+          <div class="card-header"><h2 style="margin: 0; text-align: center; color: #1f2937;">Login</h2></div>
           <div class="card-body">
             <div id="message"></div>
             <form id="loginForm">
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Username or Email</label>
-                <input type="text" name="username" class="form-control" required autofocus style="color: #333;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Password</label>
-                <input type="password" name="password" class="form-control" required style="color: #333;">
-              </div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Username or Email</label><input type="text" name="username" class="form-control" required autofocus style="color: #333;"></div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Password</label><input type="password" name="password" class="form-control" required style="color: #333;"></div>
               <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register')">Register here</a>
-            </p>
+            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register')">Register here</a></p>
           </div>
-        </div>
-      </div>
-    `;
-
+        </div></div>`;
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
-      btn.classList.add('loading');
-      btn.textContent = 'Logging in...';
-      
+      btn.classList.add('loading'); btn.textContent = 'Logging in...';
       const formData = new FormData(e.target);
-      const data = Object.fromEntries(formData);
-
       try {
-        const result = await api.post('/auth', { action: 'login', ...data });
+        const result = await api.post('/auth', { action: 'login', ...Object.fromEntries(formData) });
         auth.setToken(result.token);
         this.navigate('/dashboard');
-      } catch (error) {
-        this.showMessage(error.message, 'error');
-        btn.classList.remove('loading');
-        btn.textContent = 'Login';
-      }
+      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); btn.textContent = 'Login'; }
     });
   },
 
   showRegister() {
-      // ... same as before
-      document.getElementById('app').innerHTML = `
-      <div class="container">
-        <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header">
-            <h2 style="margin: 0; text-align: center; color: #1f2937;">Register</h2>
-          </div>
-          <div class="card-body">
-            <div id="message"></div>
+    document.getElementById('app').innerHTML = `
+      <div class="container"><div class="card" style="max-width: 450px; margin: 80px auto;">
+          <div class="card-header"><h2 style="margin: 0; text-align: center; color: #1f2937;">Register</h2></div>
+          <div class="card-body"><div id="message"></div>
             <form id="registerForm">
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Full Name</label>
-                <input type="text" name="fullName" class="form-control" required style="color: #333;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Username</label>
-                <input type="text" name="username" class="form-control" required style="color: #333;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Email</label>
-                <input type="email" name="email" class="form-control" required style="color: #333;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Password</label>
-                <input type="password" name="password" class="form-control" required style="color: #333;">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="color: #333;">Confirm Password</label>
-                <input type="password" name="confirmPassword" class="form-control" required style="color: #333;">
-              </div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Full Name</label><input type="text" name="fullName" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Username</label><input type="text" name="username" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Email</label><input type="email" name="email" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Password</label><input type="password" name="password" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label" style="color: #333;">Confirm Password</label><input type="password" name="confirmPassword" class="form-control" required style="color: #333;"></div>
               <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">
-              Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login')">Login here</a>
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
-
+            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login')">Login here</a></p>
+          </div></div></div>`;
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('registerBtn');
-      btn.classList.add('loading');
-      btn.textContent = 'Registering...';
-      
-      const formData = new FormData(e.target);
-      const data = Object.fromEntries(formData);
-
+      btn.classList.add('loading'); btn.textContent = 'Registering...';
       try {
-        const result = await api.post('/auth', { action: 'register', ...data });
+        const result = await api.post('/auth', { action: 'register', ...Object.fromEntries(new FormData(e.target)) });
         this.showMessage(result.message, 'success');
         setTimeout(() => this.navigate('/login'), 2000);
-      } catch (error) {
-        this.showMessage(error.message, 'error');
-        btn.classList.remove('loading');
-        btn.textContent = 'Register';
-      }
+      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); btn.textContent = 'Register'; }
     });
   },
 
@@ -692,288 +634,107 @@ const router = {
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
-            <div class="sidebar-header">
-              <h1>DocTrack</h1>
-            </div>
+            <div class="sidebar-header"><h1>DocTrack</h1></div>
             <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard')">
-                <span class="sidebar-icon">📄</span>
-                <span>My Documents</span>
-              </a>
-              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')">
-                <span class="sidebar-icon">🗄️</span>
-                <span>Archives</span>
-              </a>
-              ${user.role === 'admin' ? `
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')">
-                <span class="sidebar-icon">⚙️</span>
-                <span>Admin Panel</span>
-              </a>
-              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')">
-                <span class="sidebar-icon">📂</span>
-                <span>All Documents</span>
-              </a>
-              ` : ''}
+              <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
+              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
+              ${user.role === 'admin' ? `<div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div><a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')"><span class="sidebar-icon">⚙️</span><span>Admin Panel</span></a><a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')"><span class="sidebar-icon">📂</span><span>All Documents</span></a>` : ''}
             </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div>
-                </div>
-              </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
-            </div>
+            <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
           </aside>
-          
           <main class="main-content">
-            <div class="content-header">
-              <h2 style="color: #1f2937;">My Documents</h2>
-              <button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>
-            </div>
-
+            <div class="content-header"><h2 style="color: #1f2937;">My Documents</h2><button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button></div>
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
-              <select id="statusFilter" class="form-control filter-inline" style="color: #333;">
-                <option value="">Status</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="routed">Routed</option>
-                <option value="completed">Completed</option>
-              </select>
-              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
+              <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
+              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+              <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
               <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
             </div>
-
-            <div id="message"></div>
-            <div class="documents-container">
-              <div id="documentsList"></div>
-            </div>
-            <div id="pagination"></div>
+            <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
           </main>
-        </div>
-      `;
-
+        </div>`;
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
       this.renderDocuments();
-
-    } catch (error) {
-      if (error.message.includes('Authentication')) {
-        auth.removeToken();
-        this.navigate('/login');
-      } else {
-        this.showMessage(error.message, 'error');
-      }
-    }
+    } catch (error) { if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); } else { this.showMessage(error.message, 'error'); } }
   },
 
   async showAdminAllDocuments() {
-    const user = auth.getUser();
-    try {
-      const data = await api.get('/data/documents?all=true');
-      this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
-      this.filteredDocuments = [...this.allDocuments];
-      
-      document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
-              <h1>DocTrack</h1>
-            </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')">
-                <span class="sidebar-icon">📄</span>
-                <span>My Documents</span>
-              </a>
-              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')">
-                <span class="sidebar-icon">🗄️</span>
-                <span>Archives</span>
-              </a>
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')">
-                <span class="sidebar-icon">⚙️</span>
-                <span>Admin Panel</span>
-              </a>
-              <a href="/admin/documents" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin/documents')">
-                <span class="sidebar-icon">📂</span>
-                <span>All Documents</span>
-              </a>
-            </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div>
-                </div>
+      const user = auth.getUser();
+      try {
+        const data = await api.get('/data/documents?all=true');
+        this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
+        this.filteredDocuments = [...this.allDocuments];
+        document.getElementById('app').innerHTML = `
+          <div class="app-layout">
+            <aside class="sidebar">
+              <div class="sidebar-header"><h1>DocTrack</h1></div>
+              <nav class="sidebar-nav">
+                <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
+                <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
+                <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div><a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')"><span class="sidebar-icon">⚙️</span><span>Admin Panel</span></a><a href="/admin/documents" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin/documents')"><span class="sidebar-icon">📂</span><span>All Documents</span></a>
+              </nav>
+              <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
+            </aside>
+            <main class="main-content">
+              <div class="content-header"><h2 style="color: #1f2937;">System Documents</h2></div>
+              <div class="search-filters-inline">
+                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
+                <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
+                <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+                <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
+                <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
-            </div>
-          </aside>
-          
-          <main class="main-content">
-            <div class="content-header">
-              <div>
-                <h2 style="color: #1f2937;">System Documents</h2>
-                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
-              </div>
-            </div>
-
-            <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="Search all docs..." class="form-control search-inline" style="color: #333;">
-              <select id="statusFilter" class="form-control filter-inline" style="color: #333;">
-                <option value="">Status</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="routed">Routed</option>
-                <option value="completed">Completed</option>
-              </select>
-              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
-            </div>
-
-            <div id="message"></div>
-            <div class="documents-container">
-              <div id="documentsList"></div>
-            </div>
-            <div id="pagination"></div>
-          </main>
-        </div>
-      `;
-
-      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
-      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
-      this.renderDocuments();
-
-    } catch (error) {
-      if (error.message.includes('Authentication')) {
-        auth.removeToken();
-        this.navigate('/login');
-      } else {
-        this.showMessage(error.message, 'error');
-      }
-    }
+              <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
+            </main>
+          </div>`;
+        document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+        document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
+        this.renderDocuments();
+      } catch (error) { if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); } else { this.showMessage(error.message, 'error'); } }
   },
 
   async showArchives() {
-    const user = auth.getUser();
-    try {
-      const data = await api.get('/data/dashboard');
-      this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
-      this.filteredDocuments = [...this.allDocuments];
-      
-      document.getElementById('app').innerHTML = `
-        <div class="app-layout">
-          <aside class="sidebar">
-            <div class="sidebar-header">
-              <h1>DocTrack</h1>
-            </div>
-            <nav class="sidebar-nav">
-              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')">
-                <span class="sidebar-icon">📄</span>
-                <span>My Documents</span>
-              </a>
-              <a href="/archives" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/archives')">
-                <span class="sidebar-icon">🗄️</span>
-                <span>Archives</span>
-              </a>
-              ${user.role === 'admin' ? `
-              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-              <a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')">
-                <span class="sidebar-icon">⚙️</span>
-                <span>Admin Panel</span>
-              </a>
-              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')">
-                <span class="sidebar-icon">📂</span>
-                <span>All Documents</span>
-              </a>
-              ` : ''}
-            </nav>
-            <div class="sidebar-footer">
-              <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <div class="user-details">
-                  <div class="user-name">${user.fullName || user.username}</div>
-                  <div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div>
-                </div>
+      const user = auth.getUser();
+      try {
+        const data = await api.get('/data/dashboard');
+        this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
+        this.filteredDocuments = [...this.allDocuments];
+        document.getElementById('app').innerHTML = `
+          <div class="app-layout">
+            <aside class="sidebar">
+              <div class="sidebar-header"><h1>DocTrack</h1></div>
+              <nav class="sidebar-nav">
+                <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
+                <a href="/archives" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
+                ${user.role === 'admin' ? `<div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div><a href="/admin" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin')"><span class="sidebar-icon">⚙️</span><span>Admin Panel</span></a><a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')"><span class="sidebar-icon">📂</span><span>All Documents</span></a>` : ''}
+              </nav>
+              <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
+            </aside>
+            <main class="main-content">
+              <div class="content-header"><h2 style="color: #1f2937;">Archives</h2></div>
+              <div class="search-filters-inline">
+                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
+                <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+                <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
+                <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
               </div>
-              <button onclick="logout()" class="btn-logout">Logout</button>
-            </div>
-          </aside>
-          
-          <main class="main-content">
-            <div class="content-header">
-              <div>
-                <h2 style="color: #1f2937;">Archived Documents</h2>
-                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
-              </div>
-            </div>
-
-            <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="Search archives..." class="form-control search-inline" style="color: #333;">
-              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;">
-                <option value="">Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" placeholder="From Date" style="max-width: 150px; color: #333;">
-              <input type="date" id="dateToFilter" class="form-control filter-inline" placeholder="To Date" style="max-width: 150px; color: #333;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
-            </div>
-
-            <div id="message"></div>
-            <div class="documents-container">
-              <div id="documentsList"></div>
-            </div>
-            <div id="pagination"></div>
-          </main>
-        </div>
-      `;
-
-      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
-      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
-      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-
-      this.renderArchivedDocuments();
-
-    } catch (error) {
-      if (error.message.includes('Authentication')) {
-        auth.removeToken();
-        this.navigate('/login');
-      } else {
-        this.showMessage(error.message, 'error');
-      }
-    }
+              <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
+            </main>
+          </div>`;
+        document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+        document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
+        this.renderArchivedDocuments();
+      } catch (error) { if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); } else { this.showMessage(error.message, 'error'); } }
   },
 
   async showAdminPanel() {
@@ -1055,7 +816,7 @@ const router = {
               </h3>
               <div style="overflow-x: auto;">
                 <table class="table" style="width: 100%; border-collapse: collapse;">
-                  <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
+                  <thead style="background: #f8f9fa; color: #1f2937;">
                     <tr>
                       <th style="padding: 12px; text-align: left;">Full Name</th>
                       <th style="padding: 12px; text-align: left;">Username</th>
@@ -1091,7 +852,7 @@ const router = {
               <h3 style="margin: 0 0 1rem 0; color: #1f2937;">All Users</h3>
               <div style="overflow-x: auto;">
                 <table class="table" style="width: 100%; border-collapse: collapse;">
-                  <thead style="background: #f8f9fa; color: #1f2937;"> <!-- FIXED: Added color -->
+                  <thead style="background: #f8f9fa; color: #1f2937;">
                     <tr>
                       <th style="padding: 12px; text-align: left;">Full Name</th>
                       <th style="padding: 12px; text-align: left;">Username</th>
@@ -1128,10 +889,7 @@ const router = {
                                 `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white;">Deactivate</button>` : 
                                 `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Reactivate</button>`
                               }
-                              ${u.role !== 'admin' ? 
-                                `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>` :
-                                `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>`
-                              }
+                              ${u.role !== 'admin' ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>` : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>`}
                               <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">🗑️</button>
                             </div>
                           ` : ''}
@@ -1145,135 +903,94 @@ const router = {
           </main>
         </div>
       `;
-
-    } catch (error) {
-      if (error.message && error.message.includes('Authentication')) {
-        auth.removeToken();
-        this.navigate('/login');
-      } else {
-        alert('Error loading admin panel: ' + error.message || 'Unknown error');
-        this.navigate('/dashboard');
-      }
+    } catch (e) {
+      alert(e.message);
+      this.navigate('/dashboard');
     }
   }
 };
 
-// FIX: Title wrapping in renderDocuments & renderArchivedDocuments
-// Replace ONLY the td for Title in both renders.
+// --- Helper Functions ---
 
-// Patch router.renderDocuments to wrap Title (no ellipsis)
-const origRenderDocuments = router.renderDocuments.bind(router);
-router.renderDocuments = function() {
-  origRenderDocuments();
-  // After original render, patch Title cells (in the table)
-  // 2nd column
-  const table = document.querySelector('#documentsList table');
-  if (!table) return;
-
-  // Make Title column wrap (header width remains fixed)
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach(tr => {
-    const titleTd = tr.children[1];
-    if (!titleTd) return;
-    titleTd.style.whiteSpace = 'normal';
-    titleTd.style.overflowWrap = 'anywhere';
-    titleTd.style.wordBreak = 'break-word';
-    titleTd.style.textOverflow = 'clip';
-    titleTd.style.overflow = 'visible';
-  });
-};
-
-// Patch router.renderArchivedDocuments to wrap Title (no ellipsis)
-const origRenderArchivedDocuments = router.renderArchivedDocuments.bind(router);
-router.renderArchivedDocuments = function() {
-    origRenderArchivedDocuments();
-    const table = document.querySelector('#documentsList table');
-    if (!table) return;
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(tr => {
-      const titleTd = tr.children[1];
-      if (!titleTd) return;
-      titleTd.style.whiteSpace = 'normal';
-      titleTd.style.overflowWrap = 'anywhere';
-      titleTd.style.wordBreak = 'break-word';
-      titleTd.style.textOverflow = 'clip';
-      titleTd.style.overflow = 'visible';
-    });
-};
-
-// Helper functions from your file
 async function approveUser(userId, username) {
-    if (!confirm(`Approve user ${username}?`)) return;
-    try {
-        const result = await api.post('/users/approve', { user_id: userId });
-        alert(result.message || 'User approved!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function rejectUser(userId, username) {
-    if (!confirm(`Reject ${username}? Cannot be undone.`)) return;
-    try {
-        const result = await api.post('/users/reject', { user_id: userId });
-        alert(result.message || 'User rejected!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function deactivateUser(userId, username) {
-    if (!confirm(`Deactivate ${username}?`)) return;
-    try {
-        const result = await api.post('/users/deactivate', { user_id: userId });
-        alert(result.message || 'User deactivated!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function reactivateUser(userId, username) {
-    if (!confirm(`Reactivate ${username}?`)) return;
-    try {
-        const result = await api.post('/users/reactivate', { user_id: userId });
-        alert(result.message || 'User reactivated!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function makeAdmin(userId, username) {
-    if (!confirm(`Grant admin privileges to ${username}?`)) return;
-    try {
-        const result = await api.post('/users/update-role', { user_id: userId, role: 'admin' });
-        alert(result.message || 'User promoted to admin!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function removeAdmin(userId, username) {
-    if (!confirm(`Remove admin privileges from ${username}?`)) return;
-    try {
-        const result = await api.post('/users/update-role', { user_id: userId, role: 'user' });
-        alert(result.message || 'Admin privileges removed!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
-}
-async function deleteUser(userId, username) {
-    if (!confirm(`PERMANENTLY DELETE user ${username}? CANNOT be undone!`)) return;
-    try {
-        const result = await api.post('/users/delete', { user_id: userId });
-        alert(result.message || 'User deleted!');
-        router.showAdminPanel();
-    } catch (error) {
-        alert('Failed: ' + error.message);
-    }
+  if (!confirm(`Approve user ${username}?`)) return;
+  try {
+    const result = await api.post('/users/approve', { user_id: userId });
+    alert(result.message || 'User approved!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
 }
 
-async function viewDocument(documentId) {
+async function rejectUser(userId, username) {
+  if (!confirm(`Reject user ${username}? Cannot be undone.`)) return;
+  try {
+    const result = await api.post('/users/reject', { user_id: userId });
+    alert(result.message || 'User rejected!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function deactivateUser(userId, username) {
+  if (!confirm(`Deactivate user ${username}?`)) return;
+  try {
+    const result = await api.post('/users/deactivate', { user_id: userId });
+    alert(result.message || 'User deactivated!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function reactivateUser(userId, username) {
+  if (!confirm(`Reactivate user ${username}?`)) return;
+  try {
+    const result = await api.post('/users/reactivate', { user_id: userId });
+    alert(result.message || 'User reactivated!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function makeAdmin(userId, username) {
+  if (!confirm(`Grant admin privileges to ${username}?`)) return;
+  try {
+    const result = await api.post('/users/update-role', { user_id: userId, role: 'admin' });
+    alert(result.message || 'User promoted to admin!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function removeAdmin(userId, username) {
+  if (!confirm(`Remove admin privileges from ${username}?`)) return;
+  try {
+    const result = await api.post('/users/update-role', { user_id: userId, role: 'user' });
+    alert(result.message || 'Admin privileges removed!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`PERMANENTLY DELETE user ${username}? CANNOT be undone!`)) return;
+  try {
+    const result = await api.post('/users/delete', { user_id: userId });
+    alert(result.message || 'User deleted!');
+    router.showAdminPanel();
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  }
+}
+
+// Global functions for onClick handlers
+window.viewDocument = async function(documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
     if (data.success && data.document) {
@@ -1282,8 +999,9 @@ async function viewDocument(documentId) {
   } catch (error) {
     alert('Error loading document: ' + error.message);
   }
-}
-async function editDocument(documentId) {
+};
+
+window.editDocument = async function(documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
     if (data.success && data.document) {
@@ -1300,8 +1018,37 @@ async function editDocument(documentId) {
   } catch (error) {
     alert('Error loading document: ' + error.message);
   }
-}
-async function deleteDocument(documentId, title) {
+};
+
+window.routeDocument = function(documentId, documentTitle) {
+  routeModal.open(documentId, documentTitle);
+};
+
+window.viewDocumentHistory = async function(documentId, documentTitle) {
+  try {
+    const data = await api.get(`/data/history?document_id=${documentId}`);
+    // Simplified history view - just alert or a basic modal could be used. 
+    // For full code, let's inject a simple history modal.
+    const historyList = data.history.map(h => 
+      `<li><strong>${new Date(h.changed_at).toLocaleString()}</strong> - ${h.action} by ${h.changed_by_name || 'System'}: ${h.details || ''}</li>`
+    ).join('');
+    
+    const historyHtml = `
+      <div id="historyModal" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1100;">
+        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+          <h3>History: ${documentTitle}</h3>
+          <ul style="padding-left: 1.5rem; color: #333;">${historyList || '<li>No history found.</li>'}</ul>
+          <button onclick="document.getElementById('historyModal').remove()" class="btn btn--secondary" style="margin-top: 1rem;">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', historyHtml);
+  } catch (error) {
+    alert('Error loading history: ' + error.message);
+  }
+};
+
+window.deleteDocument = async function(documentId, title) {
   if (!confirm(`Are you sure you want to delete "${title}"? This will permanently delete the document and its file from storage. This action CANNOT be undone!`)) return;
   try {
     const result = await api.delete(`/data/documents?id=${documentId}`);
@@ -1310,114 +1057,136 @@ async function deleteDocument(documentId, title) {
   } catch (error) {
     alert('Error deleting document: ' + error.message);
   }
-}
-
-// Global functions
-window.viewDocument = viewDocument;
-window.editDocument = editDocument;
-window.routeDocument = (id, title) => routeModal.open(id, title);
-window.viewDocumentHistory = (id, title) => alert(`History for ${title} (Not implemented)`);
-window.deleteDocument = deleteDocument;
-window.restoreDocument = async (id) => {
-    if (!confirm('Restore this document?')) return;
-    try {
-        await api.request('/data/documents', { method: 'PATCH', body: JSON.stringify({ document_id: id, is_archived: 0 }) });
-        alert('Document restored!');
-        router.handleRoute();
-    } catch (e) { alert(e.message); }
 };
-window.archiveDocument = async (id) => {
-    if (!confirm('Archive this document?')) return;
-    try {
-        await api.request('/data/documents', { method: 'PATCH', body: JSON.stringify({ document_id: id, is_archived: 1 }) });
-        alert('Document archived!');
-        router.handleRoute();
-    } catch (e) { alert(e.message); }
-};
-window.approveUser = approveUser;
-window.rejectUser = rejectUser;
-window.deactivateUser = deactivateUser;
-window.reactivateUser = reactivateUser;
-window.makeAdmin = makeAdmin;
-window.removeAdmin = removeAdmin;
-window.deleteUser = deleteUser;
 
-window.logout = () => {
+window.archiveDocument = async function(documentId) {
+  if (!confirm('Archive this document?')) return;
+  try {
+    const result = await api.request('/data/documents/archive', { method: 'POST', body: JSON.stringify({ document_id: documentId }) });
+    alert(result.message || 'Document archived');
+    router.handleRoute();
+  } catch (error) {
+    alert('Error archiving document: ' + error.message);
+  }
+};
+
+window.restoreDocument = async function(documentId) {
+  if (!confirm('Restore this document from archives?')) return;
+  try {
+    const result = await api.request('/data/documents/restore', { method: 'POST', body: JSON.stringify({ document_id: documentId }) });
+    alert(result.message || 'Document restored');
+    router.handleRoute();
+  } catch (error) {
+    alert('Error restoring document: ' + error.message);
+  }
+};
+
+window.openDocumentFormModal = function() {
+  const modalHtml = `
+    <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+      <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
+        <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Upload Document</h2>
+        <form id="uploadDocumentForm">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
+            <input type="text" name="title" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Description</label>
+            <textarea name="description" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;"></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
+            <input type="text" name="documentType" class="form-control" required placeholder="e.g. Memo, Invoice, Report" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
+            <select name="priority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">File Attachment</label>
+            <input type="file" name="file" class="form-control" style="width: 100%; color: #333;">
+          </div>
+          <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button type="button" id="uploadCancelBtn" class="btn btn--secondary">Cancel</button>
+            <button type="submit" id="uploadSubmitBtn" class="btn btn--primary">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const overlay = document.getElementById('uploadModalOverlay');
+  const form = document.getElementById('uploadDocumentForm');
+  const cancelBtn = document.getElementById('uploadCancelBtn');
+  const submitBtn = document.getElementById('uploadSubmitBtn');
+
+  const close = () => overlay.remove();
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = 'Uploading...';
+
+    const formData = new FormData(e.target);
+    try {
+      const result = await api.uploadFile('/data/upload', formData);
+      alert(result.message || 'Upload successful!');
+      close();
+      router.handleRoute();
+    } catch (error) {
+      alert('Error uploading: ' + error.message);
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      submitBtn.textContent = 'Upload';
+    }
+  });
+};
+
+window.logout = function() {
   auth.removeToken();
   router.navigate('/login');
 };
 
-// Document Upload Modal
-const uploadModalHtml = `
-  <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-    <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-      <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Upload Document</h2>
-      <form id="uploadDocumentForm">
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
-          <input type="text" name="title" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Description</label>
-          <textarea name="description" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;"></textarea>
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
-          <input type="text" name="document_type" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
-          <select name="priority" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">File</label>
-          <input type="file" name="file" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-        </div>
-        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-          <button type="button" id="uploadCancelBtn" class="btn btn--secondary">Cancel</button>
-          <button type="submit" id="uploadSubmitBtn" class="btn btn--primary">Upload</button>
-        </div>
-      </form>
-    </div>
-  </div>
-`;
+// --- Export to Excel Function ---
+window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
+    const table = document.getElementById(tableId);
+    if (!table) {
+        alert('Table not found');
+        return;
+    }
 
-window.openDocumentFormModal = () => {
-    document.body.insertAdjacentHTML('beforeend', uploadModalHtml);
-    const overlay = document.getElementById('uploadModalOverlay');
-    const form = document.getElementById('uploadDocumentForm');
-    const cancelBtn = document.getElementById('uploadCancelBtn');
-    const submitBtn = document.getElementById('uploadSubmitBtn');
-
-    cancelBtn.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        submitBtn.classList.add('loading');
-        submitBtn.textContent = 'Uploading...';
-        
-        const formData = new FormData(e.target);
-        try {
-            const result = await api.uploadFile('/data/documents', formData);
-            alert(result.message || 'Document uploaded!');
-            overlay.remove();
-            router.handleRoute();
-        } catch (error) {
-            alert('Upload failed: ' + error.message);
-            submitBtn.classList.remove('loading');
-            submitBtn.textContent = 'Upload';
+    // Clone table to modify for export (remove Actions column)
+    const clone = table.cloneNode(true);
+    const rows = clone.querySelectorAll('tr');
+    rows.forEach(row => {
+        if (row.cells.length > 0) {
+            row.deleteCell(-1); // Remove last column (Actions)
         }
     });
+
+    // Use SheetJS to generate Excel
+    if (typeof XLSX === 'undefined') {
+        alert('SheetJS library not found. Please ensure xlsx.full.min.js is included in your HTML.');
+        return;
+    }
+
+    const wb = XLSX.utils.table_to_book(clone, { sheet: "Sheet1" });
+    XLSX.writeFile(wb, filename);
 };
 
-// Initialize
 router.init();
+
 // Make everything accessible globally
 window.router = router;
 window.api = api;
