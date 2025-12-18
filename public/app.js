@@ -422,21 +422,17 @@ const router = {
     else this.renderDocuments();
   },
 
- renderDocuments() {
-     const list = document.getElementById('documentsList');
-     if(!list) return;
-     
-     if (this.filteredDocuments.length === 0) {
-       list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #666;">No documents found.</div>';
-       return;
-     }
+  // FIXED: Table header is now dark and row lines are more visible
+  renderDocuments() {
+      const list = document.getElementById('documentsList');
+      if(!list) return;
+      
+      if (this.filteredDocuments.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #666;">No documents found.</div>';
+        return;
+      }
 
-     // DEBUGGING: Log document data to verify current_destination exists
-     if (this.filteredDocuments.length > 0) {
-         console.log('👉 DEBUG DOCUMENT DATA:', this.filteredDocuments[0]);
-     }
-
-     list.innerHTML = `
+      list.innerHTML = `
       <div style="margin-bottom: 1rem;">
         <button onclick="downloadTableToExcel('documentsTable', 'documents_export.xlsx')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
           📥 Download to Excel
@@ -445,20 +441,20 @@ const router = {
       <div style="overflow-x: auto;">
       <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;">
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">ID</th>
-            <th style="padding: 12px; text-align: left; width: 30%; color: #1f2937; font-weight: 600;">Title</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Type</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Status</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Priority</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Date</th>
-            <th style="padding: 12px; text-align: right; color: #1f2937; font-weight: 600;">Actions</th>
+          <tr style="background: #1f2937; border-bottom: 2px solid #495057;">
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">ID</th>
+            <th style="padding: 12px; text-align: left; width: 30%; color: #ffffff; font-weight: 600;">Title</th>
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Type</th>
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Current Location</th>
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Status</th>
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Priority</th>
+            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Date</th>
+            <th style="padding: 12px; text-align: right; color: #ffffff; font-weight: 600;">Actions</th>
           </tr>
         </thead>
         <tbody style="color: #333;">
           ${this.filteredDocuments.map(doc => `
-            <tr style="border-bottom: 1px solid #e9ecef;">
+            <tr style="border-bottom: 1px solid #ced4da;">
               <td style="padding: 12px;">${doc.document_number || doc.document_id}</td>
               <td style="padding: 12px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
                 <div style="font-weight: 500; color: #2d3748;">${doc.title}</div>
@@ -1234,7 +1230,7 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
-// Initialize App
+
 router.init();
 
 
