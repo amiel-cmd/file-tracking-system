@@ -1024,22 +1024,59 @@ window.routeDocument = function(documentId, documentTitle) {
   routeModal.open(documentId, documentTitle);
 };
 
-// FIXED: Now uses the correct query param `history=true` expected by your backend
+// FIXED: Now renders a proper responsive table instead of a list
 window.viewDocumentHistory = async function(documentId, documentTitle) {
   try {
-    // Calling /data/documents with history=true because that's what your backend checks for
     const data = await api.get(`/data/documents?id=${documentId}&history=true`);
-    
-    const historyList = (data.history || []).map(h => 
-      `<li><strong>${new Date(h.created_at).toLocaleString()}</strong> - ${h.action} by ${h.user_name || 'System'}: ${h.details || ''}</li>`
-    ).join('');
-    
+    const historyList = data.history || [];
+
     const historyHtml = `
       <div id="historyModal" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1100;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-          <h3 style="margin-top:0; color:#1f2937;">History: ${documentTitle}</h3>
-          <ul style="padding-left: 1.5rem; color: #333;">${historyList || '<li>No history found.</li>'}</ul>
-          <div style="text-align:right; margin-top:1rem;">
+        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;">
+          <h3 style="margin-top:0; color:#1f2937; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
+             History: ${documentTitle}
+          </h3>
+          
+          <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; min-width: 600px;">
+              <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%;">Date & Time</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%;">User</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 15%;">Action</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%;">Details</th>
+                </tr>
+              </thead>
+              <tbody style="color: #333;">
+                ${historyList.length > 0 ? historyList.map(h => `
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; font-size: 0.9em; white-space: nowrap;">
+                      ${new Date(h.created_at).toLocaleString()}
+                    </td>
+                    <td style="padding: 12px; font-weight: 500;">
+                      ${h.user_name || 'System'}
+                    </td>
+                    <td style="padding: 12px;">
+                      <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e0f2fe; color: #0369a1;">
+                        ${h.action}
+                      </span>
+                    </td>
+                    <td style="padding: 12px; font-size: 0.9em; color: #4b5563;">
+                      ${h.details || ''}
+                    </td>
+                  </tr>
+                `).join('') : `
+                  <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: #666;">
+                      No history found for this document.
+                    </td>
+                  </tr>
+                `}
+              </tbody>
+            </table>
+          </div>
+
+          <div style="text-align:right; margin-top:1.5rem; pt-4; border-top: 1px solid #eee;">
              <button onclick="document.getElementById('historyModal').remove()" class="btn btn--secondary">Close</button>
           </div>
         </div>
@@ -1195,6 +1232,8 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     const wb = XLSX.utils.table_to_book(clone, { sheet: "Sheet1" });
     XLSX.writeFile(wb, filename);
 };
+
+
 
 // Initialize App
 router.init();
