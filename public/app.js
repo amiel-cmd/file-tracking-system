@@ -1024,7 +1024,7 @@ window.routeDocument = function(documentId, documentTitle) {
   routeModal.open(documentId, documentTitle);
 };
 
-// FIXED: Now renders a proper responsive table instead of a list
+// FIXED: Table styling updated to ensure high visibility of column headers
 window.viewDocumentHistory = async function(documentId, documentTitle) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}&history=true`);
@@ -1040,11 +1040,12 @@ window.viewDocumentHistory = async function(documentId, documentTitle) {
           <div style="overflow-x: auto;">
             <table class="table" style="width: 100%; border-collapse: collapse; min-width: 600px;">
               <thead>
-                <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef; color: #1f2937;">
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%;">Date & Time</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%;">User</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 15%;">Action</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%;">Details</th>
+                <!-- CHANGED: Explicit dark background and white text for high contrast visibility -->
+                <tr style="background: #1f2937; border-bottom: 2px solid #e9ecef; color: #ffffff;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">Date & Time</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">User</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 15%; color: #ffffff;">Action</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%; color: #ffffff;">Details</th>
                 </tr>
               </thead>
               <tbody style="color: #333;">
@@ -1233,10 +1234,9 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
-
-
 // Initialize App
 router.init();
+
 
 
 // Make everything accessible globally
