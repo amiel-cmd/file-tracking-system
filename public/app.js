@@ -784,20 +784,21 @@ const router = {
                 <h2 style="color: #1f2937;">Admin Panel</h2>
               </div>
               
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <!-- FIXED: Changed to Flexbox to prevent stacking issue -->
+              <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
                 </div>
@@ -1232,6 +1233,7 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
+// Initialize App
 router.init();
 
 
