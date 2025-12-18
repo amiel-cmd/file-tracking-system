@@ -425,10 +425,6 @@ const router = {
        return;
      }
 
-     /* CHANGED: Removed the download button from here (moved to content-header in showDashboard/showAdminAllDocuments)
-      * ADDED: New Column "Current Location"
-      * CHANGED: Table Header Styles to ensure visibility
-      */
      list.innerHTML = `
       <div style="overflow-x: auto;">
       <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
@@ -437,7 +433,7 @@ const router = {
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">ID</th>
             <th style="padding: 12px; text-align: left; width: 30%; color: #1f2937; font-weight: 600;">Title</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Type</th>
-            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th> <!-- NEW COLUMN -->
+            <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Current Location</th> <!-- LOCATION HEADER -->
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Status</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Priority</th>
             <th style="padding: 12px; text-align: left; color: #1f2937; font-weight: 600;">Date</th>
@@ -453,7 +449,8 @@ const router = {
                 <div style="font-size: 0.85em; color: #718096;">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
               </td>
               <td style="padding: 12px;">${doc.document_type}</td>
-              <td style="padding: 12px;">${doc.destination_text || 'Origin'}</td> <!-- NEW COLUMN DATA -->
+              <!-- CURRENT LOCATION LOGIC: If 'destination_text' exists, show it. Else show 'Origin' -->
+              <td style="padding: 12px;">${doc.destination_text || 'Origin'}</td>
               <td style="padding: 12px;">
                 <span style="padding: 4px 8px; border-radius: 99px; font-size: 0.85em; background: ${doc.status === 'completed' ? '#def7ec' : doc.status === 'urgent' ? '#fde8e8' : '#e1effe'}; color: ${doc.status === 'completed' ? '#03543f' : doc.status === 'urgent' ? '#9b1c1c' : '#1e429f'};">
                   ${doc.status}
@@ -676,7 +673,6 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
-      // CHANGED: Added download button to content-header and button wrapper
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -718,7 +714,7 @@ const router = {
           <main class="main-content">
             <div class="content-header">
               <h2 style="color: #1f2937;">My Documents</h2>
-              <!-- CHANGED: Buttons container for Upload and Download -->
+              <!-- DOWNLOAD BUTTON MOVED HERE -->
               <div style="display: flex; gap: 0.5rem;">
                 <button onclick="downloadTableToExcel('MyDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                   📥 Download Excel
@@ -783,7 +779,6 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
 
-      // CHANGED: Added download button to content-header in Admin view
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -827,7 +822,6 @@ const router = {
                 <h2 style="color: #1f2937;">📂 System Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">Viewing all documents across the system</p>
               </div>
-              <!-- CHANGED: Added download button -->
               <div style="display: flex; gap: 0.5rem;">
                 <button onclick="downloadTableToExcel('AllSystemDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                   📥 Download Excel
@@ -932,7 +926,6 @@ const router = {
                 <h2 style="color: #1f2937;">🗄️ Archived Documents</h2>
                 <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.875rem;">View and restore archived documents</p>
               </div>
-               <!-- CHANGED: Added download button for archives too -->
               <div style="display: flex; gap: 0.5rem;">
                 <button onclick="downloadTableToExcel('ArchivedDocuments')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                   📥 Download Excel
