@@ -427,57 +427,57 @@ const router = {
       if(!list) return;
       
       if (this.filteredDocuments.length === 0) {
-        list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #666;">No documents found.</div>';
+        list.innerHTML = '<div class="empty-state"><p>No documents found.</p></div>';
         return;
       }
 
       list.innerHTML = `
       <div style="overflow-x: auto;">
-      <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
+      <table id="documentsTable" class="table">
         <thead>
-          <tr style="background: #1f2937; border-bottom: 2px solid #495057;">
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">ID</th>
-            <th style="padding: 12px; text-align: left; width: 30%; color: #ffffff; font-weight: 600;">Title</th>
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Type</th>
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Current Location</th>
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Status</th>
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Priority</th>
-            <th style="padding: 12px; text-align: left; color: #ffffff; font-weight: 600;">Date</th>
-            <th style="padding: 12px; text-align: right; color: #ffffff; font-weight: 600;">Actions</th>
+          <tr>
+            <th>ID</th>
+            <th style="width: 30%;">Title</th>
+            <th>Type</th>
+            <th>Current Location</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Date</th>
+            <th style="text-align: right;">Actions</th>
           </tr>
         </thead>
-        <tbody style="color: #333;">
+        <tbody>
           ${this.filteredDocuments.map(doc => `
-            <tr style="border-bottom: 1px solid #ced4da;">
-              <td style="padding: 12px;">${doc.document_number || doc.document_id}</td>
-              <td style="padding: 12px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
-                <div style="font-weight: 500; color: #2d3748;">${doc.title}</div>
-                <div style="font-size: 0.85em; color: #718096;">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
+            <tr>
+              <td>${doc.document_number || doc.document_id}</td>
+              <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                <div style="font-weight: 500; color: var(--color-text);">${doc.title}</div>
+                <div style="font-size: 0.85em; color: var(--color-text-secondary);">${doc.description ? doc.description.substring(0, 50) + (doc.description.length>50?'...':'') : ''}</div>
               </td>
-              <td style="padding: 12px;">${doc.document_type}</td>
-              <td style="padding: 12px;">${doc.current_destination || 'Origin'}</td>
-              <td style="padding: 12px;">
-                <span style="padding: 4px 8px; border-radius: 99px; font-size: 0.85em; background: ${doc.status === 'completed' ? '#def7ec' : doc.status === 'urgent' ? '#fde8e8' : '#e1effe'}; color: ${doc.status === 'completed' ? '#03543f' : doc.status === 'urgent' ? '#9b1c1c' : '#1e429f'};">
+              <td>${doc.document_type}</td>
+              <td>${doc.current_destination || 'Origin'}</td>
+              <td>
+                <span class="badge" style="background: ${doc.status === 'completed' ? 'var(--color-success)' : doc.status === 'urgent' ? 'var(--color-error)' : '#dbeafe'}; color: ${doc.status === 'completed' ? 'white' : doc.status === 'urgent' ? 'white' : '#1e40af'};">
                   ${doc.status}
                 </span>
               </td>
-              <td style="padding: 12px;">
-                 <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; color: ${doc.priority === 'urgent' ? '#e53e3e' : doc.priority === 'high' ? '#dd6b20' : '#38a169'};">
+              <td>
+                 <span class="badge" style="background: ${doc.priority === 'urgent' ? 'var(--color-error)' : doc.priority === 'high' ? 'var(--color-warning)' : 'var(--color-success)'}; color: white;">
                   ${doc.priority.toUpperCase()}
                  </span>
               </td>
-              <td style="padding: 12px;">${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
-              <td style="padding: 12px; text-align: right;">
-                <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                  <button onclick="viewDocument(${doc.document_id})" class="btn btn--sm" title="View">👁️</button>
-                  <button onclick="editDocument(${doc.document_id})" class="btn btn--sm" title="Edit">✏️</button>
-                  <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="Route">➡️</button>
-                  <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm" title="History">📜</button>
+              <td>${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
+              <td style="text-align: right;">
+                <div>
+                  <button onclick="viewDocument(${doc.document_id})" class="btn" title="View">👁️</button>
+                  <button onclick="editDocument(${doc.document_id})" class="btn" title="Edit">✏️</button>
+                  <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Route">➡️</button>
+                  <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="History">📜</button>
                   ${doc.is_archived ? 
-                    `<button onclick="restoreDocument(${doc.document_id})" class="btn btn--sm btn--warning" title="Restore">♻️</button>` : 
-                    `<button onclick="archiveDocument(${doc.document_id})" class="btn btn--sm btn--warning" title="Archive">🗄️</button>`
+                    `<button onclick="restoreDocument(${doc.document_id})" class="btn" title="Restore">♻️</button>` : 
+                    `<button onclick="archiveDocument(${doc.document_id})" class="btn" title="Archive">🗄️</button>`
                   }
-                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn btn--sm btn--danger" title="Delete">🗑️</button>
+                  <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Delete">🗑️</button>
                 </div>
               </td>
             </tr>
@@ -563,12 +563,12 @@ const router = {
     document.getElementById('app').innerHTML = `
       <div class="container">
         <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header"><h2 style="margin: 0; text-align: center; color: #1f2937;">Login</h2></div>
-          <div class="card-body">
+          <div class="card__header"><h2>Login</h2></div>
+          <div class="card__body">
             <div id="message"></div>
             <form id="loginForm">
-              <div class="form-group"><label class="form-label" style="color: #333;">Username or Email</label><input type="text" name="username" class="form-control" required autofocus style="color: #333;"></div>
-              <div class="form-group"><label class="form-label" style="color: #333;">Password</label><input type="password" name="password" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label">Username or Email</label><input type="text" name="username" class="form-control" required autofocus></div>
+              <div class="form-group"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
               <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register')">Register here</a></p>
@@ -577,27 +577,27 @@ const router = {
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
-      btn.classList.add('loading'); btn.textContent = 'Logging in...';
+      btn.classList.add('loading');
       const formData = new FormData(e.target);
       try {
         const result = await api.post('/auth', { action: 'login', ...Object.fromEntries(formData) });
         auth.setToken(result.token);
         this.navigate('/dashboard');
-      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); btn.textContent = 'Login'; }
+      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); }
     });
   },
 
   showRegister() {
     document.getElementById('app').innerHTML = `
       <div class="container"><div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header"><h2 style="margin: 0; text-align: center; color: #1f2937;">Register</h2></div>
-          <div class="card-body"><div id="message"></div>
+          <div class="card__header"><h2>Register</h2></div>
+          <div class="card__body"><div id="message"></div>
             <form id="registerForm">
-              <div class="form-group"><label class="form-label" style="color: #333;">Full Name</label><input type="text" name="fullName" class="form-control" required style="color: #333;"></div>
-              <div class="form-group"><label class="form-label" style="color: #333;">Username</label><input type="text" name="username" class="form-control" required style="color: #333;"></div>
-              <div class="form-group"><label class="form-label" style="color: #333;">Email</label><input type="email" name="email" class="form-control" required style="color: #333;"></div>
-              <div class="form-group"><label class="form-label" style="color: #333;">Password</label><input type="password" name="password" class="form-control" required style="color: #333;"></div>
-              <div class="form-group"><label class="form-label" style="color: #333;">Confirm Password</label><input type="password" name="confirmPassword" class="form-control" required style="color: #333;"></div>
+              <div class="form-group"><label class="form-label">Full Name</label><input type="text" name="fullName" class="form-control" required></div>
+              <div class="form-group"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required></div>
+              <div class="form-group"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+              <div class="form-group"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+              <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" name="confirmPassword" class="form-control" required></div>
               <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
             </form>
             <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login')">Login here</a></p>
@@ -605,12 +605,12 @@ const router = {
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('registerBtn');
-      btn.classList.add('loading'); btn.textContent = 'Registering...';
+      btn.classList.add('loading');
       try {
         const result = await api.post('/auth', { action: 'register', ...Object.fromEntries(new FormData(e.target)) });
         this.showMessage(result.message, 'success');
         setTimeout(() => this.navigate('/login'), 2000);
-      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); btn.textContent = 'Register'; }
+      } catch (error) { this.showMessage(error.message, 'error'); btn.classList.remove('loading'); }
     });
   },
 
@@ -621,7 +621,6 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
       
-      // FIXED: Excel button labeled "Download Data" and placed right beside Upload Document
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -635,18 +634,18 @@ const router = {
           </aside>
           <main class="main-content">
             <div class="content-header">
-              <h2 style="color: #1f2937;">My Documents</h2>
+              <h2>My Documents</h2>
               <div style="display: flex; gap: 0.5rem;">
                 <button onclick="downloadTableToExcel('documentsTable', 'my_documents.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
                 <button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>
               </div>
             </div>
             <div class="search-filters-inline">
-              <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
-              <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-              <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
-              <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
-              <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+              <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
+              <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
+              <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+              <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
+              <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
             </div>
             <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
           </main>
@@ -667,7 +666,6 @@ const router = {
         this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
         this.filteredDocuments = [...this.allDocuments];
         
-        // FIXED: Excel button also labeled "Download Data"
         document.getElementById('app').innerHTML = `
           <div class="app-layout">
             <aside class="sidebar">
@@ -681,15 +679,15 @@ const router = {
             </aside>
             <main class="main-content">
               <div class="content-header">
-                <h2 style="color: #1f2937;">System Documents</h2>
+                <h2>System Documents</h2>
                 <button onclick="downloadTableToExcel('documentsTable', 'all_documents.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
               </div>
               <div class="search-filters-inline">
-                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
-                <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-                <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
-                <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
-                <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
+                <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
+                <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+                <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
+                <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
               </div>
               <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
             </main>
@@ -710,7 +708,6 @@ const router = {
         this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
         this.filteredDocuments = [...this.allDocuments];
         
-        // FIXED: Excel button labeled "Download Data"
         document.getElementById('app').innerHTML = `
           <div class="app-layout">
             <aside class="sidebar">
@@ -724,14 +721,14 @@ const router = {
             </aside>
             <main class="main-content">
               <div class="content-header">
-                <h2 style="color: #1f2937;">Archives</h2>
+                <h2>Archives</h2>
                 <button onclick="downloadTableToExcel('documentsTable', 'archives.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
               </div>
               <div class="search-filters-inline">
-                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
-                <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
-                <input type="date" id="dateFromFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;"><input type="date" id="dateToFilter" class="form-control filter-inline" style="max-width: 150px; color: #333;">
-                <button onclick="router.resetFilters()" class="btn btn--secondary btn-clear">Clear</button>
+                <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
+                <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+                <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
+                <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
               </div>
               <div id="message"></div><div class="documents-container"><div id="documentsList"></div></div><div id="pagination"></div>
             </main>
@@ -781,24 +778,24 @@ const router = {
             
             <main class="main-content">
               <div class="content-header">
-                <h2 style="color: #1f2937;">Admin Panel</h2>
+                <h2>Admin Panel</h2>
               </div>
               
-              <!-- FIXED: Changed to Flexbox to prevent stacking issue -->
-              <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
-                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <!-- FIXED: Updated to use Flexbox and CSS Variables for styling -->
+              <div style="display: flex; flex-wrap: wrap; gap: var(--space-24); margin-bottom: var(--space-32);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
                 </div>
-                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
                 </div>
-                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
                 </div>
-                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="flex: 1 1 240px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
                   <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
                   <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
                 </div>
@@ -807,34 +804,34 @@ const router = {
               <div id="adminMessage"></div>
 
               ${pendingData.pending_users.length > 0 ? `
-              <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
-                <h3 style="margin: 0 0 1rem 0; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+              <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); margin-bottom: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--color-warning);">
+                <h3 style="margin: 0 0 1rem 0; color: var(--color-warning); display: flex; align-items: center; gap: 0.5rem;">
                   <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
                 </h3>
                 <div style="overflow-x: auto;">
-                  <table class="table" style="width: 100%; border-collapse: collapse;">
-                    <thead style="background: #f8f9fa; color: #1f2937;">
+                  <table class="table">
+                    <thead>
                       <tr>
-                        <th style="padding: 12px; text-align: left;">Full Name</th>
-                        <th style="padding: 12px; text-align: left;">Username</th>
-                        <th style="padding: 12px; text-align: left;">Email</th>
-                        <th style="padding: 12px; text-align: left;">Department</th>
-                        <th style="padding: 12px; text-align: left;">Registered</th>
-                        <th style="padding: 12px; text-align: left;">Actions</th>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Registered</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
-                    <tbody style="color: #333;">
+                    <tbody>
                       ${pendingData.pending_users.map(u => `
-                        <tr style="border-bottom: 1px solid #eee;">
-                          <td style="padding: 12px;">${u.full_name}</td>
-                          <td style="padding: 12px;">${u.username}</td>
-                          <td style="padding: 12px;">${u.email}</td>
-                          <td style="padding: 12px;">${u.department || 'N/A'}</td>
-                          <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
-                          <td style="padding: 12px;">
+                        <tr>
+                          <td>${u.full_name}</td>
+                          <td>${u.username}</td>
+                          <td>${u.email}</td>
+                          <td>${u.department || 'N/A'}</td>
+                          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                          <td>
                             <div style="display: flex; gap: 0.5rem;">
-                              <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Approve</button>
-                              <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">Reject</button>
+                              <button onclick="approveUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Approve</button>
+                              <button onclick="rejectUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">Reject</button>
                             </div>
                           </td>
                         </tr>
@@ -845,49 +842,49 @@ const router = {
               </div>
               ` : ''}
 
-              <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0 0 1rem 0; color: #1f2937;">All Users</h3>
+              <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); box-shadow: var(--shadow-md);">
+                <h3 style="margin: 0 0 1rem 0; color: var(--color-text);">All Users</h3>
                 <div style="overflow-x: auto;">
-                  <table class="table" style="width: 100%; border-collapse: collapse;">
-                    <thead style="background: #f8f9fa; color: #1f2937;">
+                  <table class="table">
+                    <thead>
                       <tr>
-                        <th style="padding: 12px; text-align: left;">Full Name</th>
-                        <th style="padding: 12px; text-align: left;">Username</th>
-                        <th style="padding: 12px; text-align: left;">Email</th>
-                        <th style="padding: 12px; text-align: left;">Department</th>
-                        <th style="padding: 12px; text-align: left;">Role</th>
-                        <th style="padding: 12px; text-align: left;">Status</th>
-                        <th style="padding: 12px; text-align: left;">Registered</th>
-                        <th style="padding: 12px; text-align: left;">Actions</th>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
-                    <tbody style="color: #333;">
+                    <tbody>
                       ${usersData.users.map(u => `
-                        <tr style="border-bottom: 1px solid #eee; ${u.is_active === 0 ? 'opacity: 0.6; background: #fef3c7;' : ''}">
-                          <td style="padding: 12px;">${u.full_name}</td>
-                          <td style="padding: 12px;">${u.username}</td>
-                          <td style="padding: 12px;">${u.email}</td>
-                          <td style="padding: 12px;">${u.department || 'N/A'}</td>
-                          <td style="padding: 12px;">
-                            <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
+                        <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fffbeb;' : ''}">
+                          <td>${u.full_name}</td>
+                          <td>${u.username}</td>
+                          <td>${u.email}</td>
+                          <td>${u.department || 'N/A'}</td>
+                          <td>
+                            <span class="badge" style="${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">
                               ${u.role === 'admin' ? 'Admin' : 'User'}
                             </span>
                           </td>
-                          <td style="padding: 12px;">
-                            <span style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; ${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
+                          <td>
+                            <span class="badge" style="${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">
                               ${u.is_active === 1 ? 'Active' : 'Inactive'}
                             </span>
                           </td>
-                          <td style="padding: 12px;">${new Date(u.created_at).toLocaleDateString()}</td>
-                          <td style="padding: 12px;">
+                          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                          <td>
                             ${u.role !== 'admin' || user.role === 'admin' ? `
                               <div style="display: flex; gap: 0.5rem;">
                                 ${u.is_active ? 
-                                  `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #f59e0b; color: white;">Deactivate</button>` : 
-                                  `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #10b981; color: white;">Reactivate</button>`
+                                  `<button onclick="deactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-warning); color: white;">Deactivate</button>` : 
+                                  `<button onclick="reactivateUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Reactivate</button>`
                                 }
-                                ${u.role !== 'admin' ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #3b82f6; color: white;">Make Admin</button>` : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #64748b; color: white;">Demote</button>`}
-                                <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: #ef4444; color: white;">🗑️</button>
+                                ${u.role !== 'admin' ? `<button onclick="makeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-primary); color: white;">Make Admin</button>` : `<button onclick="removeAdmin(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-text-secondary); color: white;">Demote</button>`}
+                                <button onclick="deleteUser(${u.user_id}, '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">🗑️</button>
                               </div>
                             ` : ''}
                           </td>
@@ -1233,9 +1230,9 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx') {
     XLSX.writeFile(wb, filename);
 };
 
+
 // Initialize App
 router.init();
-
 
 // Make everything accessible globally
 window.router = router;
