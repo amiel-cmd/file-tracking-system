@@ -432,11 +432,6 @@ const router = {
       }
 
       list.innerHTML = `
-      <div style="margin-bottom: 1rem;">
-        <button onclick="downloadTableToExcel('documentsTable', 'documents_export.xlsx')" class="btn btn--primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-          📥 Download to Excel
-        </button>
-      </div>
       <div style="overflow-x: auto;">
       <table id="documentsTable" class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
@@ -626,6 +621,7 @@ const router = {
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
       
+      // FIXED: Excel button labeled "Download Data" and placed right beside Upload Document
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -638,7 +634,13 @@ const router = {
             <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
           </aside>
           <main class="main-content">
-            <div class="content-header"><h2 style="color: #1f2937;">My Documents</h2><button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button></div>
+            <div class="content-header">
+              <h2 style="color: #1f2937;">My Documents</h2>
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="downloadTableToExcel('documentsTable', 'my_documents.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
+                <button onclick="openDocumentFormModal()" class="btn btn--primary">Upload Document</button>
+              </div>
+            </div>
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
               <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
@@ -664,6 +666,8 @@ const router = {
         const data = await api.get('/data/documents?all=true');
         this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
         this.filteredDocuments = [...this.allDocuments];
+        
+        // FIXED: Excel button also labeled "Download Data"
         document.getElementById('app').innerHTML = `
           <div class="app-layout">
             <aside class="sidebar">
@@ -676,7 +680,10 @@ const router = {
               <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
             </aside>
             <main class="main-content">
-              <div class="content-header"><h2 style="color: #1f2937;">System Documents</h2></div>
+              <div class="content-header">
+                <h2 style="color: #1f2937;">System Documents</h2>
+                <button onclick="downloadTableToExcel('documentsTable', 'all_documents.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
+              </div>
               <div class="search-filters-inline">
                 <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
                 <select id="statusFilter" class="form-control filter-inline" style="color: #333;"><option value="">Status</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
@@ -702,6 +709,8 @@ const router = {
         const data = await api.get('/data/dashboard');
         this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
         this.filteredDocuments = [...this.allDocuments];
+        
+        // FIXED: Excel button labeled "Download Data"
         document.getElementById('app').innerHTML = `
           <div class="app-layout">
             <aside class="sidebar">
@@ -714,7 +723,10 @@ const router = {
               <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
             </aside>
             <main class="main-content">
-              <div class="content-header"><h2 style="color: #1f2937;">Archives</h2></div>
+              <div class="content-header">
+                <h2 style="color: #1f2937;">Archives</h2>
+                <button onclick="downloadTableToExcel('documentsTable', 'archives.xlsx')" class="btn btn--secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">📥 Download Data</button>
+              </div>
               <div class="search-filters-inline">
                 <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline" style="color: #333;">
                 <select id="priorityFilter" class="form-control filter-inline" style="color: #333;"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
