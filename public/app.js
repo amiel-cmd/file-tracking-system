@@ -723,7 +723,7 @@ const router = {
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
-            <div class="sidebar-header"><h1>DocTrack</h1></div>
+            <div class="sidebar-header"><h1>PFDCS Docoument Tracking System</h1></div>
             <nav class="sidebar-nav">
               <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
               <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
