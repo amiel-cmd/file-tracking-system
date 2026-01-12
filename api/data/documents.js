@@ -1,4 +1,4 @@
-// api/data/documents.js - COMPLETE & PATCHED
+// api/data/documents.js - COMPLETE & PATCHED (With Signatory Column)
 
 // Core imports
 const pool = require('../db');
@@ -245,6 +245,7 @@ module.exports = async function handler(req, res) {
 
           try {
             // FIXED QUERY: Changed d.user_id to d.uploaded_by
+            // Note: d.* will automatically include 'signatory' if it exists in DB
             const allDocsQuery = `
               SELECT d.*, 
                      u.full_name as uploaded_by_name, 
@@ -612,8 +613,10 @@ module.exports = async function handler(req, res) {
         const description = Array.isArray(fields.description) ? fields.description[0] : fields.description;
         const document_type = Array.isArray(fields.document_type) ? fields.document_type[0] : fields.document_type;
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
+        // --- UPDATED: Added Signatory Extraction ---
+        const signatory = Array.isArray(fields.signatory) ? fields.signatory[0] : fields.signatory;
 
-        console.log('Parsed fields:', { title, document_type, priority, hasDescription: !!description });
+        console.log('Parsed fields:', { title, document_type, priority, signatory, hasDescription: !!description });
 
         // File - OPTIONAL - Filter out empty files
         let uploadedFile = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
@@ -697,11 +700,12 @@ module.exports = async function handler(req, res) {
 
         const documentNumber = `DOC-${Date.now()}`;
 
+        // --- UPDATED: Added signatory to INSERT query ---
         const insertQuery = `
           INSERT INTO documents 
-          (document_number, title, description, document_type, priority, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, is_archived, uploaded_at) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, 'pending', 0, NOW()) 
-          RETURNING document_id, document_number, title, document_type, priority, status, uploaded_at
+          (document_number, title, description, document_type, priority, signatory, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, is_archived, uploaded_at) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11, 'pending', 0, NOW()) 
+          RETURNING document_id, document_number, title, document_type, priority, signatory, status, uploaded_at
         `;
 
         const insertResult = await pool.query(insertQuery, [
@@ -710,6 +714,7 @@ module.exports = async function handler(req, res) {
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
+          sanitize(signatory || ''), // New signatory field
           fileName,
           megaFileId,
           megaLink,
@@ -848,7 +853,8 @@ module.exports = async function handler(req, res) {
 
       case 'PUT': {
         const body = await parseJsonBody(req);
-        const { document_id, title, description, document_type, priority } = body;
+        // --- UPDATED: Added signatory to destructuring ---
+        const { document_id, title, description, document_type, priority, signatory } = body;
 
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
@@ -867,11 +873,12 @@ module.exports = async function handler(req, res) {
           });
         }
 
+        // --- UPDATED: Added signatory to UPDATE query ---
         const updateQuery = `
           UPDATE documents 
-          SET title = $1, description = $2, document_type = $3, priority = $4 
-          WHERE document_id = $5 
-          RETURNING document_id, title, description, document_type, priority
+          SET title = $1, description = $2, document_type = $3, priority = $4, signatory = $5
+          WHERE document_id = $6
+          RETURNING document_id, title, description, document_type, priority, signatory
         `;
 
         const updateResult = await pool.query(updateQuery, [
@@ -879,6 +886,7 @@ module.exports = async function handler(req, res) {
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
+          sanitize(signatory || ''), // New field
           document_id,
         ]);
 
@@ -887,7 +895,7 @@ module.exports = async function handler(req, res) {
           document_id, 
           userId, 
           'Document Updated', 
-          `Document details updated: "${sanitize(title)}" (Type: ${sanitize(document_type)}, Priority: ${sanitize(priority)})`
+          `Document details updated: "${sanitize(title)}" (Type: ${sanitize(document_type)}, Signatory: ${sanitize(signatory || 'None')})`
         );
 
         return res.status(200).json({
