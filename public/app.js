@@ -121,7 +121,7 @@ const routeModal = {
             <p style="margin: 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
           </div>
           
-          <form id="routeDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+          <form id="routeDocumentForm" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
             <div class="modal-body">
                 <div class="form-group">
                   <label class="form-label">Destination / Recipient <span style="color:red">*</span></label>
@@ -200,7 +200,7 @@ const editModal = {
             <h2>Edit Document</h2>
           </div>
           
-          <form id="editDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+          <form id="editDocumentForm" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
             <div class="modal-body">
                 <!-- NEW: Manual Document Number (Editable) -->
                 <div class="form-group">
@@ -1151,13 +1151,17 @@ window.openDocumentFormModal = function() {
     const modalHtml = `
       <div id="uploadModalOverlay" class="modal-overlay">
         <div class="modal">
+          <!-- Header (Fixed at top) -->
           <div class="modal-header">
             <h2>Upload Document</h2>
           </div>
           
-          <form id="uploadDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+          <!-- FIXED: Changed 'height: 100%' to 'flex: 1; min-height: 0;' -->
+          <!-- This ensures the form fits INSIDE the modal without getting cut off -->
+          <form id="uploadDocumentForm" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+            
             <div class="modal-body">
-                 <!-- NEW: Manual Document Number -->
+                <!-- Manual Document Number -->
                 <div class="form-group">
                   <label class="form-label">Document Number <span style="color:red">*</span></label>
                   <input type="text" name="document_number" class="form-control" required placeholder="e.g. 2024-001">
