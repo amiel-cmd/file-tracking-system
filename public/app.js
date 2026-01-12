@@ -114,23 +114,27 @@ const api = {
 const routeModal = {
   open(documentId, documentTitle) {
     const modalHtml = `
-      <div id="routeModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #1f2937;">Route Document</h2>
-          <p style="margin: 0 0 1.5rem 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
+      <div id="routeModalOverlay" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Route Document</h2>
+            <p style="margin: 0; color: #64748b; font-size: 0.9rem;">${documentTitle}</p>
+          </div>
           
-          <form id="routeDocumentForm">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Destination / Recipient <span style="color:red">*</span></label>
-              <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Action Taken / Remarks <span style="color:red">*</span></label>
-              <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; color: #333;"></textarea>
+          <form id="routeDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="modal-body">
+                <div class="form-group">
+                  <label class="form-label">Destination / Recipient <span style="color:red">*</span></label>
+                  <input type="text" id="routeDestination" class="form-control" placeholder="e.g., Finance Dept, Mr. Smith" required>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Action Taken / Remarks <span style="color:red">*</span></label>
+                  <textarea id="routeRemarks" class="form-control" rows="3" placeholder="What did you do to this document? (e.g., Signed and approved, Reviewed for errors)" required></textarea>
+                </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <div class="modal-footer">
               <button type="button" id="routeCancelBtn" class="btn btn--secondary">Cancel</button>
               <button type="submit" id="routeSubmitBtn" class="btn btn--primary">➡️ Route Document</button>
             </div>
@@ -190,47 +194,51 @@ const routeModal = {
 const editModal = {
   open(documentData, onSave) {
     const modalHtml = `
-      <div id="editModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Edit Document</h2>
+      <div id="editModalOverlay" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Edit Document</h2>
+          </div>
           
-          <form id="editDocumentForm">
-            <!-- NEW: Manual Document Number (Editable) -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Number</label>
-              <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+          <form id="editDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="modal-body">
+                <!-- NEW: Manual Document Number (Editable) -->
+                <div class="form-group">
+                  <label class="form-label">Document Number</label>
+                  <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Title</label>
+                  <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Description</label>
+                  <textarea id="editDescription" class="form-control" rows="3">${documentData.description || ''}</textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Document Type</label>
+                  <input type="text" id="editType" class="form-control" value="${documentData.document_type || ''}" required>
+                </div>
+                
+                <!-- ADDED: Signatory Field -->
+                <div class="form-group">
+                  <label class="form-label">Signatory</label>
+                  <input type="text" id="editSignatory" class="form-control" value="${documentData.signatory || ''}" placeholder="e.g. John Doe">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Priority</label>
+                  <select id="editPriority" class="form-control" required>
+                    <option value="not_rush" ${documentData.priority === 'not_rush' ? 'selected' : ''}>Not Rush</option>
+                    <option value="rush" ${documentData.priority === 'rush' ? 'selected' : ''}>RUSH</option>
+                  </select>
+                </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
-              <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Description</label>
-              <textarea id="editDescription" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">${documentData.description || ''}</textarea>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
-              <input type="text" id="editType" class="form-control" value="${documentData.document_type || ''}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-            
-            <!-- ADDED: Signatory Field -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Signatory</label>
-              <input type="text" id="editSignatory" class="form-control" value="${documentData.signatory || ''}" placeholder="e.g. John Doe" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
-              <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-                <option value="not_rush" ${documentData.priority === 'not_rush' ? 'selected' : ''}>Not Rush</option>
-                <option value="rush" ${documentData.priority === 'rush' ? 'selected' : ''}>RUSH</option>
-              </select>
-            </div>
-
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <div class="modal-footer">
               <button type="button" id="editCancelBtn" class="btn btn--secondary">Cancel</button>
               <button type="submit" id="saveChangesBtn" class="btn btn--primary">Save Changes</button>
             </div>
@@ -294,10 +302,10 @@ const viewModal = {
       : viewUrl;
 
     const modalHtml = `
-      <div id="viewModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; width: 100%; height: 100%; display: flex; flex-direction: column;">
+      <div id="viewModalOverlay" class="modal-overlay">
+        <div class="modal" style="max-width: 90vw; height: 90vh;">
           
-          <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+          <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">${documentData.title}</h2>
               <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
@@ -325,8 +333,8 @@ const viewModal = {
             `}
           </div>
 
-          <div style="padding: 1rem 1.5rem; border-top: 1px solid #ddd; background: #f9f9f9;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div class="modal-footer" style="flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0;">
+             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
               <div>
                 <strong style="color: #666; font-size: 0.875rem;">Status</strong>
                 <p style="margin: 0.25rem 0 0 0; color: #333;">${documentData.status}</p>
@@ -1065,37 +1073,40 @@ window.viewDocumentHistory = async function(documentId, documentTitle) {
     const data = await api.get(`/data/documents?id=${documentId}&history=true`);
     const historyList = data.history;
     const historyHtml = `
-      <div id="historyModal" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1100;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;">
-          <h3 style="margin-top:0; color:#1f2937; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">History: ${documentTitle}</h3>
-          
-          <div style="overflow-x: auto;">
-            <table class="table" style="width: 100%; border-collapse: collapse; min-width: 600px;">
-              <thead>
-                <!-- CHANGED: Explicit dark background and white text for high contrast visibility -->
-                <tr style="background: #1f2937; border-bottom: 2px solid #e9ecef; color: #ffffff;">
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">Date & Time</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">User</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 15%; color: #ffffff;">Action</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%; color: #ffffff;">Details</th>
-                </tr>
-              </thead>
-              <tbody style="color: #333;">
-                ${historyList.length > 0 ? historyList.map(h => `
-                  <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 12px; font-size: 0.9em; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
-                    <td style="padding: 12px; font-weight: 500;">${h.user_name || 'System'}</td>
-                    <td style="padding: 12px;"><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e0f2fe; color: #0369a1;">${h.action}</span></td>
-                    <td style="padding: 12px; font-size: 0.9em; color: #4b5563;">${h.details}</td>
-                  </tr>
-                `).join('') : `
-                  <tr><td colspan="4" style="padding: 2rem; text-align: center; color: #666;">No history found for this document.</td></tr>
-                `}
-              </tbody>
-            </table>
+      <div id="historyModal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>History: ${documentTitle}</h3>
           </div>
           
-          <div style="text-align:right; margin-top:1.5rem; pt-4; border-top: 1px solid #eee;">
+          <div class="modal-body">
+            <div style="overflow-x: auto;">
+                <table class="table" style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                <thead>
+                    <tr style="background: #1f2937; border-bottom: 2px solid #e9ecef; color: #ffffff;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">Date & Time</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; width: 20%; color: #ffffff;">User</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; width: 15%; color: #ffffff;">Action</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%; color: #ffffff;">Details</th>
+                    </tr>
+                </thead>
+                <tbody style="color: #333;">
+                    ${historyList.length > 0 ? historyList.map(h => `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-size: 0.9em; white-space: nowrap;">${new Date(h.created_at).toLocaleString()}</td>
+                        <td style="padding: 12px; font-weight: 500;">${h.user_name || 'System'}</td>
+                        <td style="padding: 12px;"><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e0f2fe; color: #0369a1;">${h.action}</span></td>
+                        <td style="padding: 12px; font-size: 0.9em; color: #4b5563;">${h.details}</td>
+                    </tr>
+                    `).join('') : `
+                    <tr><td colspan="4" style="padding: 2rem; text-align: center; color: #666;">No history found for this document.</td></tr>
+                    `}
+                </tbody>
+                </table>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
             <button onclick="document.getElementById('historyModal').remove()" class="btn btn--secondary">Close</button>
           </div>
         </div>
@@ -1138,54 +1149,58 @@ window.restoreDocument = async function(documentId) {
 
 window.openDocumentFormModal = function() {
     const modalHtml = `
-      <div id="uploadModalOverlay" class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div class="modal" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 500px; width: 90%;">
-          <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Upload Document</h2>
+      <div id="uploadModalOverlay" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Upload Document</h2>
+          </div>
           
-          <form id="uploadDocumentForm">
-             <!-- NEW: Manual Document Number -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Number <span style="color:red">*</span></label>
-              <input type="text" name="document_number" class="form-control" required placeholder="e.g. 2024-001" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+          <form id="uploadDocumentForm" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="modal-body">
+                 <!-- NEW: Manual Document Number -->
+                <div class="form-group">
+                  <label class="form-label">Document Number <span style="color:red">*</span></label>
+                  <input type="text" name="document_number" class="form-control" required placeholder="e.g. 2024-001">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Title <span style="color:red">*</span></label>
+                  <input type="text" name="title" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Description</label>
+                  <textarea name="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Document Type <span style="color:red">*</span></label>
+                  <!-- FIXED: Changed name="documentType" to name="document_type" to match backend expectation -->
+                  <input type="text" name="document_type" class="form-control" required placeholder="e.g. Memo, Invoice, Report">
+                </div>
+                
+                 <!-- ADDED: Signatory Field -->
+                <div class="form-group">
+                  <label class="form-label">Signatory</label>
+                  <input type="text" name="signatory" class="form-control" placeholder="e.g. John Doe">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Priority <span style="color:red">*</span></label>
+                  <!-- NEW: Simplified Priority Options -->
+                  <select name="priority" class="form-control" required>
+                    <option value="not_rush">Not Rush</option>
+                    <option value="rush">RUSH</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">File Attachment</label>
+                  <input type="file" name="file" class="form-control">
+                </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title <span style="color:red">*</span></label>
-              <input type="text" name="title" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Description</label>
-              <textarea name="description" class="form-control" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;"></textarea>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type <span style="color:red">*</span></label>
-              <!-- FIXED: Changed name="documentType" to name="document_type" to match backend expectation -->
-              <input type="text" name="document_type" class="form-control" required placeholder="e.g. Memo, Invoice, Report" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-            
-             <!-- ADDED: Signatory Field -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Signatory</label>
-              <input type="text" name="signatory" class="form-control" placeholder="e.g. John Doe" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority <span style="color:red">*</span></label>
-              <!-- NEW: Simplified Priority Options -->
-              <select name="priority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-                <option value="not_rush">Not Rush</option>
-                <option value="rush">RUSH</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">File Attachment</label>
-              <input type="file" name="file" class="form-control" style="width: 100%; color: #333;">
-            </div>
-
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <div class="modal-footer">
               <button type="button" id="uploadCancelBtn" class="btn btn--secondary">Cancel</button>
               <button type="submit" id="uploadSubmitBtn" class="btn btn--primary">Upload</button>
             </div>
