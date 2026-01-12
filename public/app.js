@@ -768,12 +768,6 @@ const router = {
         <div class="auth-card">
           <section class="auth-brand">
             <h1>PFDCS Document Tracking System</h1>
-            <p>Securely track, route, and manage office documents with clear history and accountability.</p>
-            <ul class="auth-bullets">
-              <li><span class="auth-dot"></span><span>Upload documents with metadata (type, signatory, priority).</span></li>
-              <li><span class="auth-dot"></span><span>Route documents and keep a complete audit trail.</span></li>
-              <li><span class="auth-dot"></span><span>Search, filter, paginate, and export records to Excel.</span></li>
-            </ul>
           </section>
 
           <section class="auth-form">
