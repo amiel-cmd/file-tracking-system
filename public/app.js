@@ -195,6 +195,12 @@ const editModal = {
           <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Edit Document</h2>
           
           <form id="editDocumentForm">
+            <!-- NEW: Manual Document Number (Editable) -->
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Number</label>
+              <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+            </div>
+
             <div class="form-group" style="margin-bottom: 1rem;">
               <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
               <input type="text" id="editTitle" class="form-control" value="${documentData.title}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
@@ -219,10 +225,8 @@ const editModal = {
             <div class="form-group" style="margin-bottom: 1.5rem;">
               <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
               <select id="editPriority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-                <option value="low" ${documentData.priority === 'low' ? 'selected' : ''}>Low</option>
-                <option value="medium" ${documentData.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                <option value="high" ${documentData.priority === 'high' ? 'selected' : ''}>High</option>
-                <option value="urgent" ${documentData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+                <option value="not_rush" ${documentData.priority === 'not_rush' ? 'selected' : ''}>Not Rush</option>
+                <option value="rush" ${documentData.priority === 'rush' ? 'selected' : ''}>RUSH</option>
               </select>
             </div>
 
@@ -251,6 +255,7 @@ const editModal = {
 
       const updatedData = {
         document_id: documentData.document_id,
+        document_number: document.getElementById('editDocNumber').value, // NEW
         title: document.getElementById('editTitle').value,
         description: document.getElementById('editDescription').value,
         document_type: document.getElementById('editType').value,
@@ -296,7 +301,7 @@ const viewModal = {
             <div>
               <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">${documentData.title}</h2>
               <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
-                Document #${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority}
+                Document #${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority === 'rush' ? 'RUSH' : 'Not Rush'}
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -555,8 +560,9 @@ const router = {
                   </span>
                 </td>
                 <td>
-                  <span class="badge" style="background: ${doc.priority === 'urgent' ? 'var(--color-error)' : (doc.priority === 'high' ? 'var(--color-warning)' : 'var(--color-success)')}; color: white;">
-                    ${doc.priority.toUpperCase()}
+                  <!-- NEW PRIORITY BADGE LOGIC -->
+                  <span class="badge" style="background: ${doc.priority === 'rush' ? 'var(--color-error)' : 'var(--color-success)'}; color: white;">
+                    ${doc.priority === 'rush' ? 'RUSH' : 'NOT RUSH'}
                   </span>
                 </td>
                 <td>${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
@@ -734,7 +740,8 @@ const router = {
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="inprogress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-              <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+              <!-- UPDATED PRIORITY FILTER -->
+              <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
               <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
               <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
             </div>
@@ -792,7 +799,8 @@ const router = {
                   <!-- ... filters ... -->
                   <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
                   <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="inprogress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-                  <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+                  <!-- UPDATED PRIORITY FILTER -->
+                  <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
                   <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
                   <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
               </div>
@@ -847,7 +855,8 @@ const router = {
             
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
-              <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+              <!-- UPDATED PRIORITY FILTER -->
+              <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
               <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
               <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
             </div>
@@ -1134,8 +1143,14 @@ window.openDocumentFormModal = function() {
           <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #1f2937;">Upload Document</h2>
           
           <form id="uploadDocumentForm">
+             <!-- NEW: Manual Document Number -->
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title</label>
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Number <span style="color:red">*</span></label>
+              <input type="text" name="document_number" class="form-control" required placeholder="e.g. 2024-001" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Title <span style="color:red">*</span></label>
               <input type="text" name="title" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
 
@@ -1145,7 +1160,7 @@ window.openDocumentFormModal = function() {
             </div>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type</label>
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Document Type <span style="color:red">*</span></label>
               <!-- FIXED: Changed name="documentType" to name="document_type" to match backend expectation -->
               <input type="text" name="document_type" class="form-control" required placeholder="e.g. Memo, Invoice, Report" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
             </div>
@@ -1157,12 +1172,11 @@ window.openDocumentFormModal = function() {
             </div>
 
             <div class="form-group" style="margin-bottom: 1rem;">
-              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority</label>
+              <label class="form-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Priority <span style="color:red">*</span></label>
+              <!-- NEW: Simplified Priority Options -->
               <select name="priority" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; color: #333;">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="not_rush">Not Rush</option>
+                <option value="rush">RUSH</option>
               </select>
             </div>
 
