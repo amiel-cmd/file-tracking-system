@@ -647,21 +647,162 @@ const router = {
     }
   },
 
-  // ... (Login and Register functions remain same as original) ...
   showLogin() {
     document.getElementById('app').innerHTML = `
-      <div class="container">
-        <div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header"><h2>Login</h2></div>
-          <div class="card-body">
+      <style>
+        .auth-shell {
+          min-height: 100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding: 28px 16px;
+          background: radial-gradient(1200px 600px at 10% 10%, rgba(59,130,246,.20), transparent 55%),
+                      radial-gradient(900px 500px at 90% 20%, rgba(16,185,129,.18), transparent 50%),
+                      #f8fafc;
+        }
+        .auth-card {
+          width: 100%;
+          max-width: 980px;
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+          background: white;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .auth-brand {
+          padding: 44px 42px;
+          color: white;
+          background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 55%, #10b981 120%);
+          position: relative;
+        }
+        .auth-brand::after {
+          content:'';
+          position:absolute;
+          inset:-40px -60px auto auto;
+          width: 220px;
+          height: 220px;
+          background: rgba(255,255,255,0.12);
+          border-radius: 999px;
+          filter: blur(0px);
+        }
+        .auth-brand h1 {
+          margin: 0 0 10px 0;
+          font-size: 1.65rem;
+          font-weight: 800;
+          letter-spacing: .2px;
+          color: white !important;
+        }
+        .auth-brand p {
+          margin: 0 0 18px 0;
+          opacity: .95;
+          line-height: 1.5;
+        }
+        .auth-bullets {
+          margin: 18px 0 0 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          gap: 10px;
+          opacity: .95;
+        }
+        .auth-bullets li {
+          display:flex;
+          gap: 10px;
+          align-items:flex-start;
+          line-height: 1.45;
+        }
+        .auth-dot {
+          margin-top: 7px;
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.85);
+          flex: 0 0 auto;
+        }
+        .auth-form {
+          padding: 42px 40px;
+          display:flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .auth-form h2 {
+          margin: 0 0 6px 0;
+          font-size: 1.4rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .auth-subtitle {
+          margin: 0 0 18px 0;
+          color: #64748b;
+          font-size: .95rem;
+          line-height: 1.4;
+        }
+        .auth-divider {
+          height: 1px;
+          background: rgba(15, 23, 42, 0.08);
+          margin: 18px 0;
+        }
+        .auth-help {
+          margin-top: 14px;
+          text-align: center;
+          color: #64748b;
+          font-size: 0.95rem;
+        }
+        .auth-help a {
+          color: #2563eb;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .auth-help a:hover { text-decoration: underline; }
+
+        @media (max-width: 900px) {
+          .auth-card { grid-template-columns: 1fr; }
+          .auth-brand { padding: 28px 24px; }
+          .auth-form { padding: 28px 22px; }
+        }
+      </style>
+
+      <div class="auth-shell">
+        <div class="auth-card">
+          <section class="auth-brand">
+            <h1>PFDCS Document Tracking System</h1>
+            <p>Securely track, route, and manage office documents with clear history and accountability.</p>
+            <ul class="auth-bullets">
+              <li><span class="auth-dot"></span><span>Upload documents with metadata (type, signatory, priority).</span></li>
+              <li><span class="auth-dot"></span><span>Route documents and keep a complete audit trail.</span></li>
+              <li><span class="auth-dot"></span><span>Search, filter, paginate, and export records to Excel.</span></li>
+            </ul>
+          </section>
+
+          <section class="auth-form">
+            <h2>Sign in</h2>
+            <p class="auth-subtitle">Use your username/email and password to access your dashboard.</p>
+
             <div id="message"></div>
+
             <form id="loginForm">
-              <div class="form-group"><label class="form-label">Username or Email</label><input type="text" name="username" class="form-control" required autofocus></div>
-              <div class="form-group"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+              <div class="form-group">
+                <label class="form-label">Username or Email</label>
+                <input type="text" name="username" class="form-control" required autofocus placeholder="Enter your username or email">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" required placeholder="Enter your password">
+              </div>
+
               <button type="submit" id="loginBtn" class="btn btn--primary btn--full-width">Login</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Don't have an account? <a href="/register" onclick="event.preventDefault(); router.navigate('/register')">Register here</a></p>
-          </div>
+
+            <div class="auth-divider"></div>
+
+            <p class="auth-help">
+              Don't have an account?
+              <a href="/register" onclick="event.preventDefault(); router.navigate('/register')">Create one</a>
+            </p>
+          </section>
         </div>
       </div>`;
     
@@ -683,19 +824,139 @@ const router = {
 
   showRegister() {
      document.getElementById('app').innerHTML = `
-      <div class="container"><div class="card" style="max-width: 450px; margin: 80px auto;">
-          <div class="card-header"><h2>Register</h2></div>
-          <div class="card-body"><div id="message"></div>
+      <style>
+        .auth-shell {
+          min-height: 100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding: 28px 16px;
+          background: radial-gradient(1200px 600px at 10% 10%, rgba(59,130,246,.20), transparent 55%),
+                      radial-gradient(900px 500px at 90% 20%, rgba(16,185,129,.18), transparent 50%),
+                      #f8fafc;
+        }
+        .auth-card {
+          width: 100%;
+          max-width: 980px;
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+          background: white;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .auth-brand {
+          padding: 44px 42px;
+          color: white;
+          background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 70%, #0ea5e9 130%);
+        }
+        .auth-brand h1 {
+          margin: 0 0 10px 0;
+          font-size: 1.65rem;
+          font-weight: 800;
+          letter-spacing: .2px;
+          color: white !important;
+        }
+        .auth-brand p {
+          margin: 0;
+          opacity: .95;
+          line-height: 1.5;
+        }
+        .auth-form {
+          padding: 42px 40px;
+          display:flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .auth-form h2 {
+          margin: 0 0 6px 0;
+          font-size: 1.4rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .auth-subtitle {
+          margin: 0 0 18px 0;
+          color: #64748b;
+          font-size: .95rem;
+          line-height: 1.4;
+        }
+        .auth-divider {
+          height: 1px;
+          background: rgba(15, 23, 42, 0.08);
+          margin: 18px 0;
+        }
+        .auth-help {
+          margin-top: 14px;
+          text-align: center;
+          color: #64748b;
+          font-size: 0.95rem;
+        }
+        .auth-help a {
+          color: #2563eb;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .auth-help a:hover { text-decoration: underline; }
+
+        @media (max-width: 900px) {
+          .auth-card { grid-template-columns: 1fr; }
+          .auth-brand { padding: 28px 24px; }
+          .auth-form { padding: 28px 22px; }
+        }
+      </style>
+
+      <div class="auth-shell">
+        <div class="auth-card">
+          <section class="auth-brand">
+            <h1>Create an account</h1>
+            <p>Request access to the document tracking system. Accounts may require admin approval.</p>
+          </section>
+
+          <section class="auth-form">
+            <h2>Register</h2>
+            <p class="auth-subtitle">Fill out your details to create an account.</p>
+
+            <div id="message"></div>
+
             <form id="registerForm">
-              <div class="form-group"><label class="form-label">Full Name</label><input type="text" name="fullName" class="form-control" required></div>
-              <div class="form-group"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required></div>
-              <div class="form-group"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
-              <div class="form-group"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
-              <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" name="confirmPassword" class="form-control" required></div>
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="fullName" class="form-control" required placeholder="e.g. Juan Dela Cruz">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-control" required placeholder="Choose a username">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" required placeholder="name@example.com">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" required placeholder="Create a password">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" name="confirmPassword" class="form-control" required placeholder="Confirm your password">
+              </div>
+
               <button type="submit" id="registerBtn" class="btn btn--primary btn--full-width">Register</button>
             </form>
-            <p style="text-align: center; margin-top: var(--space-24); color: var(--color-text-secondary);">Already have an account? <a href="/login" onclick="event.preventDefault(); router.navigate('/login')">Login here</a></p>
-          </div></div></div>`;
+
+            <div class="auth-divider"></div>
+
+            <p class="auth-help">
+              Already have an account?
+              <a href="/login" onclick="event.preventDefault(); router.navigate('/login')">Sign in</a>
+            </p>
+          </section>
+        </div>
+      </div>`;
           
       document.getElementById('registerForm').addEventListener('submit', async (e) => {
         // ... (Register logic)
@@ -723,7 +984,7 @@ const router = {
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
-            <div class="sidebar-header"><h1>PFDCS Docoument Tracking System</h1></div>
+            <div class="sidebar-header"><h1>DocTrack</h1></div>
             <nav class="sidebar-nav">
               <a href="/dashboard" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
               <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
