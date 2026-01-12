@@ -114,8 +114,7 @@ module.exports = async function handler(req, res) {
           username: user.username,
           email: user.email,
           fullName: user.full_name,
-          role: user.role,
-          department: user.department
+          role: user.role
         },
         JWT_SECRET,
         { expiresIn: '365d' }  // Token valid for 1 year (until logout)
