@@ -260,7 +260,7 @@ const editModal = {
       e.preventDefault();
       saveBtn.classList.add('loading');
       saveBtn.textContent = 'Saving...';
-
+      
       const updatedData = {
         document_id: documentData.document_id,
         document_number: document.getElementById('editDocNumber').value, // NEW
@@ -632,7 +632,6 @@ const router = {
       if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
       this.showArchives();
     } else if (path === '/admin') {
-      // ... (Admin logic same as original)
        if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
        const user = auth.getUser();
        if (user.role !== 'admin') { alert('Access denied: Admin only'); this.navigate('/dashboard'); return; }
@@ -800,18 +799,31 @@ const router = {
         </div>
       </div>`;
     
+    // FIXED: Form submission for JSON payload
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
       btn.classList.add('loading');
+      btn.textContent = 'Logging in...';
+
       const formData = new FormData(e.target);
+      const username = formData.get('username');
+      const password = formData.get('password');
+      
       try {
-        const result = await api.post('/auth', { action: 'login', ...Object.fromEntries(formData) });
+        // Send as proper JSON object, not FormData
+        const result = await api.post('/auth', {
+          action: 'login',
+          username: username,
+          password: password
+        });
+        
         auth.setToken(result.token);
         this.navigate('/dashboard');
       } catch (error) {
         this.showMessage(error.message, 'error');
         btn.classList.remove('loading');
+        btn.textContent = 'Login';
       }
     });
   },
@@ -952,13 +964,24 @@ const router = {
         </div>
       </div>`;
           
+      // FIXED: Form submission for JSON payload
       document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        // ... (Register logic)
         e.preventDefault();
         const btn = document.getElementById('registerBtn');
         btn.classList.add('loading');
+        
+        const formData = new FormData(e.target);
+        
         try {
-            const result = await api.post('/auth', { action: 'register', ...Object.fromEntries(new FormData(e.target)) });
+            // Send as proper JSON object
+            const result = await api.post('/auth', { 
+                action: 'register', 
+                username: formData.get('username'),
+                password: formData.get('password'),
+                email: formData.get('email'),
+                full_name: formData.get('fullName'),
+                confirm_password: formData.get('confirmPassword')
+            });
             this.showMessage(result.message, 'success');
             setTimeout(() => this.navigate('/login'), 2000);
         } catch (error) {
@@ -1196,7 +1219,6 @@ const router = {
                     </div>
                     
                     <div id="adminMessage"></div>
-
                     ${pendingData.pending_users.length > 0 ? `
                     <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); margin-bottom: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--color-warning);">
                         <h3 style="margin: 0 0 1rem 0; color: var(--color-warning); display: flex; align-items: center; gap: 0.5rem;">
@@ -1254,7 +1276,6 @@ const router = {
                         </table>
                         </div>
                     </div>
-
                 </main>
              </div>
         `;
@@ -1516,7 +1537,7 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx'){
         alert('Table not found');
         return;
     }
-
+    
     // Clone table to modify for export (remove Actions column)
     const clone = table.cloneNode(true);
     const rows = clone.querySelectorAll('tr');
