@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // Only POST allowed
   if (req.method !== 'POST') {
     res.statusCode = 405;
