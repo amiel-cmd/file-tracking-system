@@ -1,5 +1,6 @@
-// api/auth/auth.js
+// api/auth.js
 // Server-side authentication handler
+// Supports JSON body (no file uploads needed for auth)
 
 const pool = require('../db');
 const bcrypt = require('bcryptjs');
@@ -7,35 +8,52 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
+// Vercel serverless functions use default export
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    return res.end();
+  }
+
   // Only POST allowed
   if (req.method !== 'POST') {
     res.statusCode = 405;
-    res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ 
       success: false, 
       error: 'Method not allowed' 
     }));
   }
 
-  // Parse body
+  // Parse body - Vercel auto-parses JSON
   let body;
   try {
-    if (typeof req.body === 'string') {
-      body = JSON.parse(req.body);
-    } else if (req.body) {
-      body = req.body;
-    } else {
-      // Read raw body if needed (Vercel usually auto-parses)
-      const chunks = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      body = JSON.parse(Buffer.concat(chunks).toString());
+    // Vercel already parses JSON bodies into req.body
+    body = req.body;
+    
+    // If body is still string, parse it
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
+    }
+    
+    // Validate body exists
+    if (!body || typeof body !== 'object') {
+      console.log('[AUTH] Invalid body received:', typeof body);
+      res.statusCode = 400;
+      return res.end(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid request body - expected JSON' 
+      }));
     }
   } catch (e) {
+    console.error('[AUTH] Body parsing error:', e.message);
     res.statusCode = 400;
-    res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ 
       success: false, 
       error: 'Invalid JSON body' 
@@ -43,6 +61,9 @@ export default async function handler(req, res) {
   }
 
   const { action, username, password, email, full_name, confirm_password } = body;
+
+  console.log('[AUTH] Received action:', action);
+  console.log('[AUTH] Body keys:', Object.keys(body));
 
   // LOGIN
   if (action === 'login') {
@@ -52,7 +73,6 @@ export default async function handler(req, res) {
       if (!username || !password) {
         console.log('[LOGIN] Missing credentials');
         res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Username and password required' 
@@ -70,7 +90,6 @@ export default async function handler(req, res) {
       if (result.rows.length === 0) {
         console.log('[LOGIN] No user found');
         res.statusCode = 401;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Invalid credentials' 
@@ -80,11 +99,10 @@ export default async function handler(req, res) {
       const user = result.rows[0];
       console.log('[LOGIN] User found:', user.username, 'is_active:', user.is_active);
 
-      // Check if active - UPDATED MESSAGE
+      // Check if active
       if (user.is_active === 0 || user.is_active === false) {
         console.log('[LOGIN] User is inactive - pending approval');
         res.statusCode = 403;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Your account is pending admin approval. Please wait for approval before logging in.' 
@@ -99,7 +117,6 @@ export default async function handler(req, res) {
       if (!validPassword) {
         console.log('[LOGIN] Invalid password');
         res.statusCode = 401;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Invalid credentials' 
@@ -107,7 +124,7 @@ export default async function handler(req, res) {
       }
 
       console.log('[LOGIN] Generating JWT...');
-      // Generate JWT with 365 day expiry (persistent until logout)
+      // Generate JWT with 365 day expiry
       const token = jwt.sign(
         {
           userId: user.user_id,
@@ -117,12 +134,11 @@ export default async function handler(req, res) {
           role: user.role
         },
         JWT_SECRET,
-        { expiresIn: '365d' }  // Token valid for 1 year (until logout)
+        { expiresIn: '365d' }
       );
 
       console.log('[LOGIN] Success! Token generated');
       res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify({ 
         success: true, 
         token,
@@ -138,7 +154,6 @@ export default async function handler(req, res) {
       console.error('[LOGIN] Error:', error.message);
       console.error('[LOGIN] Stack:', error.stack);
       res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify({ 
         success: false, 
         error: 'Server error during login',
@@ -147,18 +162,18 @@ export default async function handler(req, res) {
     }
   }
 
-  // REGISTER - FIXED: Set is_active = 0 (pending approval), role = 'staff'
+  // REGISTER
   if (action === 'register') {
     try {
       console.log('[REGISTER] Starting registration for username:', username);
+      console.log('[REGISTER] Received fields:', { username, email, full_name, hasPassword: !!password });
 
       if (!username || !password || !email || !full_name) {
         console.log('[REGISTER] Missing required fields');
         res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
-          error: 'All fields required' 
+          error: 'All fields required (username, password, email, full_name)' 
         }));
       }
 
@@ -166,7 +181,6 @@ export default async function handler(req, res) {
       if (confirm_password && password !== confirm_password) {
         console.log('[REGISTER] Passwords do not match');
         res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Passwords do not match' 
@@ -177,7 +191,6 @@ export default async function handler(req, res) {
       if (password.length < 6) {
         console.log('[REGISTER] Password too short');
         res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Password must be at least 6 characters long' 
@@ -194,7 +207,6 @@ export default async function handler(req, res) {
       if (existing.rows.length > 0) {
         console.log('[REGISTER] User already exists');
         res.statusCode = 409;
-        res.setHeader('Content-Type', 'application/json');
         return res.end(JSON.stringify({ 
           success: false, 
           error: 'Username or email already exists' 
@@ -206,7 +218,7 @@ export default async function handler(req, res) {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       console.log('[REGISTER] Inserting user with is_active = 0 (pending approval)...');
-      // Insert user with is_active = 0 (PENDING APPROVAL), role = 'staff'
+      // Insert user with is_active = 0, role = 'staff'
       const result = await pool.query(
         `INSERT INTO users (username, email, password, full_name, role, is_active) 
          VALUES ($1, $2, $3, $4, 'staff', 0) 
@@ -216,7 +228,6 @@ export default async function handler(req, res) {
 
       console.log('[REGISTER] Success! User created (pending approval):', result.rows[0].username);
       res.statusCode = 201;
-      res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify({ 
         success: true, 
         message: 'Registration successful! Your account is pending admin approval. You will be able to login once an administrator approves your account.',
@@ -227,7 +238,6 @@ export default async function handler(req, res) {
       console.error('[REGISTER] Error:', error.message);
       console.error('[REGISTER] Stack:', error.stack);
       res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify({ 
         success: false, 
         error: 'Server error during registration',
@@ -239,9 +249,15 @@ export default async function handler(req, res) {
   // Unknown action
   console.log('[AUTH] Unknown action:', action);
   res.statusCode = 400;
-  res.setHeader('Content-Type', 'application/json');
   return res.end(JSON.stringify({ 
     success: false, 
-    error: 'Unknown action. Use "login" or "register".' 
+    error: `Unknown action: "${action}". Use "login" or "register".` 
   }));
+}
+
+// Vercel configuration (optional but recommended)
+export const config = {
+  api: {
+    bodyParser: true, // Keep true for JSON parsing
+  },
 };
