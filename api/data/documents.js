@@ -634,7 +634,7 @@ module.exports = async function handler(req, res) {
 
         console.log('Uploaded file:', uploadedFile ? `${uploadedFile.originalFilename} (${uploadedFile.size} bytes)` : 'No file');
 
-        if (!title || !document_type || !priority || !document_number) {
+        if (!title || !document_type || !priority) {
           return res.status(400).json({
             success: false,
             error: 'Document number, Title, Document type, and Priority are required',
