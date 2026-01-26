@@ -205,7 +205,7 @@ const editModal = {
                 <!-- NEW: Manual Document Number (Editable) -->
                 <div class="form-group">
                   <label class="form-label">Document Number</label>
-                  <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" required>
+                  <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" >
                 </div>
 
                 <div class="form-group">
