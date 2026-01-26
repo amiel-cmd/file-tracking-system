@@ -1440,7 +1440,7 @@ window.openDocumentFormModal = function() {
                 <!-- Manual Document Number -->
                 <div class="form-group">
                   <label class="form-label">Document Number <span style="color:red">*</span></label>
-                  <input type="text" name="document_number" class="form-control" required placeholder="e.g. 2024-001">
+                  <input type="text" name="document_number" class="form-control" placeholder="e.g. 2024-001">
                 </div>
 
                 <div class="form-group">
