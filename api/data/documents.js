@@ -1,4 +1,4 @@
-// api/data/documents.js - COMPLETE & PATCHED (Manual Document Number & New Priority)
+
 
 // Core imports
 const pool = require('../db');
@@ -242,7 +242,7 @@ module.exports = async function handler(req, res) {
           if (userRole !== 'admin') {
             return res.status(403).json({ success: false, error: 'Unauthorized: Admin access required' });
           }
-          
+
           try {
             // FIXED QUERY: Changed d.user_id to d.uploaded_by
             // Note: d.* will automatically include 'signatory' if it exists in DB
@@ -502,66 +502,6 @@ module.exports = async function handler(req, res) {
               error: 'Access denied: You can only archive documents you uploaded' 
             });
           }
-// NEW: Mark as completed action
-if (query.action === 'complete') {
-  const body = await parseJsonBody(req);
-  const { documentid } = body;
-  
-  if (!documentid) {
-    return res.status(400).json({ success: false, error: 'Document ID is required' });
-  }
-  
-  const docCheck = await pool.query(
-    `SELECT uploadedby, currentholder, title, status FROM documents WHERE documentid = $1`,
-    [documentid]
-  );
-  
-  if (docCheck.rows.length === 0) {
-    return res.status(404).json({ success: false, error: 'Document not found' });
-  }
-  
-  const doc = docCheck.rows[0];
-  
-  // Check if already completed
-  if (doc.status === 'completed') {
-    return res.status(400).json({ success: false, error: 'Document is already completed' });
-  }
-  
-  // Allow Owner, Current Holder, or Admin
-  if (doc.uploadedby !== userId && doc.currentholder !== userId && userRole !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Access denied: You can only complete documents you own or currently hold' });
-  }
-  
-  const completeQuery = `
-    UPDATE documents 
-    SET status = 'completed', completedat = NOW(), completedby = $1 
-    WHERE documentid = $2 
-    RETURNING documentid, title, status
-  `;
-  
-  const completeResult = await pool.query(completeQuery, [userId, documentid]);
-  
-  await logHistory(
-    documentid,
-    userId,
-    'Document Completed',
-    `Document "${sanitize(doc.title)}" was marked as completed`
-  );
-  
-  console.log(`Document ${documentid} marked as completed by user ${userId}`);
-  
-  return res.status(200).json({
-    success: true,
-    message: 'Document marked as completed successfully!',
-    document: completeResult.rows[0],
-  });
-}  // ← ADD THIS CLOSING BRACE AND RETURN STATEMENT
-
-// Archive action (separate if block)
-if (query.action === 'archive') {
-  const body = await parseJsonBody(req);
-  const { documentid } = body;
-
 
           const archiveQuery = `
             UPDATE documents 
@@ -674,15 +614,8 @@ if (query.action === 'archive') {
         const document_type = Array.isArray(fields.document_type) ? fields.document_type[0] : fields.document_type;
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
         const signatory = Array.isArray(fields.signatory) ? fields.signatory[0] : fields.signatory;
-        
-        // --- PATCHED: Extract Manual Document Number and convert empty to null ---
-        let raw_document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
-        let document_number = null;
-
-        // If it's not empty, sanitize it; otherwise leave it as null
-        if (raw_document_number && String(raw_document_number).trim() !== '') {
-          document_number = sanitize(raw_document_number);
-        }
+        // --- NEW: Extract Manual Document Number ---
+        const document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
 
         console.log('Parsed fields:', { document_number, title, document_type, priority, signatory, hasDescription: !!description });
 
@@ -704,21 +637,19 @@ if (query.action === 'archive') {
         if (!title || !document_type || !priority) {
           return res.status(400).json({
             success: false,
-            error: 'Title, Document type, and Priority are required',
+            error: 'Document number, Title, Document type, and Priority are required',
             received: { title: !!title, document_type: !!document_type, priority: !!priority, document_number: !!document_number }
           });
         }
 
-        // --- PATCHED: Check if Document Number already exists (only if provided) ---
-        if (document_number) {
-          const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [document_number]);
-          if (numCheck.rows.length > 0) {
-              // Cleanup uploaded file if it exists
-              if (uploadedFile && uploadedFile.filepath) {
-                  await fs.unlink(uploadedFile.filepath).catch(() => {});
-              }
-              return res.status(400).json({ success: false, error: 'Document Number already exists' });
-          }
+        // --- NEW: Check if Document Number already exists ---
+        const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
+        if (numCheck.rows.length > 0) {
+            // Cleanup uploaded file if it exists
+            if (uploadedFile && uploadedFile.filepath) {
+                await fs.unlink(uploadedFile.filepath).catch(() => {});
+            }
+            return res.status(400).json({ success: false, error: 'Document Number already exists' });
         }
 
         let megaFileId = null;
@@ -778,7 +709,7 @@ if (query.action === 'archive') {
           console.log('No file provided - creating document without attachment');
         }
 
-        // --- PATCHED: Insert Query with null-safe document_number ---
+        // --- UPDATED: Insert Query (Removed auto-generated DOC-${Date.now()}) ---
         const insertQuery = `
           INSERT INTO documents 
           (document_number, title, description, document_type, priority, signatory, file_path, mega_file_id, mega_link, file_size, uploaded_by, current_holder, status, is_archived, uploaded_at) 
@@ -787,12 +718,12 @@ if (query.action === 'archive') {
         `;
 
         const insertResult = await pool.query(insertQuery, [
-          document_number, // PATCHED: Pass null or value directly (already sanitized above)
+          sanitize(document_number), // Use manual input
           sanitize(title),
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
-          sanitize(signatory || ''),
+          sanitize(signatory || ''), // New signatory field
           fileName,
           megaFileId,
           megaLink,
@@ -805,12 +736,12 @@ if (query.action === 'archive') {
         // Log document creation to history
         const action = uploadedFile ? 'Document Uploaded' : 'Document Created';
         const details = uploadedFile 
-          ? `Document "${sanitize(title)}"${document_number ? ` (#${document_number})` : ''} uploaded with file: ${fileName} (${(fileSize / 1024).toFixed(2)} KB)`
-          : `Document "${sanitize(title)}"${document_number ? ` (#${document_number})` : ''} created without file attachment`;
+          ? `Document "${sanitize(title)}" (#${sanitize(document_number)}) uploaded with file: ${fileName} (${(fileSize / 1024).toFixed(2)} KB)`
+          : `Document "${sanitize(title)}" (#${sanitize(document_number)}) created without file attachment`;
         
         await logHistory(newDocId, userId, action, details);
 
-        console.log(`✓ Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}${document_number ? `: ${document_number}` : ''}`);
+        console.log(`✓ Document ${uploadedFile ? 'uploaded' : 'created'} successfully by user ${userId}: ${document_number}`);
 
         return res.status(201).json({
           success: true,
@@ -932,17 +863,10 @@ if (query.action === 'archive') {
       case 'PUT': {
         const body = await parseJsonBody(req);
         // --- UPDATED: Added document_number to destructuring ---
-        let { document_id, document_number, title, description, document_type, priority, signatory } = body;
+        const { document_id, document_number, title, description, document_type, priority, signatory } = body;
 
         if (!document_id) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
-        }
-        
-        // --- PATCHED: Sanitize update input and convert empty to null ---
-        if (!document_number || String(document_number).trim() === '') {
-            document_number = null;
-        } else {
-            document_number = sanitize(document_number);
         }
 
         // Verify ownership before updating
@@ -958,9 +882,9 @@ if (query.action === 'archive') {
           });
         }
 
-        // --- PATCHED: Check uniqueness only if document_number changed AND is not null ---
+        // --- NEW: Check uniqueness only if document_number changed ---
         if (document_number && document_number !== docCheck.rows[0].old_number) {
-            const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [document_number]);
+            const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
             if (numCheck.rows.length > 0) {
                return res.status(400).json({ success: false, error: 'Document Number already exists' });
             }
@@ -975,12 +899,12 @@ if (query.action === 'archive') {
         `;
 
         const updateResult = await pool.query(updateQuery, [
-          document_number, // PATCHED: Pass null or value directly
+          sanitize(document_number), // New Field
           sanitize(title),
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
-          sanitize(signatory || ''),
+          sanitize(signatory || ''), // New field
           document_id,
         ]);
 
@@ -989,7 +913,7 @@ if (query.action === 'archive') {
           document_id, 
           userId, 
           'Document Updated', 
-          `Document details updated: "${sanitize(title)}"${document_number ? ` (#${document_number})` : ''}`
+          `Document details updated: "${sanitize(title)}" (#${sanitize(document_number)})`
         );
 
         return res.status(200).json({
