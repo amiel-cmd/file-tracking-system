@@ -698,15 +698,18 @@ if (query.action === 'archive') {
           });
         }
 
-        // --- NEW: Check if Document Number already exists ---
-        const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
-        if (numCheck.rows.length > 0) {
-            // Cleanup uploaded file if it exists
-            if (uploadedFile && uploadedFile.filepath) {
-                await fs.unlink(uploadedFile.filepath).catch(() => {});
-            }
-            return res.status(400).json({ success: false, error: 'Document Number already exists' });
-        }
+     // --- FIXED: Check if Document Number already exists (only if provided and not empty) ---
+if (document_number && sanitize(document_number).trim() !== '') {
+  const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
+  if (numCheck.rows.length > 0) {
+      // Cleanup uploaded file if it exists
+      if (uploadedFile && uploadedFile.filepath) {
+          await fs.unlink(uploadedFile.filepath).catch(() => {});
+      }
+      return res.status(400).json({ success: false, error: 'Document Number already exists' });
+  }
+}
+
 
         let megaFileId = null;
         let megaLink = null;
