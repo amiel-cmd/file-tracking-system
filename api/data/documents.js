@@ -1,4 +1,4 @@
-/ Core imports
+// Core imports
 const pool = require('../db');
 const jwt = require('jsonwebtoken');
 const { Storage } = require('megajs');
