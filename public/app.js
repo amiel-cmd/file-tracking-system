@@ -422,18 +422,50 @@ const router = {
     }
   },
 
-  handleSearch(query) {
-    const term = query.toLowerCase();
-    this.filteredDocuments = this.allDocuments.filter(doc => 
-      doc.title.toLowerCase().includes(term) ||
-      (doc.description && doc.description.toLowerCase().includes(term)) ||
-      (doc.signatory && doc.signatory.toLowerCase().includes(term)) || // Added search by signatory
-      doc.document_number.toLowerCase().includes(term)
-    );
-    this.currentPage = 1; // Reset to page 1 on search
-    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+handleSearch(query) {
+  const asText = (v) => (v === null || v === undefined) ? '' : String(v).toLowerCase();
+
+  const keywords = asText(query)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  // If empty search, show all
+  if (keywords.length === 0) {
+    this.filteredDocuments = [...this.allDocuments];
+    this.currentPage = 1;
+    if (this.currentRoute === '/archives') this.renderArchivedDocuments();
     else this.renderDocuments();
-  },
+    return;
+  }
+
+  this.filteredDocuments = this.allDocuments.filter((doc) => {
+    // Combine ALL columns you want searchable here
+    const haystack = [
+      doc.documentnumber,
+      doc.document_number,     // just in case some API returns this
+      doc.title,
+      doc.description,
+      doc.documenttype,
+      doc.document_type,
+      doc.priority,
+      doc.status,
+      doc.signatory,
+      doc.currentdestination,
+      doc.uploadedbyname,
+      doc.uploadedbyusername,
+    ].map(asText).join(' | ');
+
+    // AND logic: every keyword must exist somewhere in the row
+    return keywords.every((kw) => haystack.includes(kw));
+  });
+
+  this.currentPage = 1;
+
+  // IMPORTANT: your code currently checks `archives` without slash in one spot
+  if (this.currentRoute === '/archives') this.renderArchivedDocuments();
+  else this.renderDocuments();
+}
 
   applyFilters() {
     const status = document.getElementById('statusFilter')?.value;
