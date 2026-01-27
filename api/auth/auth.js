@@ -8,8 +8,8 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-// Vercel serverless functions use default export
-export default async function handler(req, res) {
+// Vercel serverless functions use module.exports in CommonJS environments
+module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -36,12 +36,12 @@ export default async function handler(req, res) {
   try {
     // Vercel already parses JSON bodies into req.body
     body = req.body;
-    
+
     // If body is still string, parse it
     if (typeof body === 'string') {
       body = JSON.parse(body);
     }
-    
+
     // Validate body exists
     if (!body || typeof body !== 'object') {
       console.log('[AUTH] Invalid body received:', typeof body);
@@ -253,11 +253,4 @@ export default async function handler(req, res) {
     success: false, 
     error: `Unknown action: "${action}". Use "login" or "register".` 
   }));
-}
-
-// Vercel configuration (optional but recommended)
-export const config = {
-  api: {
-    bodyParser: true, // Keep true for JSON parsing
-  },
 };
