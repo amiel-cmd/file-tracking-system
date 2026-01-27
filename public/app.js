@@ -461,7 +461,6 @@ handleSearch(query) {
   });
 
   this.currentPage = 1;
-
   // IMPORTANT: your code currently checks `archives` without slash in one spot
   if (this.currentRoute === '/archives') this.renderArchivedDocuments();
   else this.renderDocuments();
