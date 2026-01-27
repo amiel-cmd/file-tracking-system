@@ -205,7 +205,7 @@ const editModal = {
                 <!-- NEW: Manual Document Number (Editable) -->
                 <div class="form-group">
                   <label class="form-label">Document Number</label>
-                  <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number}" >
+                  <input type="text" id="editDocNumber" class="form-control" value="${documentData.document_number || ''}" >
                 </div>
 
                 <div class="form-group">
@@ -308,9 +308,10 @@ const viewModal = {
           <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">${documentData.title}</h2>
-              <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem;">
-                Document #${documentData.document_number} • ${documentData.document_type} • Priority: ${documentData.priority === 'rush' ? 'RUSH' : 'Not Rush'}
-              </p>
+              <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem">
+  ${documentData.document_number ? `Document #${documentData.document_number} • ` : ''}${documentData.document_type} • Priority: ${documentData.priority === 'rush' ? '🔴 RUSH' : '✅ Not Rush'}
+</p>
+
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">Download</a>` : ''}
@@ -554,7 +555,7 @@ const router = {
           <tbody>
             ${paginatedDocs.map(doc => `
               <tr>
-                <td>${doc.document_number}</td>
+                <td>${doc.document_number || ''}</td>
                 <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
                   <div style="font-weight: 500; color: var(--color-text);">${doc.title}</div>
                   <div style="font-size: 0.85em; color: var(--color-text-secondary);">${doc.description ? (doc.description.substring(0, 50) + (doc.description.length>50?'...':'')) : ''}</div>
