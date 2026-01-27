@@ -643,15 +643,21 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // --- NEW: Check if Document Number already exists ---
-        const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
-        if (numCheck.rows.length > 0) {
-            // Cleanup uploaded file if it exists
-            if (uploadedFile && uploadedFile.filepath) {
-                await fs.unlink(uploadedFile.filepath).catch(() => {});
-            }
-            return res.status(400).json({ success: false, error: 'Document Number already exists' });
-        }
+    // 1. Extract and Handle Nulls
+let raw_document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
+let document_number = null;
+
+if (raw_document_number && String(raw_document_number).trim() !== '') {
+  document_number = sanitize(raw_document_number);
+}
+
+// 2. Conditional Uniqueness Check
+if (document_number) { // Only runs if NOT null
+  const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [document_number]);
+  if (numCheck.rows.length > 0) {
+      return res.status(400).json({ success: false, error: 'Document Number already exists' });
+  }
+}
 
         let megaFileId = null;
         let megaLink = null;
