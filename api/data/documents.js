@@ -482,7 +482,7 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, document: viewResult.rows[0] });
       }
 
-      case 'POST': {
+      case 'POST': { {
         // Check for special actions FIRST (these use JSON, not formidable)
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
@@ -616,7 +616,13 @@ module.exports = async function handler(req, res) {
         const priority = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
         const signatory = Array.isArray(fields.signatory) ? fields.signatory[0] : fields.signatory;
         // --- NEW: Extract Manual Document Number ---
-        const document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
+        // --- PATCHED: Extract and handle document_number with NULL support ---
+        let raw_document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
+        let document_number = null;
+
+        if (raw_document_number && String(raw_document_number).trim() !== '') {
+          document_number = sanitize(raw_document_number);
+        }
 
         console.log('Parsed fields:', { document_number, title, document_type, priority, signatory, hasDescription: !!description });
 
@@ -638,26 +644,22 @@ module.exports = async function handler(req, res) {
         if (!title || !document_type || !priority) {
           return res.status(400).json({
             success: false,
-            error: 'Document number, Title, Document type, and Priority are required',
+            error: 'Title, Document type, and Priority are required',
             received: { title: !!title, document_type: !!document_type, priority: !!priority, document_number: !!document_number }
           });
         }
 
-    // 1. Extract and Handle Nulls
-let raw_document_number = Array.isArray(fields.document_number) ? fields.document_number[0] : fields.document_number;
-let document_number = null;
-
-if (raw_document_number && String(raw_document_number).trim() !== '') {
-  document_number = sanitize(raw_document_number);
-}
-
-// 2. Conditional Uniqueness Check
-if (document_number) { // Only runs if NOT null
-  const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [document_number]);
-  if (numCheck.rows.length > 0) {
-      return res.status(400).json({ success: false, error: 'Document Number already exists' });
-  }
-}
+        // --- PATCHED: Check if Document Number already exists (only if provided) ---
+        if (document_number) {
+          const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [document_number]);
+          if (numCheck.rows.length > 0) {
+              // Cleanup uploaded file if it exists
+              if (uploadedFile && uploadedFile.filepath) {
+                  await fs.unlink(uploadedFile.filepath).catch(() => {});
+              }
+              return res.status(400).json({ success: false, error: 'Document Number already exists' });
+          }
+        }
 
         let megaFileId = null;
         let megaLink = null;
@@ -761,6 +763,8 @@ if (document_number) { // Only runs if NOT null
           storage: uploadedFile ? 'MEGA' : 'None',
           has_file: !!uploadedFile
         });
+      }
+
       }
 
       case 'PATCH': {
