@@ -894,7 +894,7 @@ module.exports = async function handler(req, res) {
           document: updateResult.rows[0],
         });
       }
-
+    }
 
           console.log(`✓ Document ${document_id} restored from archive by user ${userId}`);
 
