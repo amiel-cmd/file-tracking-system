@@ -503,10 +503,11 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ success: false, error: 'Access denied: only current holder can complete' });
   }
 
-  const done = await pool.query(
-    \"UPDATE documents SET status = 'completed', completed_at = NOW() WHERE document_id = $1 RETURNING *\",
-    [document_id]
-  );
+const done = await pool.query(
+  "UPDATE documents SET status = 'completed', completed_at = NOW() WHERE document_id = $1 RETURNING *",
+  [document_id]
+);
+
 
   await logHistory(document_id, userId, 'Document Completed', `Document \"${sanitize(docCheck.rows[0].title)}\" marked as completed`);
   return res.status(200).json({ success: true, message: 'Document marked as completed', document: done.rows[0] });
