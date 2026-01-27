@@ -1574,17 +1574,18 @@ window.completeDocument = async function(documentId, documentTitle) {
   }
 
   try {
-    const result = await api.request('data/documents?action=complete', {
+    const result = await api.request('/data/documents?action=complete', {
       method: 'POST',
       body: JSON.stringify({ documentid: documentId })
     });
     
     alert(result.message || 'Document marked as completed!');
-    router.handleRoute(); // Refresh the current page
+    router.handleRoute();
   } catch (error) {
     alert('Failed to complete document: ' + error.message);
   }
 };
+
 
 
 
