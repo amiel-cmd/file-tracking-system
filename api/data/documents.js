@@ -502,63 +502,66 @@ module.exports = async function handler(req, res) {
               error: 'Access denied: You can only archive documents you uploaded' 
             });
           }
-
-           // NEW: Mark as completed action
-  if (query.action === 'complete') {
-    const body = await parseJsonBody(req);
-    const { document_id } = body;
-
-    if (!document_id) {
-      return res.status(400).json({ success: false, error: 'Document ID is required' });
-    }
-
-    const docCheck = await pool.query('SELECT uploaded_by, current_holder, title, status FROM documents WHERE document_id = $1', [document_id]);
-    if (docCheck.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Document not found' });
-    }
-    
-    const doc = docCheck.rows[0];
-    
-    // Check if already completed
-    if (doc.status === 'completed') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Document is already completed' 
-      });
-    }
-    
-    // Allow: Owner, Current Holder, or Admin
-    if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Access denied: You can only complete documents you own or currently hold' 
-      });
-    }
-
-    const completeQuery = `
-      UPDATE documents 
-      SET status = 'completed', completed_at = NOW(), completed_by = $1 
-      WHERE document_id = $2 
-      RETURNING document_id, title, status
-    `;
-
-    const completeResult = await pool.query(completeQuery, [userId, document_id]);
-
-    await logHistory(
-      document_id, 
-      userId, 
-      'Document Completed', 
-      `Document "${sanitize(doc.title)}" was marked as completed`
-    );
-
-    console.log(`✓ Document ${document_id} marked as completed by user ${userId}`);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Document marked as completed successfully!',
-      document: completeResult.rows[0],
-    });
+// NEW: Mark as completed action
+if (query.action === 'complete') {
+  const body = await parseJsonBody(req);
+  const { documentid } = body;
+  
+  if (!documentid) {
+    return res.status(400).json({ success: false, error: 'Document ID is required' });
   }
+  
+  const docCheck = await pool.query(
+    `SELECT uploadedby, currentholder, title, status FROM documents WHERE documentid = $1`,
+    [documentid]
+  );
+  
+  if (docCheck.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Document not found' });
+  }
+  
+  const doc = docCheck.rows[0];
+  
+  // Check if already completed
+  if (doc.status === 'completed') {
+    return res.status(400).json({ success: false, error: 'Document is already completed' });
+  }
+  
+  // Allow Owner, Current Holder, or Admin
+  if (doc.uploadedby !== userId && doc.currentholder !== userId && userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Access denied: You can only complete documents you own or currently hold' });
+  }
+  
+  const completeQuery = `
+    UPDATE documents 
+    SET status = 'completed', completedat = NOW(), completedby = $1 
+    WHERE documentid = $2 
+    RETURNING documentid, title, status
+  `;
+  
+  const completeResult = await pool.query(completeQuery, [userId, documentid]);
+  
+  await logHistory(
+    documentid,
+    userId,
+    'Document Completed',
+    `Document "${sanitize(doc.title)}" was marked as completed`
+  );
+  
+  console.log(`Document ${documentid} marked as completed by user ${userId}`);
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Document marked as completed successfully!',
+    document: completeResult.rows[0],
+  });
+}  // ← ADD THIS CLOSING BRACE AND RETURN STATEMENT
+
+// Archive action (separate if block)
+if (query.action === 'archive') {
+  const body = await parseJsonBody(req);
+  const { documentid } = body;
+
 
           const archiveQuery = `
             UPDATE documents 
