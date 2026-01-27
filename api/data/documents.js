@@ -480,6 +480,38 @@ module.exports = async function handler(req, res) {
       }
 
             case 'POST': {
+
+              if (query.action === 'complete') {
+  const body = await parseJsonBody(req);
+  const { document_id } = body;
+
+  if (!document_id) {
+    return res.status(400).json({ success: false, error: 'Document ID is required' });
+  }
+
+  // Only current holder (or admin) can complete
+  const docCheck = await pool.query(
+    'SELECT current_holder, uploaded_by, title FROM documents WHERE document_id = $1',
+    [document_id]
+  );
+
+  if (docCheck.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Document not found' });
+  }
+
+  if (docCheck.rows[0].current_holder !== userId && userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Access denied: only current holder can complete' });
+  }
+
+  const done = await pool.query(
+    \"UPDATE documents SET status = 'completed', completed_at = NOW() WHERE document_id = $1 RETURNING *\",
+    [document_id]
+  );
+
+  await logHistory(document_id, userId, 'Document Completed', `Document \"${sanitize(docCheck.rows[0].title)}\" marked as completed`);
+  return res.status(200).json({ success: true, message: 'Document marked as completed', document: done.rows[0] });
+}
+
         // Check for special actions FIRST (these use JSON, not formidable)
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
