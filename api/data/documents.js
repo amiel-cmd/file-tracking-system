@@ -1,3 +1,4 @@
+
 // api/data/documents.js - COMPLETE & PATCHED (Manual Document Number & New Priority)
 
 // Core imports
@@ -483,63 +484,7 @@ module.exports = async function handler(req, res) {
 
       case 'POST': {
         // Check for special actions FIRST (these use JSON, not formidable)
-        
-        // NEW: Mark as completed action
-        if (query.action === 'complete') {
-          const body = await parseJsonBody(req);
-          const { document_id } = body;
-
-          if (!document_id) {
-            return res.status(400).json({ success: false, error: 'Document ID is required' });
-          }
-
-          const docCheck = await pool.query(
-            `SELECT uploaded_by, current_holder, title, status FROM documents WHERE document_id = $1`,
-            [document_id]
-          );
-
-          if (docCheck.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Document not found' });
-          }
-
-          const doc = docCheck.rows[0];
-
-          // Check if already completed
-          if (doc.status === 'completed') {
-            return res.status(400).json({ success: false, error: 'Document is already completed' });
-          }
-
-          // Allow Owner, Current Holder, or Admin
-          if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-            return res.status(403).json({ success: false, error: 'Access denied: You can only complete documents you own or currently hold' });
-          }
-
-          const completeQuery = `
-            UPDATE documents 
-            SET status = 'completed', completed_at = NOW(), completed_by = $1 
-            WHERE document_id = $2 
-            RETURNING document_id, title, status
-          `;
-
-          const completeResult = await pool.query(completeQuery, [userId, document_id]);
-
-          await logHistory(
-            document_id,
-            userId,
-            'Document Completed',
-            `Document "${sanitize(doc.title)}" was marked as completed`
-          );
-
-          console.log(`✓ Document ${document_id} marked as completed by user ${userId}`);
-
-          return res.status(200).json({
-            success: true,
-            message: 'Document marked as completed successfully!',
-            document: completeResult.rows[0],
-          });
-        }
-
-if (query.action === 'archive') {
+        if (query.action === 'archive') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
 
@@ -698,18 +643,15 @@ if (query.action === 'archive') {
           });
         }
 
-     // --- FIXED: Check if Document Number already exists (only if provided and not empty) ---
-if (document_number && sanitize(document_number).trim() !== '') {
-  const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
-  if (numCheck.rows.length > 0) {
-      // Cleanup uploaded file if it exists
-      if (uploadedFile && uploadedFile.filepath) {
-          await fs.unlink(uploadedFile.filepath).catch(() => {});
-      }
-      return res.status(400).json({ success: false, error: 'Document Number already exists' });
-  }
-}
-
+        // --- NEW: Check if Document Number already exists ---
+        const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
+        if (numCheck.rows.length > 0) {
+            // Cleanup uploaded file if it exists
+            if (uploadedFile && uploadedFile.filepath) {
+                await fs.unlink(uploadedFile.filepath).catch(() => {});
+            }
+            return res.status(400).json({ success: false, error: 'Document Number already exists' });
+        }
 
         let megaFileId = null;
         let megaLink = null;
