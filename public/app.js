@@ -575,15 +575,15 @@ const router = {
                   </span>
                 </td>
                 <td>${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
-             <td style="text-align: right">
+           <td style="text-align: right">
   <div style="display: flex; gap: 4px; justify-content: flex-end">
     <button onclick="viewDocument(${doc.document_id})" class="btn" title="View">👁️</button>
     <button onclick="editDocument(${doc.document_id})" class="btn" title="Edit">✏️</button>
-    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')}" class="btn" title="Route">📤</button>
-    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')}" class="btn" title="History">📜</button>
+    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Route">📤</button>
+    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="History">📜</button>
     
     ${doc.status !== 'completed' ? `
-      <button onclick="completeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')}" class="btn" title="Mark as Complete" style="background: #10b981; color: white">✓</button>
+      <button onclick="completeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Mark as Complete" style="background: #10b981; color: white">✓</button>
     ` : ''}
     
     ${doc.is_archived ? `
@@ -592,10 +592,9 @@ const router = {
       <button onclick="archiveDocument(${doc.document_id})" class="btn" title="Archive">📦</button>
     `}
     
-    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')}" class="btn" title="Delete">🗑️</button>
+    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Delete">🗑️</button>
   </div>
 </td>
-
 
               </tr>
             `).join('')}
