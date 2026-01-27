@@ -1576,7 +1576,7 @@ window.completeDocument = async function(documentId, documentTitle) {
   try {
     const result = await api.request('data/documents?action=complete', {
       method: 'POST',
-      body: JSON.stringify({ document_id: documentId })
+      body: JSON.stringify({ documentid: documentId })
     });
     
     alert(result.message || 'Document marked as completed!');
