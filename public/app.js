@@ -585,6 +585,9 @@ const router = {
                       `<button onclick="restoreDocument('${doc.document_id}')" class="btn" title="Restore">♻️</button>` : 
                       `<button onclick="archiveDocument('${doc.document_id}')" class="btn" title="Archive">📂</button>`
                     }
+                       ${doc.status !== 'completed' ? `
+      <button onclick="completeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')}" class="btn" title="Mark as Complete" style="background: #10b981; color: white">✓</button>
+    ` : ''}
                     <button onclick="deleteDocument('${doc.document_id}', '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Delete">🗑️</button>
                   </div>
                 </td>
@@ -1557,6 +1560,25 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx'){
 
     const wb = XLSX.utils.table_to_book(clone, {sheet: "Sheet1"});
     XLSX.writeFile(wb, filename);
+};
+
+// Mark document as completed
+window.completeDocument = async function(documentId, documentTitle) {
+  if (!confirm(`Mark "${documentTitle}" as COMPLETED?`)) {
+    return;
+  }
+
+  try {
+    const result = await api.request(`data/documents/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ document_id: documentId })
+    });
+
+    alert(result.message || 'Document marked as completed!');
+    router.handleRoute(); // Refresh the current page
+  } catch (error) {
+    alert('Failed to complete document: ' + error.message);
+  }
 };
 
 
