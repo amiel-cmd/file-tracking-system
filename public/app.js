@@ -1567,7 +1567,6 @@ window.downloadTableToExcel = function(tableId, filename = 'export.xlsx'){
     XLSX.writeFile(wb, filename);
 };
 
-// Mark document as completed
 window.completeDocument = async function(documentId, documentTitle) {
   if (!confirm(`Mark "${documentTitle}" as COMPLETED?`)) {
     return;
@@ -1576,7 +1575,7 @@ window.completeDocument = async function(documentId, documentTitle) {
   try {
     const result = await api.request('/data/documents?action=complete', {
       method: 'POST',
-      body: JSON.stringify({ documentid: documentId })
+      body: JSON.stringify({ document_id: documentId })  // ✅ CORRECT - with underscore
     });
     
     alert(result.message || 'Document marked as completed!');
@@ -1585,6 +1584,7 @@ window.completeDocument = async function(documentId, documentTitle) {
     alert('Failed to complete document: ' + error.message);
   }
 };
+
 
 
 
