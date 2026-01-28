@@ -21,14 +21,14 @@ const rateLimitMap = new Map();
 function checkRateLimit(userId) {
   const now = Date.now();
   const userRequests = rateLimitMap.get(userId) || [];
-  
+
   // Keep only requests from last minute
   const recentRequests = userRequests.filter(time => now - time < 60000);
-  
+
   if (recentRequests.length >= 20) { // Max 20 requests per minute
     return false;
   }
-  
+
   recentRequests.push(now);
   rateLimitMap.set(userId, recentRequests);
   return true;
@@ -76,14 +76,14 @@ function validateFile(file) {
   // Check file extension
   const fileName = file.originalFilename || file.newFilename;
   const ext = fileName.toLowerCase().split('.').pop();
-  
+
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return {
       valid: false,
       error: `File extension '.${ext}' is not allowed. Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`
     };
   }
-  
+
   // Check MIME type
   const mimeType = file.mimetype;
   if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
@@ -92,7 +92,7 @@ function validateFile(file) {
       error: `File type '${mimeType}' is not allowed for security reasons`
     };
   }
-  
+
   return { valid: true };
 }
 
@@ -114,17 +114,17 @@ const getMegaStorage = async () => {
 const findMegaFile = async (storage, nodeId) => {
   // Search through all files in storage
   const files = storage.root.children || [];
-  
+
   for (const file of files) {
     if (file.nodeId === nodeId) {
       return file;
     }
   }
-  
+
   // If not found in root, search recursively
   const searchInFolder = (folder) => {
     if (!folder.children) return null;
-    
+
     for (const item of folder.children) {
       if (item.nodeId === nodeId) {
         return item;
@@ -136,7 +136,7 @@ const findMegaFile = async (storage, nodeId) => {
     }
     return null;
   };
-  
+
   return searchInFolder(storage.root);
 };
 
@@ -224,9 +224,9 @@ module.exports = async function handler(req, res) {
   // STEP 5: Check Rate Limit
   if (!checkRateLimit(userId)) {
     console.log(`Rate limit exceeded for user ${userId} from IP ${getClientIp(req)}`);
-    return res.status(429).json({ 
-      success: false, 
-      error: 'Too many requests. Please try again later.' 
+    return res.status(429).json({
+      success: false,
+      error: 'Too many requests. Please try again later.'
     });
   }
 
@@ -234,7 +234,7 @@ module.exports = async function handler(req, res) {
     switch (method) {
       case 'GET': {
         const documentId = query.id || query.document_id;
-        
+
         // --- NEW: Admin endpoint to get ALL documents ---
         if (query.all === 'true') {
           if (userRole !== 'admin') {
@@ -253,18 +253,17 @@ module.exports = async function handler(req, res) {
               ORDER BY d.uploaded_at DESC
             `;
             const result = await pool.query(allDocsQuery);
-            
+
             return res.status(200).json({
               success: true,
               documents: result.rows
             });
           } catch (error) {
             console.error('Error fetching all documents:', error);
-            // Log the actual SQL error to console for debugging
-            return res.status(500).json({ 
-              success: false, 
+            return res.status(500).json({
+              success: false,
               error: 'Failed to fetch all documents',
-              details: error.message 
+              details: error.message
             });
           }
         }
@@ -275,7 +274,7 @@ module.exports = async function handler(req, res) {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
-          
+
           try {
             // Get document history
             const historyQuery = `SELECT dh.*, 
@@ -285,9 +284,9 @@ module.exports = async function handler(req, res) {
                           LEFT JOIN users u ON dh.user_id = u.user_id
                           WHERE dh.document_id = $1
                           ORDER BY dh.created_at DESC`;
-            
+
             const historyResult = await pool.query(historyQuery, [documentId]);
-            
+
             // Get routing history
             const routingQuery = `SELECT dr.*, 
                                 u_from.full_name as from_user_name,
@@ -297,30 +296,30 @@ module.exports = async function handler(req, res) {
                                 LEFT JOIN users u_to ON dr.to_user_id = u_to.user_id
                                 WHERE dr.document_id = $1
                                 ORDER BY dr.routed_at DESC`;
-            
+
             const routingResult = await pool.query(routingQuery, [documentId]);
-            
+
             return res.status(200).json({
-                success: true,
-                history: historyResult.rows,
-                routing: routingResult.rows
+              success: true,
+              history: historyResult.rows,
+              routing: routingResult.rows
             });
           } catch (error) {
             console.error('Document history error:', error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Failed to fetch document history',
-                message: error.message 
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to fetch document history',
+              message: error.message
             });
           }
         }
-        
+
         // Handle history query parameter (backwards compatibility)
         if (query.history === 'true') {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
-          
+
           try {
             const historyQuery = `SELECT dh.*, 
                           u.full_name as user_name,
@@ -329,9 +328,9 @@ module.exports = async function handler(req, res) {
                           LEFT JOIN users u ON dh.user_id = u.user_id
                           WHERE dh.document_id = $1
                           ORDER BY dh.created_at DESC`;
-            
+
             const historyResult = await pool.query(historyQuery, [documentId]);
-            
+
             const routingQuery = `SELECT dr.*, 
                                 u_from.full_name as from_user_name,
                                 u_to.full_name as to_user_name
@@ -340,348 +339,175 @@ module.exports = async function handler(req, res) {
                                 LEFT JOIN users u_to ON dr.to_user_id = u_to.user_id
                                 WHERE dr.document_id = $1
                                 ORDER BY dr.routed_at DESC`;
-            
+
             const routingResult = await pool.query(routingQuery, [documentId]);
-            
+
             return res.status(200).json({
-                success: true,
-                history: historyResult.rows,
-                routing: routingResult.rows
+              success: true,
+              history: historyResult.rows,
+              routing: routingResult.rows
             });
           } catch (error) {
             console.error('Document history error:', error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Failed to fetch document history',
-                message: error.message 
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to fetch document history',
+              message: error.message
             });
           }
         }
-        
+
         // If view=true, fetch from MEGA and display inline (for preview)
         if (query.view === 'true') {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
-          
+
           const docResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
           if (docResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found' });
           }
-          
+
           const doc = docResult.rows[0];
-          
+
           // Check if document has a file
           if (!doc.mega_file_id) {
-            return res.status(404).json({ 
-              success: false, 
-              error: 'This document has no attached file' 
+            return res.status(404).json({
+              success: false,
+              error: 'This document has no attached file'
             });
           }
-          
-          // NO ACCESS CONTROL - Everyone can view documents
-          
+
           // View/Preview from MEGA
           try {
             const storage = await getMegaStorage();
             const file = await findMegaFile(storage, doc.mega_file_id);
-            
+
             if (!file) {
               console.error('File not found in MEGA:', doc.mega_file_id);
               return res.status(404).json({ success: false, error: 'File not found in MEGA storage' });
             }
-            
+
             const buffer = await file.downloadBuffer();
-            
+
             const mimeType = getMimeType(doc.file_path);
             const ext = doc.file_path ? doc.file_path.toLowerCase().split('.').pop() : '';
-            
+
             // Set proper headers for inline viewing
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Content-Disposition', `inline; filename="${doc.file_path || 'document'}"`);
             res.setHeader('Content-Length', buffer.length);
-            
+
             // For Office documents, add CORS headers to allow Google Docs Viewer
             if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.setHeader('Access-Control-Allow-Methods', 'GET');
             }
-            
+
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA view failed:', error);
             return res.status(500).json({ success: false, error: 'Failed to view file from MEGA', details: error.message });
           }
         }
-        
+
         // If download=true, fetch from MEGA and return file for download
         if (query.download === 'true') {
           if (!documentId) {
             return res.status(400).json({ success: false, error: 'Document ID is required' });
           }
-          
+
           const docResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
           if (docResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Document not found' });
           }
-          
+
           const doc = docResult.rows[0];
-          
+
           // Check if document has a file
           if (!doc.mega_file_id) {
-            return res.status(404).json({ 
-              success: false, 
-              error: 'This document has no attached file' 
+            return res.status(404).json({
+              success: false,
+              error: 'This document has no attached file'
             });
           }
-          
-          // NO ACCESS CONTROL - Everyone can download documents
-          
+
           // Download from MEGA
           try {
             const storage = await getMegaStorage();
             const file = await findMegaFile(storage, doc.mega_file_id);
-            
+
             if (!file) {
               console.error('File not found in MEGA:', doc.mega_file_id);
               return res.status(404).json({ success: false, error: 'File not found in MEGA storage' });
             }
-            
+
             const buffer = await file.downloadBuffer();
-            
+
             const mimeType = getMimeType(doc.file_path);
-            
+
             // Set proper headers for file download
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Content-Disposition', `attachment; filename="${doc.file_path || 'document'}"`);
             res.setHeader('Content-Length', buffer.length);
             res.setHeader('Cache-Control', 'no-cache');
-            
+
             return res.send(buffer);
           } catch (error) {
             console.error('MEGA download failed:', error);
             return res.status(500).json({ success: false, error: 'Failed to download from MEGA', details: error.message });
           }
         }
-        
+
         // Otherwise return document metadata
         if (!documentId) {
           return res.status(400).json({ success: false, error: 'Document ID is required' });
         }
-        
+
         const viewResult = await pool.query('SELECT * FROM documents WHERE document_id = $1', [documentId]);
         if (viewResult.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
-        
-        // NO ACCESS CONTROL - Everyone can view document metadata
-        
+
         return res.status(200).json({ success: true, document: viewResult.rows[0] });
       }
 
-            case 'POST': {
+      case 'POST': {
+        // ---------------------------
+        // Special JSON actions first
+        // ---------------------------
 
-              // --- NEW ACTION: Replace attached file for an existing document ---
-// Usage: POST /api/documents?action=replaceFile  (multipart/form-data with field: documentid, file)
-// Rules: only uploader or admin can replace; replaces MEGA file, updates DB, logs history.
+        if (query.action === 'complete') {
+          const body = await parseJsonBody(req);
+          const { document_id } = body;
 
-if (query.action === "replaceFile") {
-  // Parse multipart (needs formidable)
-  let fields, files;
-  try {
-    const form = formidable({
-      maxFileSize: 10 * 1024 * 1024, // 10MB
-      uploadDir: "/tmp",
-      keepExtensions: true,
-      multiples: false,
-      allowEmptyFiles: false, // replacing requires a real file
-      minFileSize: 1,         // must not be 0-byte
-    });
+          if (!document_id) {
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
 
-    [fields, files] = await new Promise((resolve, reject) => {
-      form.parse(req, (err, f, fls) => {
-        if (err) return reject(err);
-        resolve([f, fls]);
-      });
-    });
-  } catch (parseError) {
-    return res.status(400).json({
-      success: false,
-      error: "Failed to parse form data",
-      message: parseError.message,
-    });
-  }
+          // Only current holder (or admin) can complete
+          const docCheck = await pool.query(
+            'SELECT current_holder, uploaded_by, title FROM documents WHERE document_id = $1',
+            [document_id]
+          );
 
-  const rawDocumentId = Array.isArray(fields.documentid)
-    ? fields.documentid[0]
-    : fields.documentid;
+          if (docCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
 
-  const documentid = rawDocumentId ? Number(rawDocumentId) : null;
-  if (!documentid) {
-    // cleanup temp file if present
-    const tmp = files?.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
-    if (tmp?.filepath) await fs.unlink(tmp.filepath).catch(() => {});
-    return res.status(400).json({ success: false, error: "Document ID is required" });
-  }
+          if (docCheck.rows[0].current_holder !== userId && userRole !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Access denied: only current holder can complete' });
+          }
 
-  // Extract file
-  let uploadedFile = files.file
-    ? (Array.isArray(files.file) ? files.file[0] : files.file)
-    : null;
+          const done = await pool.query(
+            "UPDATE documents SET status = 'completed', completed_at = NOW() WHERE document_id = $1 RETURNING *",
+            [document_id]
+          );
 
-  if (!uploadedFile || !uploadedFile.filepath || uploadedFile.size <= 0) {
-    if (uploadedFile?.filepath) await fs.unlink(uploadedFile.filepath).catch(() => {});
-    return res.status(400).json({ success: false, error: "A valid file is required for replacement" });
-  }
+          await logHistory(document_id, userId, 'Document Completed', `Document "${sanitize(docCheck.rows[0].title)}" marked as completed`);
+          return res.status(200).json({ success: true, message: 'Document marked as completed', document: done.rows[0] });
+        }
 
-  // Validate type (reuse your existing validateFile)
-  const validation = validateFile(uploadedFile);
-  if (!validation.valid) {
-    await fs.unlink(uploadedFile.filepath).catch(() => {});
-    return res.status(400).json({ success: false, error: validation.error });
-  }
-
-  // Verify doc exists + permission
-  const docRes = await pool.query(
-    "SELECT documentid, title, uploadedby, megafileid FROM documents WHERE documentid = $1",
-    [documentid]
-  );
-
-  if (docRes.rows.length === 0) {
-    await fs.unlink(uploadedFile.filepath).catch(() => {});
-    return res.status(404).json({ success: false, error: "Document not found" });
-  }
-
-  const doc = docRes.rows[0];
-
-  if (doc.uploadedby !== userId && userRole !== "admin") {
-    await fs.unlink(uploadedFile.filepath).catch(() => {});
-    return res.status(403).json({
-      success: false,
-      error: "Access denied. You can only replace files for documents you uploaded.",
-    });
-  }
-
-  // Upload new file to MEGA first (safer: only delete old after new upload succeeds)
-  const fileName = uploadedFile.originalFilename || uploadedFile.newFilename || "document";
-  const fileSize = uploadedFile.size;
-
-  let newMegaFileId = null;
-  let newMegaLink = null;
-
-  try {
-    const storage = await getMegaStorage();
-    const fileBuffer = await fs.readFile(uploadedFile.filepath);
-
-    const uploadedMegaFile = await storage.upload(
-      { name: fileName, size: fileBuffer.length },
-      fileBuffer
-    ).complete;
-
-    newMegaFileId = uploadedMegaFile.nodeId;
-    newMegaLink = uploadedMegaFile.link;
-  } catch (err) {
-    await fs.unlink(uploadedFile.filepath).catch(() => {});
-    return res.status(500).json({
-      success: false,
-      error: "Failed to upload to MEGA storage",
-      message: err.message,
-    });
-  } finally {
-    // remove temp file
-    await fs.unlink(uploadedFile.filepath).catch(() => {});
-  }
-
-  // Delete old MEGA file (best-effort; if it fails, we stop to avoid DB pointing to new file while old still exists? up to you)
-  // Here we choose "fail hard" like your DELETE does, to avoid inconsistent state policies.
-  if (doc.megafileid) {
-    try {
-      const storage = await getMegaStorage();
-      const oldFile = await findMegaFile(storage, doc.megafileid);
-      if (oldFile) {
-        await oldFile.delete();
-      }
-    } catch (err) {
-      // If old delete fails, also delete the newly uploaded file to keep storage clean
-      try {
-        const storage = await getMegaStorage();
-        const newFile = await findMegaFile(storage, newMegaFileId);
-        if (newFile) await newFile.delete();
-      } catch (_) {}
-
-      return res.status(500).json({
-        success: false,
-        error: "Failed to delete old file from MEGA storage",
-        details: err.message,
-        message: "Replacement was aborted to maintain consistency. Please try again.",
-      });
-    }
-  }
-
-  // Update DB to point to new file
-  const updateRes = await pool.query(
-    `UPDATE documents
-     SET filepath = $1,
-         megafileid = $2,
-         megalink = $3,
-         filesize = $4
-     WHERE documentid = $5
-     RETURNING documentid, title, filepath, megafileid, megalink, filesize`,
-    [sanitize(fileName), newMegaFileId, newMegaLink, fileSize, documentid]
-  );
-
-  await logHistory(
-    documentid,
-    userId,
-    "File Replaced",
-    `File replaced for document ${sanitize(doc.title)}; new file: ${sanitize(fileName)} (${(fileSize / 1024).toFixed(2)} KB)`
-  );
-
-  return res.status(200).json({
-    success: true,
-    message: "File replaced successfully!",
-    document: updateRes.rows[0],
-    filename: fileName,
-    filesize: fileSize,
-    storage: "MEGA",
-    hasfile: true,
-  });
-}
-
-
-              if (query.action === 'complete') {
-  const body = await parseJsonBody(req);
-  const { document_id } = body;
-
-  if (!document_id) {
-    return res.status(400).json({ success: false, error: 'Document ID is required' });
-  }
-
-  // Only current holder (or admin) can complete
-  const docCheck = await pool.query(
-    'SELECT current_holder, uploaded_by, title FROM documents WHERE document_id = $1',
-    [document_id]
-  );
-
-  if (docCheck.rows.length === 0) {
-    return res.status(404).json({ success: false, error: 'Document not found' });
-  }
-
-  if (docCheck.rows[0].current_holder !== userId && userRole !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Access denied: only current holder can complete' });
-  }
-
-const done = await pool.query(
-  "UPDATE documents SET status = 'completed', completed_at = NOW() WHERE document_id = $1 RETURNING *",
-  [document_id]
-);
-
-
-  await logHistory(document_id, userId, 'Document Completed', `Document \"${sanitize(docCheck.rows[0].title)}\" marked as completed`);
-  return res.status(200).json({ success: true, message: 'Document marked as completed', document: done.rows[0] });
-}
-
-        // Check for special actions FIRST (these use JSON, not formidable)
         if (query.action === 'archive') {
           const body = await parseJsonBody(req);
           const { document_id } = body;
@@ -784,6 +610,186 @@ const done = await pool.query(
             document: restoreResult.rows[0],
           });
         }
+
+        // ---------------------------------------------------------
+        // NEW: replaceFile action (multipart/form-data + MEGA)
+        // ---------------------------------------------------------
+        if (query.action === 'replaceFile') {
+          let fields, files;
+
+          // Parse multipart form-data
+          try {
+            const form = formidable({
+              maxFileSize: 10 * 1024 * 1024, // 10MB
+              uploadDir: '/tmp',
+              keepExtensions: true,
+              multiples: false,
+              allowEmptyFiles: false, // MUST provide a real file
+              minFileSize: 1,
+            });
+
+            [fields, files] = await new Promise((resolve, reject) => {
+              form.parse(req, (err, f, fls) => {
+                if (err) {
+                  console.error('Formidable parse error:', err);
+                  return reject(err);
+                }
+                resolve([f, fls]);
+              });
+            });
+          } catch (parseError) {
+            console.error('ReplaceFile form parsing failed:', parseError);
+            return res.status(400).json({
+              success: false,
+              error: 'Failed to parse form data',
+              message: parseError.message,
+            });
+          }
+
+          const rawDocId =
+            (Array.isArray(fields.document_id) ? fields.document_id[0] : fields.document_id) ||
+            (Array.isArray(fields.id) ? fields.id[0] : fields.id);
+
+          const document_id = rawDocId ? Number(rawDocId) : null;
+
+          let uploadedFile = files.file
+            ? (Array.isArray(files.file) ? files.file[0] : files.file)
+            : null;
+
+          if (!document_id) {
+            if (uploadedFile?.filepath) await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(400).json({ success: false, error: 'Document ID is required' });
+          }
+
+          if (!uploadedFile || !uploadedFile.filepath || uploadedFile.size <= 0) {
+            if (uploadedFile?.filepath) await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(400).json({ success: false, error: 'A valid file is required' });
+          }
+
+          // Validate file type
+          const validation = validateFile(uploadedFile);
+          if (!validation.valid) {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(400).json({ success: false, error: validation.error });
+          }
+
+          // Fetch document + permission
+          const docRes = await pool.query(
+            'SELECT document_id, title, uploaded_by, mega_file_id FROM documents WHERE document_id = $1',
+            [document_id]
+          );
+
+          if (docRes.rows.length === 0) {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(404).json({ success: false, error: 'Document not found' });
+          }
+
+          const doc = docRes.rows[0];
+
+          if (doc.uploaded_by !== userId && userRole !== 'admin') {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(403).json({
+              success: false,
+              error: 'Access denied: You can only replace files for documents you uploaded',
+            });
+          }
+
+          // Upload new file to MEGA FIRST
+          const fileName = uploadedFile.originalFilename || uploadedFile.newFilename || 'document';
+          const fileSize = uploadedFile.size;
+
+          let newMegaFileId = null;
+          let newMegaLink = null;
+
+          try {
+            const storage = await getMegaStorage();
+            const fileBuffer = await fs.readFile(uploadedFile.filepath);
+
+            const uploadedMegaFile = await storage.upload(
+              { name: fileName, size: fileBuffer.length },
+              fileBuffer
+            ).complete;
+
+            newMegaFileId = uploadedMegaFile.nodeId;
+            newMegaLink = uploadedMegaFile.link();
+          } catch (error) {
+            console.error('MEGA upload failed (replaceFile):', error);
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to upload to MEGA storage',
+              message: error.message,
+            });
+          } finally {
+            await fs.unlink(uploadedFile.filepath).catch(() => {});
+          }
+
+          // Delete old MEGA file (if exists). If this fails, rollback new file to avoid leaks.
+          if (doc.mega_file_id) {
+            try {
+              const storage = await getMegaStorage();
+              const oldFile = await findMegaFile(storage, doc.mega_file_id);
+
+              if (oldFile) {
+                await oldFile.delete();
+                console.log(`✓ Old MEGA file deleted: ${doc.mega_file_id}`);
+              } else {
+                console.log(`⚠ Old MEGA file not found (may already be deleted): ${doc.mega_file_id}`);
+              }
+            } catch (error) {
+              console.error('MEGA old file deletion failed (replaceFile):', error);
+
+              // rollback newly uploaded file
+              try {
+                const storage = await getMegaStorage();
+                const newFile = await findMegaFile(storage, newMegaFileId);
+                if (newFile) await newFile.delete();
+              } catch (rollbackErr) {
+                console.warn('Rollback delete of new MEGA file failed:', rollbackErr.message);
+              }
+
+              return res.status(500).json({
+                success: false,
+                error: 'Failed to delete old file from MEGA storage',
+                details: error.message,
+                message: 'Replacement aborted to maintain consistency. Please try again.',
+              });
+            }
+          }
+
+          // Update DB to point to new MEGA file
+          const updateRes = await pool.query(
+            `UPDATE documents
+             SET file_path = $1,
+                 mega_file_id = $2,
+                 mega_link = $3,
+                 file_size = $4
+             WHERE document_id = $5
+             RETURNING document_id, document_number, title, document_type, priority, signatory, status, uploaded_at, file_path, mega_file_id, mega_link, file_size`,
+            [sanitize(fileName), newMegaFileId, newMegaLink, fileSize, document_id]
+          );
+
+          await logHistory(
+            document_id,
+            userId,
+            'File Replaced',
+            `File replaced for "${sanitize(doc.title)}" with: ${sanitize(fileName)} (${(fileSize / 1024).toFixed(2)} KB)`
+          );
+
+          return res.status(200).json({
+            success: true,
+            message: 'File replaced successfully!',
+            document: updateRes.rows[0],
+            file_name: fileName,
+            file_size: fileSize,
+            storage: 'MEGA',
+            has_file: true,
+          });
+        }
+
+        // ----------------------------------------
+        // Default POST = create new document upload
+        // ----------------------------------------
 
         // File upload using formidable + MEGA
         let fields, files;
@@ -937,7 +943,6 @@ const done = await pool.query(
 
             megaFileId = uploadedMegaFile.nodeId;
             megaLink = uploadedMegaFile.link();
-
             await fs.unlink(uploadedFile.filepath).catch(() => {});
             console.log(`✓ File uploaded to MEGA: ${fileName}`);
           } catch (error) {
@@ -1007,7 +1012,6 @@ const done = await pool.query(
       case 'PATCH': {
         // Route document with TEXT-BASED destination OR user-based routing
         const body = await parseJsonBody(req);
-        // --- UPDATED: Added remarks to destructuring ---
         const { document_id, new_holder, destination_text, remarks } = body;
 
         if (!document_id) {
@@ -1016,9 +1020,9 @@ const done = await pool.query(
 
         // Must have either new_holder (user ID) OR destination_text (free text)
         if (!new_holder && !destination_text) {
-          return res.status(400).json({ 
-            success: false, 
-            error: 'Either recipient user or destination text is required' 
+          return res.status(400).json({
+            success: false,
+            error: 'Either recipient user or destination text is required'
           });
         }
 
@@ -1027,16 +1031,16 @@ const done = await pool.query(
           'SELECT uploaded_by, current_holder, title FROM documents WHERE document_id = $1',
           [document_id]
         );
-        
+
         if (docCheck.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
-        
+
         const doc = docCheck.rows[0];
         if (doc.uploaded_by !== userId && doc.current_holder !== userId && userRole !== 'admin') {
-          return res.status(403).json({ 
-            success: false, 
-            error: 'Access denied: You can only route documents you own or currently hold' 
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied: You can only route documents you own or currently hold'
           });
         }
 
@@ -1051,14 +1055,13 @@ const done = await pool.query(
 
           const routeResult = await pool.query(routeQuery, [sanitize(destination_text), document_id]);
 
-          // --- UPDATED: Include remarks in history log ---
-          const actionDetails = `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}` + 
-                                (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
-          
+          const actionDetails = `Document "${sanitize(doc.title)}" sent to: ${sanitize(destination_text)}` +
+            (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
+
           await logHistory(
-            document_id, 
-            userId, 
-            'Document Routed', 
+            document_id,
+            userId,
+            'Document Routed',
             actionDetails
           );
 
@@ -1085,15 +1088,14 @@ const done = await pool.query(
         try {
           const holderInfo = await pool.query('SELECT full_name FROM users WHERE user_id = $1', [new_holder]);
           const holderName = holderInfo.rows[0]?.full_name || 'Unknown User';
-          
-          // --- UPDATED: Include remarks in history log ---
-          const actionDetails = `Document "${sanitize(doc.title)}" routed to ${holderName}` + 
-                                (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
-          
+
+          const actionDetails = `Document "${sanitize(doc.title)}" routed to ${holderName}` +
+            (remarks ? ` | Remarks: ${sanitize(remarks)}` : '');
+
           await logHistory(
-            document_id, 
-            userId, 
-            'Document Routed', 
+            document_id,
+            userId,
+            'Document Routed',
             actionDetails
           );
         } catch (error) {
@@ -1110,7 +1112,6 @@ const done = await pool.query(
 
       case 'PUT': {
         const body = await parseJsonBody(req);
-        // --- UPDATED: Added document_number to destructuring ---
         const { document_id, document_number, title, description, document_type, priority, signatory } = body;
 
         if (!document_id) {
@@ -1118,27 +1119,33 @@ const done = await pool.query(
         }
 
         // Verify ownership before updating
-        const docCheck = await pool.query('SELECT uploaded_by, title as old_title, document_number as old_number FROM documents WHERE document_id = $1', [document_id]);
+        const docCheck = await pool.query(
+          'SELECT uploaded_by, title as old_title, document_number as old_number FROM documents WHERE document_id = $1',
+          [document_id]
+        );
+
         if (docCheck.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
-        
+
         if (docCheck.rows[0].uploaded_by !== userId && userRole !== 'admin') {
-          return res.status(403).json({ 
-            success: false, 
-            error: 'Access denied: You can only edit documents you uploaded' 
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied: You can only edit documents you uploaded'
           });
         }
 
-        // --- NEW: Check uniqueness only if document_number changed ---
+        // Check uniqueness only if document_number changed
         if (document_number && document_number !== docCheck.rows[0].old_number) {
-            const numCheck = await pool.query('SELECT 1 FROM documents WHERE document_number = $1', [sanitize(document_number)]);
-            if (numCheck.rows.length > 0) {
-               return res.status(400).json({ success: false, error: 'Document Number already exists' });
-            }
+          const numCheck = await pool.query(
+            'SELECT 1 FROM documents WHERE document_number = $1',
+            [sanitize(document_number)]
+          );
+          if (numCheck.rows.length > 0) {
+            return res.status(400).json({ success: false, error: 'Document Number already exists' });
+          }
         }
 
-        // --- UPDATED: Added document_number to UPDATE query ---
         const updateQuery = `
           UPDATE documents 
           SET document_number = $1, title = $2, description = $3, document_type = $4, priority = $5, signatory = $6
@@ -1147,20 +1154,19 @@ const done = await pool.query(
         `;
 
         const updateResult = await pool.query(updateQuery, [
-          sanitize(document_number), // New Field
+          sanitize(document_number),
           sanitize(title),
           sanitize(description || ''),
           sanitize(document_type),
           sanitize(priority),
-          sanitize(signatory || ''), // New field
+          sanitize(signatory || ''),
           document_id,
         ]);
 
-        // Log edit to history
         await logHistory(
-          document_id, 
-          userId, 
-          'Document Updated', 
+          document_id,
+          userId,
+          'Document Updated',
           `Document details updated: "${sanitize(title)}" (#${sanitize(document_number)})`
         );
 
@@ -1189,26 +1195,18 @@ const done = await pool.query(
           'SELECT mega_file_id, uploaded_by, title, is_archived FROM documents WHERE document_id = $1',
           [deleteId]
         );
-        
+
         if (docResult.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Document not found' });
         }
 
         // Verify ownership before deleting (WORKS FOR BOTH ACTIVE AND ARCHIVED)
         const doc = docResult.rows[0];
-        console.log(`[DELETE] Document info:`, {
-          id: deleteId,
-          title: doc.title,
-          uploaded_by: doc.uploaded_by,
-          has_file: !!doc.mega_file_id,
-          is_archived: doc.is_archived
-        });
 
         if (doc.uploaded_by !== userId && userRole !== 'admin') {
-          console.log(`Access denied: User ${userId} tried to delete document ${deleteId} uploaded by ${doc.uploaded_by}`);
-          return res.status(403).json({ 
-            success: false, 
-            error: 'Access denied: You can only delete documents you uploaded' 
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied: You can only delete documents you uploaded'
           });
         }
 
@@ -1220,7 +1218,7 @@ const done = await pool.query(
           try {
             const storage = await getMegaStorage();
             const file = await findMegaFile(storage, doc.mega_file_id);
-            
+
             if (file) {
               await file.delete();
               megaDeleted = true;
@@ -1231,7 +1229,7 @@ const done = await pool.query(
             }
           } catch (error) {
             console.error('✗ MEGA deletion failed:', error);
-            
+
             return res.status(500).json({
               success: false,
               error: 'Failed to delete file from MEGA storage',
@@ -1246,14 +1244,10 @@ const done = await pool.query(
               error: 'MEGA deletion did not complete successfully'
             });
           }
-        } else {
-          console.log(`[DELETE] Document has no file, skipping MEGA deletion`);
         }
 
         // Delete from database FIRST, then log to history
         try {
-          console.log(`[DELETE] Attempting database deletion for document ${deleteId}...`);
-          
           const deleteResult = await pool.query(
             'DELETE FROM documents WHERE document_id = $1 RETURNING document_id, title',
             [deleteId]
@@ -1263,25 +1257,21 @@ const done = await pool.query(
             return res.status(404).json({ success: false, error: 'Document not found in database' });
           }
 
-          console.log(`✓ Document deleted from database by user ${userId}: ${deleteId} (${doc.title}) ${doc.is_archived ? '[ARCHIVED]' : '[ACTIVE]'}`);
-
-          // Log deletion to history AFTER successful deletion
           try {
             await logHistory(
-              deleteId, 
-              userId, 
-              'Document Deleted', 
+              deleteId,
+              userId,
+              'Document Deleted',
               `Document "${sanitize(doc.title)}" permanently deleted${doc.is_archived ? ' (was archived)' : ''}${doc.mega_file_id ? ' (including file from MEGA storage)' : ' (no file was attached)'}`
             );
           } catch (historyError) {
-            // Don't fail the deletion if history logging fails
             console.warn('⚠ Failed to log deletion history (document already deleted):', historyError.message);
           }
 
           return res.status(200).json({
             success: true,
-            message: doc.mega_file_id 
-              ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!` 
+            message: doc.mega_file_id
+              ? `Document${doc.is_archived ? ' (archived)' : ''} and file deleted successfully!`
               : `Document${doc.is_archived ? ' (archived)' : ''} deleted successfully (no file was attached)`,
             deleted: deleteResult.rows[0],
             had_file: !!doc.mega_file_id,
@@ -1289,7 +1279,7 @@ const done = await pool.query(
           });
         } catch (dbError) {
           console.error('✗ Database deletion failed:', dbError);
-          
+
           return res.status(500).json({
             success: false,
             error: 'Database deletion failed',
