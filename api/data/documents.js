@@ -481,6 +481,174 @@ module.exports = async function handler(req, res) {
 
             case 'POST': {
 
+              // --- NEW ACTION: Replace attached file for an existing document ---
+// Usage: POST /api/documents?action=replaceFile  (multipart/form-data with field: documentid, file)
+// Rules: only uploader or admin can replace; replaces MEGA file, updates DB, logs history.
+
+if (query.action === "replaceFile") {
+  // Parse multipart (needs formidable)
+  let fields, files;
+  try {
+    const form = formidable({
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      uploadDir: "/tmp",
+      keepExtensions: true,
+      multiples: false,
+      allowEmptyFiles: false, // replacing requires a real file
+      minFileSize: 1,         // must not be 0-byte
+    });
+
+    [fields, files] = await new Promise((resolve, reject) => {
+      form.parse(req, (err, f, fls) => {
+        if (err) return reject(err);
+        resolve([f, fls]);
+      });
+    });
+  } catch (parseError) {
+    return res.status(400).json({
+      success: false,
+      error: "Failed to parse form data",
+      message: parseError.message,
+    });
+  }
+
+  const rawDocumentId = Array.isArray(fields.documentid)
+    ? fields.documentid[0]
+    : fields.documentid;
+
+  const documentid = rawDocumentId ? Number(rawDocumentId) : null;
+  if (!documentid) {
+    // cleanup temp file if present
+    const tmp = files?.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+    if (tmp?.filepath) await fs.unlink(tmp.filepath).catch(() => {});
+    return res.status(400).json({ success: false, error: "Document ID is required" });
+  }
+
+  // Extract file
+  let uploadedFile = files.file
+    ? (Array.isArray(files.file) ? files.file[0] : files.file)
+    : null;
+
+  if (!uploadedFile || !uploadedFile.filepath || uploadedFile.size <= 0) {
+    if (uploadedFile?.filepath) await fs.unlink(uploadedFile.filepath).catch(() => {});
+    return res.status(400).json({ success: false, error: "A valid file is required for replacement" });
+  }
+
+  // Validate type (reuse your existing validateFile)
+  const validation = validateFile(uploadedFile);
+  if (!validation.valid) {
+    await fs.unlink(uploadedFile.filepath).catch(() => {});
+    return res.status(400).json({ success: false, error: validation.error });
+  }
+
+  // Verify doc exists + permission
+  const docRes = await pool.query(
+    "SELECT documentid, title, uploadedby, megafileid FROM documents WHERE documentid = $1",
+    [documentid]
+  );
+
+  if (docRes.rows.length === 0) {
+    await fs.unlink(uploadedFile.filepath).catch(() => {});
+    return res.status(404).json({ success: false, error: "Document not found" });
+  }
+
+  const doc = docRes.rows[0];
+
+  if (doc.uploadedby !== userId && userRole !== "admin") {
+    await fs.unlink(uploadedFile.filepath).catch(() => {});
+    return res.status(403).json({
+      success: false,
+      error: "Access denied. You can only replace files for documents you uploaded.",
+    });
+  }
+
+  // Upload new file to MEGA first (safer: only delete old after new upload succeeds)
+  const fileName = uploadedFile.originalFilename || uploadedFile.newFilename || "document";
+  const fileSize = uploadedFile.size;
+
+  let newMegaFileId = null;
+  let newMegaLink = null;
+
+  try {
+    const storage = await getMegaStorage();
+    const fileBuffer = await fs.readFile(uploadedFile.filepath);
+
+    const uploadedMegaFile = await storage.upload(
+      { name: fileName, size: fileBuffer.length },
+      fileBuffer
+    ).complete;
+
+    newMegaFileId = uploadedMegaFile.nodeId;
+    newMegaLink = uploadedMegaFile.link;
+  } catch (err) {
+    await fs.unlink(uploadedFile.filepath).catch(() => {});
+    return res.status(500).json({
+      success: false,
+      error: "Failed to upload to MEGA storage",
+      message: err.message,
+    });
+  } finally {
+    // remove temp file
+    await fs.unlink(uploadedFile.filepath).catch(() => {});
+  }
+
+  // Delete old MEGA file (best-effort; if it fails, we stop to avoid DB pointing to new file while old still exists? up to you)
+  // Here we choose "fail hard" like your DELETE does, to avoid inconsistent state policies.
+  if (doc.megafileid) {
+    try {
+      const storage = await getMegaStorage();
+      const oldFile = await findMegaFile(storage, doc.megafileid);
+      if (oldFile) {
+        await oldFile.delete();
+      }
+    } catch (err) {
+      // If old delete fails, also delete the newly uploaded file to keep storage clean
+      try {
+        const storage = await getMegaStorage();
+        const newFile = await findMegaFile(storage, newMegaFileId);
+        if (newFile) await newFile.delete();
+      } catch (_) {}
+
+      return res.status(500).json({
+        success: false,
+        error: "Failed to delete old file from MEGA storage",
+        details: err.message,
+        message: "Replacement was aborted to maintain consistency. Please try again.",
+      });
+    }
+  }
+
+  // Update DB to point to new file
+  const updateRes = await pool.query(
+    `UPDATE documents
+     SET filepath = $1,
+         megafileid = $2,
+         megalink = $3,
+         filesize = $4
+     WHERE documentid = $5
+     RETURNING documentid, title, filepath, megafileid, megalink, filesize`,
+    [sanitize(fileName), newMegaFileId, newMegaLink, fileSize, documentid]
+  );
+
+  await logHistory(
+    documentid,
+    userId,
+    "File Replaced",
+    `File replaced for document ${sanitize(doc.title)}; new file: ${sanitize(fileName)} (${(fileSize / 1024).toFixed(2)} KB)`
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: "File replaced successfully!",
+    document: updateRes.rows[0],
+    filename: fileName,
+    filesize: fileSize,
+    storage: "MEGA",
+    hasfile: true,
+  });
+}
+
+
               if (query.action === 'complete') {
   const body = await parseJsonBody(req);
   const { document_id } = body;
