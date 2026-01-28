@@ -1,7 +1,7 @@
 // Main Application JavaScript
 // Handles routing and API calls with full CRUD operations
 // Search, Pagination, Sorting
-// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS + ROUTE MODAL + EXCEL EXPORTtg
+// RESPONSIVE TEXT BUTTONS + FIXED WIDTH TABLE + SIDEBAR LAYOUT + INLINE FILTERS + ARCHIVES + ADMIN PANEL + ADMIN ALL DOCS + LOADING ANIMATIONS + ROUTE MODAL + EXCEL EXPORT
 
 const API_BASE = '/api';
 
@@ -9,7 +9,7 @@ const API_BASE = '/api';
 const auth = {
   getToken: () => localStorage.getItem('token'),
   setToken: (token) => localStorage.setItem('token', token),
-  removeToken: () => localStorage.removeItem('token'),
+  removeToken: () => localStorage.removeToken ? localStorage.removeToken('token') : localStorage.removeItem('token'),
   getUser: () => {
     const token = auth.getToken();
     if (!token) return null;
@@ -33,28 +33,24 @@ const api = {
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers
+    });
+
+    const text = await response.text();
+
+    let data;
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers
-      });
-
-      const text = await response.text();
-
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error('Server returned invalid response');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
-      }
-      return data;
-    } catch (error) {
-      throw error;
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error('Server returned invalid response');
     }
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Request failed');
+    }
+    return data;
   },
 
   async get(endpoint) {
@@ -84,29 +80,25 @@ const api = {
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    const text = await response.text();
+
+    let data;
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: formData
-      });
-
-      const text = await response.text();
-
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error('Server returned invalid response');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
-      }
-      return data;
-    } catch (error) {
-      throw error;
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error('Server returned invalid response');
     }
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Request failed');
+    }
+    return data;
   }
 };
 
@@ -172,14 +164,14 @@ const routeModal = {
           method: 'PATCH',
           body: JSON.stringify({
             document_id: documentId,
-            destination_text: destination, 
+            destination_text: destination,
             remarks: remarks
           })
         });
 
         alert(result.message || 'Document routed successfully!');
         close();
-        router.handleRoute(); 
+        router.handleRoute();
       } catch (error) {
         alert('Error routing document: ' + error.message);
         submitBtn.disabled = false;
@@ -255,28 +247,27 @@ const editModal = {
     const saveBtn = document.getElementById('saveChangesBtn');
 
     cancelBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       saveBtn.classList.add('loading');
       saveBtn.textContent = 'Saving...';
-      
+
       const updatedData = {
         document_id: documentData.document_id,
-        document_number: document.getElementById('editDocNumber').value, // NEW
+        document_number: document.getElementById('editDocNumber').value,
         title: document.getElementById('editTitle').value,
         description: document.getElementById('editDescription').value,
         document_type: document.getElementById('editType').value,
         priority: document.getElementById('editPriority').value,
-        signatory: document.getElementById('editSignatory').value // Added Signatory
+        signatory: document.getElementById('editSignatory').value
       };
 
       await onSave(updatedData);
       overlay.remove();
-    });
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.remove();
     });
   }
 };
@@ -287,17 +278,17 @@ const viewModal = {
     const filePath = documentData.file_path;
     const hasFile = !!documentData.mega_file_id;
     const fileExtension = filePath ? filePath.split('.').pop().toLowerCase() : '';
-    
+
     const isPDF = fileExtension === 'pdf';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension);
-    
+
     const isViewable = hasFile && (isPDF || isImage || isOffice);
-    
+
     const viewUrl = `/api/data/documents?id=${documentId}&view=true`;
     const downloadUrl = `/api/data/documents?id=${documentId}&download=true`;
-    
-    const previewUrl = isOffice 
+
+    const previewUrl = isOffice
       ? `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + viewUrl)}&embedded=true`
       : viewUrl;
 
@@ -309,9 +300,8 @@ const viewModal = {
             <div>
               <h2 style="margin: 0; font-size: 1.5rem; color: #1f2937;">${documentData.title}</h2>
               <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.875rem">
-  ${documentData.document_number ? `Document #${documentData.document_number} • ` : ''}${documentData.document_type} • Priority: ${documentData.priority === 'rush' ? '🔴 RUSH' : '✅ Not Rush'}
-</p>
-
+                ${documentData.document_number ? `Document #${documentData.document_number} • ` : ''}${documentData.document_type} • Priority: ${documentData.priority === 'rush' ? '🔴 RUSH' : '✅ Not Rush'}
+              </p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               ${hasFile ? `<a href="${downloadUrl}" class="btn btn--sm btn--primary" style="text-decoration: none;">Download</a>` : ''}
@@ -321,7 +311,7 @@ const viewModal = {
 
           <div style="flex: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; background: #f5f5f5;">
             ${hasFile && isViewable ? (
-              isPDF || isOffice ? 
+              isPDF || isOffice ?
                 `<iframe src="${previewUrl}" style="width: 100%; height: 100%; border: none; background: white;"></iframe>` :
                 `<img src="${viewUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${documentData.title}">`
             ) : `
@@ -399,16 +389,97 @@ function formatFileSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
+// --- NEW: Replace File Modal ---
+const replaceFileModal = {
+  open(documentData) {
+    const modalHtml = `
+      <div id="replaceFileOverlay" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Replace File</h2>
+            <p style="margin: 0; color: #64748b; font-size: 0.9rem;">${documentData.title}</p>
+          </div>
+
+          <form id="replaceFileForm" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label">Document Number</label>
+                <input type="text" class="form-control" value="${documentData.document_number || ''}" disabled>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Current File</label>
+                <input type="text" class="form-control" value="${documentData.file_path || 'No file attached'}" disabled>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">New File <span style="color:red">*</span></label>
+                <input type="file" name="file" class="form-control" required>
+                <small style="color:#64748b; display:block; margin-top:6px;">
+                  Max 10MB, allowed types per backend validation.
+                </small>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" id="replaceCancelBtn" class="btn btn--secondary">Cancel</button>
+              <button type="submit" id="replaceSubmitBtn" class="btn btn--primary">Replace</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay = document.getElementById('replaceFileOverlay');
+    const form = document.getElementById('replaceFileForm');
+    const cancelBtn = document.getElementById('replaceCancelBtn');
+    const submitBtn = document.getElementById('replaceSubmitBtn');
+
+    const close = () => overlay.remove();
+
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      submitBtn.disabled = true;
+      submitBtn.classList.add('loading');
+      submitBtn.textContent = 'Replacing...';
+
+      try {
+        const formData = new FormData(form);
+        formData.append('document_id', documentData.document_id);
+
+        const result = await api.uploadFile(`/data/documents?action=replaceFile`, formData);
+
+        alert(result.message || 'File replaced successfully!');
+        close();
+        router.handleRoute();
+      } catch (error) {
+        alert('Error replacing file: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = 'Replace';
+      }
+    });
+  }
+};
+
 // Router
 const router = {
   currentRoute: '/',
   allDocuments: [],
   filteredDocuments: [],
-  
+
   // PAGINATION SETTINGS
   currentPage: 1,
   itemsPerPage: 10,
-  
+
   sortColumn: 'uploaded_at',
   sortDirection: 'desc',
 
@@ -422,49 +493,49 @@ const router = {
     }
   },
 
-handleSearch(query) {
-  const asText = (v) => (v === null || v === undefined) ? '' : String(v).toLowerCase();
+  handleSearch(query) {
+    const asText = (v) => (v === null || v === undefined) ? '' : String(v).toLowerCase();
 
-  const keywords = asText(query)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+    const keywords = asText(query)
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
 
-  // If empty search, show all
-  if (keywords.length === 0) {
-    this.filteredDocuments = [...this.allDocuments];
+    if (keywords.length === 0) {
+      this.filteredDocuments = [...this.allDocuments];
+      this.currentPage = 1;
+      if (this.currentRoute === '/archives') this.renderArchivedDocuments();
+      else this.renderDocuments();
+      return;
+    }
+
+    this.filteredDocuments = this.allDocuments.filter((doc) => {
+      const haystack = [
+        doc.documentnumber,
+        doc.document_number,
+        doc.title,
+        doc.description,
+        doc.documenttype,
+        doc.document_type,
+        doc.priority,
+        doc.status,
+        doc.signatory,
+        doc.currentdestination,
+        doc.current_destination,
+        doc.uploadedbyname,
+        doc.uploaded_by_name,
+        doc.uploadedbyusername,
+        doc.uploaded_by_username,
+        doc.file_path
+      ].map(asText).join(' | ');
+
+      return keywords.every((kw) => haystack.includes(kw));
+    });
+
     this.currentPage = 1;
     if (this.currentRoute === '/archives') this.renderArchivedDocuments();
     else this.renderDocuments();
-    return;
-  }
-
-  this.filteredDocuments = this.allDocuments.filter((doc) => {
-    // Combine ALL columns you want searchable here
-    const haystack = [
-      doc.documentnumber,
-      doc.document_number,     // just in case some API returns this
-      doc.title,
-      doc.description,
-      doc.documenttype,
-      doc.document_type,
-      doc.priority,
-      doc.status,
-      doc.signatory,
-      doc.currentdestination,
-      doc.uploadedbyname,
-      doc.uploadedbyusername,
-    ].map(asText).join(' | ');
-
-    // AND logic: every keyword must exist somewhere in the row
-    return keywords.every((kw) => haystack.includes(kw));
-  });
-
-  this.currentPage = 1;
-  // IMPORTANT: your code currently checks `archives` without slash in one spot
-  if (this.currentRoute === '/archives') this.renderArchivedDocuments();
-  else this.renderDocuments();
-}
+  },
 
   applyFilters() {
     const status = document.getElementById('statusFilter')?.value;
@@ -481,8 +552,8 @@ handleSearch(query) {
       return match;
     });
 
-    this.currentPage = 1; // Reset to page 1 on filter
-    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+    this.currentPage = 1;
+    if (this.currentRoute === '/archives') this.renderArchivedDocuments();
     else this.renderDocuments();
   },
 
@@ -490,71 +561,65 @@ handleSearch(query) {
     const inputs = ['searchInput', 'statusFilter', 'priorityFilter', 'dateFromFilter', 'dateToFilter'];
     inputs.forEach(id => {
       const el = document.getElementById(id);
-      if(el) el.value = '';
+      if (el) el.value = '';
     });
     this.filteredDocuments = [...this.allDocuments];
-    this.currentPage = 1; // Reset to page 1
-    if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+    this.currentPage = 1;
+    if (this.currentRoute === '/archives') this.renderArchivedDocuments();
     else this.renderDocuments();
   },
 
-  // NEW: Change Page Function
   goToPage(page) {
     const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
     if (page >= 1 && page <= totalPages) {
       this.currentPage = page;
-      if(this.currentRoute === '/archives') this.renderArchivedDocuments();
+      if (this.currentRoute === '/archives') this.renderArchivedDocuments();
       else this.renderDocuments();
     }
   },
 
-  // NEW: Pagination Controls Renderer
   renderPaginationControls(totalPages) {
     if (totalPages <= 1) return '';
 
     let html = `<div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">`;
-    
-    // Previous Button
+
     html += `<button class="btn btn--sm ${this.currentPage === 1 ? 'disabled' : ''}" 
              onclick="router.goToPage(${this.currentPage - 1})" 
              style="padding: 0.5rem 1rem;" 
              ${this.currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
 
-    // Page Numbers
     for (let i = 1; i <= totalPages; i++) {
-        // Show only limited page numbers for large lists (optional optimization)
-        if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-            html += `<button class="btn btn--sm" 
-                     onclick="router.goToPage(${i})" 
-                     style="padding: 0.5rem 1rem; ${i === this.currentPage ? 'background-color: var(--color-primary); color: white;' : 'background-color: white; color: var(--color-text); border: 1px solid #ddd;'}">
-                     ${i}
-                     </button>`;
-        } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-            html += `<span style="padding: 0.5rem;">...</span>`;
-        }
+      if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+        html += `<button class="btn btn--sm" 
+                 onclick="router.goToPage(${i})" 
+                 style="padding: 0.5rem 1rem; ${i === this.currentPage ? 'background-color: var(--color-primary); color: white;' : 'background-color: white; color: var(--color-text); border: 1px solid #ddd;'}">
+                 ${i}
+                 </button>`;
+      } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+        html += `<span style="padding: 0.5rem;">...</span>`;
+      }
     }
 
-    // Next Button
     html += `<button class="btn btn--sm ${this.currentPage === totalPages ? 'disabled' : ''}" 
              onclick="router.goToPage(${this.currentPage + 1})" 
              style="padding: 0.5rem 1rem;" 
              ${this.currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
-    
+
     html += `</div>`;
     html += `<div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
                 Showing ${(this.currentPage - 1) * this.itemsPerPage + 1} to 
                 ${Math.min(this.currentPage * this.itemsPerPage, this.filteredDocuments.length)} of 
                 ${this.filteredDocuments.length} entries
              </div>`;
-    
+
     return html;
   },
 
   renderDocuments() {
     const list = document.getElementById('documentsList');
-    const paginationDiv = document.getElementById('pagination'); // Ensure you have <div id="pagination"></div> in your HTML
-    
-    if(!list) return;
+    const paginationDiv = document.getElementById('pagination');
+
+    if (!list) return;
 
     if (this.filteredDocuments.length === 0) {
       list.innerHTML = `<div class="empty-state"><p>No documents found.</p></div>`;
@@ -562,7 +627,6 @@ handleSearch(query) {
       return;
     }
 
-    // PAGINATION LOGIC
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     const paginatedDocs = this.filteredDocuments.slice(startIndex, endIndex);
@@ -575,7 +639,7 @@ handleSearch(query) {
               <th>ID</th>
               <th style="width: 30%;">Title</th>
               <th>Type</th>
-              <th>Signatory</th> <!-- Added Signatory Column -->
+              <th>Signatory</th>
               <th>Current Location</th>
               <th>Status</th>
               <th>Priority</th>
@@ -589,10 +653,10 @@ handleSearch(query) {
                 <td>${doc.document_number || ''}</td>
                 <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
                   <div style="font-weight: 500; color: var(--color-text);">${doc.title}</div>
-                  <div style="font-size: 0.85em; color: var(--color-text-secondary);">${doc.description ? (doc.description.substring(0, 50) + (doc.description.length>50?'...':'')) : ''}</div>
+                  <div style="font-size: 0.85em; color: var(--color-text-secondary);">${doc.description ? (doc.description.substring(0, 50) + (doc.description.length > 50 ? '...' : '')) : ''}</div>
                 </td>
                 <td>${doc.document_type}</td>
-                <td>${doc.signatory || '-'}</td> <!-- Added Signatory Cell -->
+                <td>${doc.signatory || '-'}</td>
                 <td>${doc.current_destination || 'Origin'}</td>
                 <td>
                   <span class="badge" style="background: ${doc.status === 'completed' ? 'var(--color-success)' : (doc.status === 'urgent' ? 'var(--color-error)' : '#dbeafe')}; color: ${doc.status === 'completed' ? 'white' : (doc.status === 'urgent' ? 'white' : '#1e40af')}">
@@ -600,49 +664,52 @@ handleSearch(query) {
                   </span>
                 </td>
                 <td>
-                  <!-- NEW PRIORITY BADGE LOGIC -->
                   <span class="badge" style="background: ${doc.priority === 'rush' ? 'var(--color-error)' : 'var(--color-success)'}; color: white;">
                     ${doc.priority === 'rush' ? 'RUSH' : 'NOT RUSH'}
                   </span>
                 </td>
                 <td>${new Date(doc.uploaded_at || doc.created_at).toLocaleDateString()}</td>
-           <td style="text-align: right">
-  <div style="display: flex; gap: 4px; justify-content: flex-end">
-    <button onclick="viewDocument(${doc.document_id})" class="btn" title="View">👁️</button>
-    <button onclick="editDocument(${doc.document_id})" class="btn" title="Edit">✏️</button>
-    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Route">📤</button>
-    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="History">📜</button>
-    
-    ${doc.status !== 'completed' ? `
-      <button onclick="completeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Mark as Complete" style="background: #10b981; color: white">✓</button>
-    ` : ''}
-    
-    ${doc.is_archived ? `
-      <button onclick="restoreDocument(${doc.document_id})" class="btn" title="Restore">♻️</button>
-    ` : `
-      <button onclick="archiveDocument(${doc.document_id})" class="btn" title="Archive">📦</button>
-    `}
-    
-    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\\\'")}')" class="btn" title="Delete">🗑️</button>
-  </div>
-</td>
+                <td style="text-align: right">
+                  <div style="display: flex; gap: 4px; justify-content: flex-end">
+                    <button onclick="viewDocument(${doc.document_id})" class="btn" title="View">👁️</button>
+                    <button onclick="editDocument(${doc.document_id})" class="btn" title="Edit">✏️</button>
 
+                    ${
+                      // NEW: replace button (show if has a file; remove condition if you want allow attaching first file too)
+                      doc.mega_file_id ? `<button onclick="openReplaceFile(${doc.document_id})" class="btn" title="Replace File">🔁</button>` : ''
+                    }
+
+                    <button onclick="routeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Route">📤</button>
+                    <button onclick="viewDocumentHistory(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="History">📜</button>
+
+                    ${doc.status !== 'completed' ? `
+                      <button onclick="completeDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Mark as Complete" style="background: #10b981; color: white">✓</button>
+                    ` : ''}
+
+                    ${doc.is_archived ? `
+                      <button onclick="restoreDocument(${doc.document_id})" class="btn" title="Restore">♻️</button>
+                    ` : `
+                      <button onclick="archiveDocument(${doc.document_id})" class="btn" title="Archive">📦</button>
+                    `}
+
+                    <button onclick="deleteDocument(${doc.document_id}, '${doc.title.replace(/'/g, "\\'")}')" class="btn" title="Delete">🗑️</button>
+                  </div>
+                </td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </div>
     `;
-    
-    // Render Pagination Controls
+
     if (paginationDiv) {
-        const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
-        paginationDiv.innerHTML = this.renderPaginationControls(totalPages);
+      const totalPages = Math.ceil(this.filteredDocuments.length / this.itemsPerPage);
+      paginationDiv.innerHTML = this.renderPaginationControls(totalPages);
     }
   },
 
   renderArchivedDocuments() {
-    this.renderDocuments(); // Re-use main render logic
+    this.renderDocuments();
   },
 
   init() {
@@ -672,15 +739,15 @@ handleSearch(query) {
       if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
       this.showArchives();
     } else if (path === '/admin') {
-       if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
-       const user = auth.getUser();
-       if (user.role !== 'admin') { alert('Access denied: Admin only'); this.navigate('/dashboard'); return; }
-       this.showAdminPanel();
+      if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
+      const user = auth.getUser();
+      if (user.role !== 'admin') { alert('Access denied: Admin only'); this.navigate('/dashboard'); return; }
+      this.showAdminPanel();
     } else if (path === '/admin/documents') {
-       if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
-       const user = auth.getUser();
-       if (user.role !== 'admin') { alert('Access denied: Admin only'); this.navigate('/dashboard'); return; }
-       this.showAdminAllDocuments();
+      if (!auth.isAuthenticated()) { this.navigate('/login'); return; }
+      const user = auth.getUser();
+      if (user.role !== 'admin') { alert('Access denied: Admin only'); this.navigate('/dashboard'); return; }
+      this.showAdminAllDocuments();
     } else {
       this.navigate('/login');
     }
@@ -716,49 +783,12 @@ handleSearch(query) {
           background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 55%, #10b981 120%);
           position: relative;
         }
-        .auth-brand::after {
-          content:'';
-          position:absolute;
-          inset:-40px -60px auto auto;
-          width: 220px;
-          height: 220px;
-          background: rgba(255,255,255,0.12);
-          border-radius: 999px;
-          filter: blur(0px);
-        }
         .auth-brand h1 {
           margin: 0 0 10px 0;
           font-size: 1.65rem;
           font-weight: 800;
           letter-spacing: .2px;
           color: white !important;
-        }
-        .auth-brand p {
-          margin: 0 0 18px 0;
-          opacity: .95;
-          line-height: 1.5;
-        }
-        .auth-bullets {
-          margin: 18px 0 0 0;
-          padding: 0;
-          list-style: none;
-          display: grid;
-          gap: 10px;
-          opacity: .95;
-        }
-        .auth-bullets li {
-          display:flex;
-          gap: 10px;
-          align-items:flex-start;
-          line-height: 1.45;
-        }
-        .auth-dot {
-          margin-top: 7px;
-          width: 9px;
-          height: 9px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.85);
-          flex: 0 0 auto;
         }
         .auth-form {
           padding: 42px 40px;
@@ -838,8 +868,7 @@ handleSearch(query) {
           </section>
         </div>
       </div>`;
-    
-    // FIXED: Form submission for JSON payload
+
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
@@ -849,15 +878,14 @@ handleSearch(query) {
       const formData = new FormData(e.target);
       const username = formData.get('username');
       const password = formData.get('password');
-      
+
       try {
-        // Send as proper JSON object, not FormData
         const result = await api.post('/auth', {
           action: 'login',
           username: username,
           password: password
         });
-        
+
         auth.setToken(result.token);
         this.navigate('/dashboard');
       } catch (error) {
@@ -869,7 +897,7 @@ handleSearch(query) {
   },
 
   showRegister() {
-     document.getElementById('app').innerHTML = `
+    document.getElementById('app').innerHTML = `
       <style>
         .auth-shell {
           min-height: 100vh;
@@ -1003,32 +1031,30 @@ handleSearch(query) {
           </section>
         </div>
       </div>`;
-          
-      // FIXED: Form submission for JSON payload
-      document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('registerBtn');
-        btn.classList.add('loading');
-        
-        const formData = new FormData(e.target);
-        
-        try {
-            // Send as proper JSON object
-            const result = await api.post('/auth', { 
-                action: 'register', 
-                username: formData.get('username'),
-                password: formData.get('password'),
-                email: formData.get('email'),
-                full_name: formData.get('fullName'),
-                confirm_password: formData.get('confirmPassword')
-            });
-            this.showMessage(result.message, 'success');
-            setTimeout(() => this.navigate('/login'), 2000);
-        } catch (error) {
-            this.showMessage(error.message, 'error');
-            btn.classList.remove('loading');
-        }
-      });
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('registerBtn');
+      btn.classList.add('loading');
+
+      const formData = new FormData(e.target);
+
+      try {
+        const result = await api.post('/auth', {
+          action: 'register',
+          username: formData.get('username'),
+          password: formData.get('password'),
+          email: formData.get('email'),
+          full_name: formData.get('fullName'),
+          confirm_password: formData.get('confirmPassword')
+        });
+        this.showMessage(result.message, 'success');
+        setTimeout(() => this.navigate('/login'), 2000);
+      } catch (error) {
+        this.showMessage(error.message, 'error');
+        btn.classList.remove('loading');
+      }
+    });
   },
 
   async showDashboard() {
@@ -1037,7 +1063,7 @@ handleSearch(query) {
       const data = await api.get('/data/dashboard');
       this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
       this.filteredDocuments = [...this.allDocuments];
-      
+
       document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
@@ -1066,7 +1092,6 @@ handleSearch(query) {
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
               <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="inprogress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-              <!-- UPDATED PRIORITY FILTER -->
               <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
               <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
               <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
@@ -1074,19 +1099,18 @@ handleSearch(query) {
 
             <div id="message"></div>
             <div class="documents-container"><div id="documentsList"></div></div>
-            <div id="pagination"></div> <!-- Pagination container -->
+            <div id="pagination"></div>
           </main>
         </div>
       `;
-      
+
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-      
-      this.renderDocuments();
 
+      this.renderDocuments();
     } catch (error) {
       if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); }
       else this.showMessage(error.message, 'error');
@@ -1094,17 +1118,15 @@ handleSearch(query) {
   },
 
   async showAdminAllDocuments() {
-      // ... (Same structure as showDashboard but for admin all docs)
-      const user = auth.getUser();
-      try {
-        const data = await api.get('/data/documents?all=true');
-        this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
-        this.filteredDocuments = [...this.allDocuments];
-        
-        document.getElementById('app').innerHTML = `
+    const user = auth.getUser();
+    try {
+      const data = await api.get('/data/documents?all=true');
+      this.allDocuments = data.documents.filter(doc => doc.is_archived !== 1);
+      this.filteredDocuments = [...this.allDocuments];
+
+      document.getElementById('app').innerHTML = `
           <div class="app-layout">
             <aside class="sidebar">
-              <!-- ... sidebar ... -->
               <div class="sidebar-header"><h1>PFDCS FILE TRACKING SYSTEM</h1></div>
               <nav class="sidebar-nav">
                 <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
@@ -1122,10 +1144,8 @@ handleSearch(query) {
               </div>
               
               <div class="search-filters-inline">
-                  <!-- ... filters ... -->
                   <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
                   <select id="statusFilter" class="form-control filter-inline"><option value="">Status</option><option value="pending">Pending</option><option value="inprogress">In Progress</option><option value="routed">Routed</option><option value="completed">Completed</option></select>
-                  <!-- UPDATED PRIORITY FILTER -->
                   <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
                   <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
                   <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
@@ -1136,28 +1156,28 @@ handleSearch(query) {
             </main>
           </div>
         `;
-        // ... event listeners ...
-        document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
-        document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
-        document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
-        document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
-        document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-        
-        this.renderDocuments();
-      } catch (error) {
-         if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); }
-         else this.showMessage(error.message, 'error');
-      }
+
+      document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+      document.getElementById('statusFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
+      document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
+
+      this.renderDocuments();
+    } catch (error) {
+      if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); }
+      else this.showMessage(error.message, 'error');
+    }
   },
 
   async showArchives() {
     const user = auth.getUser();
     try {
-      const data = await api.get('/data/dashboard'); // Or specific archives endpoint
+      const data = await api.get('/data/dashboard');
       this.allDocuments = data.documents.filter(doc => doc.is_archived === 1);
       this.filteredDocuments = [...this.allDocuments];
 
-       document.getElementById('app').innerHTML = `
+      document.getElementById('app').innerHTML = `
         <div class="app-layout">
           <aside class="sidebar">
             <div class="sidebar-header"><h1>PFDCS FILE TRACKING SYSTEM</h1></div>
@@ -1181,7 +1201,6 @@ handleSearch(query) {
             
             <div class="search-filters-inline">
               <input type="text" id="searchInput" placeholder="Search..." class="form-control search-inline">
-              <!-- UPDATED PRIORITY FILTER -->
               <select id="priorityFilter" class="form-control filter-inline"><option value="">Priority</option><option value="not_rush">Not Rush</option><option value="rush">RUSH</option></select>
               <input type="date" id="dateFromFilter" class="form-control filter-inline"><input type="date" id="dateToFilter" class="form-control filter-inline">
               <button onclick="router.resetFilters()" class="btn btn-clear">Clear</button>
@@ -1193,136 +1212,129 @@ handleSearch(query) {
           </main>
         </div>
       `;
-      
+
       document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
       document.getElementById('priorityFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateFromFilter').addEventListener('change', () => this.applyFilters());
       document.getElementById('dateToFilter').addEventListener('change', () => this.applyFilters());
-      
-      this.renderArchivedDocuments();
 
+      this.renderArchivedDocuments();
     } catch (error) {
       if (error.message.includes('Authentication')) { auth.removeToken(); this.navigate('/login'); }
       else this.showMessage(error.message, 'error');
     }
   },
-  
-  // ... (showAdminPanel implementation remains mostly same, can be condensed)
+
   async showAdminPanel() {
-      // ... implementation for admin dashboard stats
-       const user = auth.getUser();
-       // ... fetch stats ...
-       // ... render admin panel html ...
-       // Use existing implementation
-       // For brevity, assuming the standard admin panel code here
-       // Ensure sidebar links point to correct router.navigate calls
-       try {
-        const [statsData, usersData, pendingData] = await Promise.all([
-            api.get('/users/stats'),
-            api.get('/users/list'),
-            api.get('/users/pending')
-        ]);
-        
-        document.getElementById('app').innerHTML = `
-             <div class="app-layout">
-                <aside class="sidebar">
-                  <div class="sidebar-header"><h1>PFDCS FILE TRACKING SYSTEM</h1></div>
-                  <nav class="sidebar-nav">
-                    <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
-                    <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
-                    <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
-                    <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin')"><span class="sidebar-icon">⚙️</span><span>Admin Panel</span></a>
-                    <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')"><span class="sidebar-icon">📑</span><span>All Documents</span></a>
-                  </nav>
-                  <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin User' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
-                </aside>
-                <main class="main-content">
-                    <div class="content-header"><h2>Admin Panel</h2></div>
-                    <!-- Stats Cards -->
-                    <div style="display: flex; flex-wrap: wrap; gap: var(--space-24); margin-bottom: var(--space-32);">
-                        <div style="flex: 1 1 240px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
-                            <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
-                        </div>
-                        <div style="flex: 1 1 240px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
-                            <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
-                        </div>
-                        <div style="flex: 1 1 240px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
-                            <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
-                        </div>
-                         <div style="flex: 1 1 240px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
-                            <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
-                        </div>
-                    </div>
-                    
-                    <div id="adminMessage"></div>
-                    ${pendingData.pending_users.length > 0 ? `
-                    <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); margin-bottom: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--color-warning);">
-                        <h3 style="margin: 0 0 1rem 0; color: var(--color-warning); display: flex; align-items: center; gap: 0.5rem;">
-                            <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
-                        </h3>
-                        <div style="overflow-x: auto;">
-                        <table class="table">
-                            <thead><tr><th>Full Name</th><th>Username</th><th>Email</th><th>Department</th><th>Registered</th><th>Actions</th></tr></thead>
-                            <tbody>
-                                ${pendingData.pending_users.map(u => `
-                                <tr>
-                                    <td>${u.full_name}</td><td>${u.username}</td><td>${u.email}</td><td>${u.department || 'N/A'}</td><td>${new Date(u.created_at).toLocaleDateString()}</td>
-                                    <td>
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <button onclick="approveUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Approve</button>
-                                            <button onclick="rejectUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">Reject</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        </div>
-                    </div>` : ''}
-                    
-                    <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); box-shadow: var(--shadow-md);">
-                        <h3 style="margin: 0 0 1rem 0; color: var(--color-text);">All Users</h3>
-                        <div style="overflow-x: auto;">
-                        <table class="table">
-                             <thead><tr><th>Full Name</th><th>Username</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
-                             <tbody>
-                                ${usersData.users.map(u => `
-                                <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fffbeb;' : ''}">
-                                    <td>${u.full_name}</td><td>${u.username}</td><td>${u.email}</td><td>${u.department || 'N/A'}</td>
-                                    <td><span class="badge" style="${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">${u.role === 'admin' ? 'Admin' : 'User'}</span></td>
-                                    <td><span class="badge" style="${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">${u.is_active === 1 ? 'Active' : 'Inactive'}</span></td>
-                                    <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                                    <td>
-                                        ${u.role !== 'admin' || user.role === 'admin' ? `
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            ${u.is_active ? 
-                                              `<button onclick="deactivateUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-warning); color: white;">Deactivate</button>` : 
-                                              `<button onclick="reactivateUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Reactivate</button>`
-                                            }
-                                            ${u.role !== 'admin' ? 
-                                              `<button onclick="makeAdmin('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-primary); color: white;">Make Admin</button>` : 
-                                              `<button onclick="removeAdmin('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-text-secondary); color: white;">Demote</button>`
-                                            }
-                                            <button onclick="deleteUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">🗑️</button>
-                                        </div>` : ''}
-                                    </td>
-                                </tr>
-                                `).join('')}
-                             </tbody>
-                        </table>
-                        </div>
-                    </div>
-                </main>
-             </div>
-        `;
-       } catch (e) {
-        alert(e.message);
-        this.navigate('/dashboard');
-       }
+    const user = auth.getUser();
+    try {
+      const [statsData, usersData, pendingData] = await Promise.all([
+        api.get('/users/stats'),
+        api.get('/users/list'),
+        api.get('/users/pending')
+      ]);
+
+      document.getElementById('app').innerHTML = `
+        <div class="app-layout">
+          <aside class="sidebar">
+            <div class="sidebar-header"><h1>PFDCS FILE TRACKING SYSTEM</h1></div>
+            <nav class="sidebar-nav">
+              <a href="/dashboard" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/dashboard')"><span class="sidebar-icon">📄</span><span>My Documents</span></a>
+              <a href="/archives" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/archives')"><span class="sidebar-icon">🗄️</span><span>Archives</span></a>
+              <div style="margin-top: 1rem; padding: 0 1rem; color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Admin</div>
+              <a href="/admin" class="sidebar-link active" onclick="event.preventDefault(); router.navigate('/admin')"><span class="sidebar-icon">⚙️</span><span>Admin Panel</span></a>
+              <a href="/admin/documents" class="sidebar-link" onclick="event.preventDefault(); router.navigate('/admin/documents')"><span class="sidebar-icon">📑</span><span>All Documents</span></a>
+            </nav>
+            <div class="sidebar-footer"><div class="user-info"><div class="user-avatar">👤</div><div class="user-details"><div class="user-name">${user.fullName || user.username}</div><div class="user-role">${user.role === 'admin' ? 'Admin User' : 'User'}</div></div></div><button onclick="logout()" class="btn-logout">Logout</button></div>
+          </aside>
+
+          <main class="main-content">
+            <div class="content-header"><h2>Admin Panel</h2></div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-24); margin-bottom: var(--space-32);">
+              <div style="flex: 1 1 240px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
+                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Users</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.total_users || 0}</div>
+              </div>
+              <div style="flex: 1 1 240px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
+                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Approvals</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.pending_users || 0}</div>
+              </div>
+              <div style="flex: 1 1 240px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
+                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Active Users</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.user_stats.active_users || 0}</div>
+              </div>
+              <div style="flex: 1 1 240px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: var(--space-24); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);">
+                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Documents</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">${statsData.document_stats.total_documents || 0}</div>
+              </div>
+            </div>
+
+            <div id="adminMessage"></div>
+
+            ${pendingData.pending_users.length > 0 ? `
+              <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); margin-bottom: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--color-warning);">
+                <h3 style="margin: 0 0 1rem 0; color: var(--color-warning); display: flex; align-items: center; gap: 0.5rem;">
+                  <span>⚠️</span> <span>Pending User Registrations (${pendingData.pending_users.length})</span>
+                </h3>
+                <div style="overflow-x: auto;">
+                  <table class="table">
+                    <thead><tr><th>Full Name</th><th>Username</th><th>Email</th><th>Department</th><th>Registered</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      ${pendingData.pending_users.map(u => `
+                        <tr>
+                          <td>${u.full_name}</td><td>${u.username}</td><td>${u.email}</td><td>${u.department || 'N/A'}</td><td>${new Date(u.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                              <button onclick="approveUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Approve</button>
+                              <button onclick="rejectUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">Reject</button>
+                            </div>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+
+            <div style="background: white; border-radius: var(--radius-xl); padding: var(--space-24); box-shadow: var(--shadow-md);">
+              <h3 style="margin: 0 0 1rem 0; color: var(--color-text);">All Users</h3>
+              <div style="overflow-x: auto;">
+                <table class="table">
+                  <thead><tr><th>Full Name</th><th>Username</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    ${usersData.users.map(u => `
+                      <tr style="${u.is_active === 0 ? 'opacity: 0.6; background: #fffbeb;' : ''}">
+                        <td>${u.full_name}</td><td>${u.username}</td><td>${u.email}</td><td>${u.department || 'N/A'}</td>
+                        <td><span class="badge" style="${u.role === 'admin' ? 'background: #dbeafe; color: #1e40af;' : 'background: #e5e7eb; color: #374151;'}">${u.role === 'admin' ? 'Admin' : 'User'}</span></td>
+                        <td><span class="badge" style="${u.is_active === 1 ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">${u.is_active === 1 ? 'Active' : 'Inactive'}</span></td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <div style="display: flex; gap: 0.5rem;">
+                            ${u.is_active ? `<button onclick="deactivateUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-warning); color: white;">Deactivate</button>` :
+                              `<button onclick="reactivateUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-success); color: white;">Reactivate</button>`
+                            }
+                            ${u.role !== 'admin' ?
+                              `<button onclick="makeAdmin('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-primary); color: white;">Make Admin</button>` :
+                              `<button onclick="removeAdmin('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-text-secondary); color: white;">Demote</button>`
+                            }
+                            <button onclick="deleteUser('${u.user_id}', '${u.username}')" class="btn btn--sm" style="background: var(--color-error); color: white;">🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </main>
+        </div>
+      `;
+    } catch (e) {
+      alert(e.message);
+      this.navigate('/dashboard');
+    }
   }
 };
 
@@ -1357,14 +1369,14 @@ async function deleteUser(userId, username) {
 }
 
 // Global functions for onClick handlers
-window.viewDocument = async function(documentId) {
+window.viewDocument = async function (documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
     if (data.success && data.document) viewModal.open(documentId, data.document);
   } catch (error) { alert('Error loading document: ' + error.message); }
 };
 
-window.editDocument = async function(documentId) {
+window.editDocument = async function (documentId) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}`);
     if (data.success && data.document) {
@@ -1379,12 +1391,22 @@ window.editDocument = async function(documentId) {
   } catch (error) { alert('Error loading document: ' + error.message); }
 };
 
-window.routeDocument = function(documentId, documentTitle) {
+window.openReplaceFile = async function (documentId) {
+  try {
+    const data = await api.get(`/data/documents?id=${documentId}`);
+    if (data.success && data.document) {
+      replaceFileModal.open(data.document);
+    }
+  } catch (error) {
+    alert('Error loading document for replace: ' + error.message);
+  }
+};
+
+window.routeDocument = function (documentId, documentTitle) {
   routeModal.open(documentId, documentTitle);
 };
 
-// FIXED: Table styling updated to ensure high visibility of column headers
-window.viewDocumentHistory = async function(documentId, documentTitle) {
+window.viewDocumentHistory = async function (documentId, documentTitle) {
   try {
     const data = await api.get(`/data/documents?id=${documentId}&history=true`);
     const historyList = data.history;
@@ -1432,7 +1454,7 @@ window.viewDocumentHistory = async function(documentId, documentTitle) {
   } catch (error) { alert('Error loading history: ' + error.message); }
 };
 
-window.deleteDocument = async function(documentId, title) {
+window.deleteDocument = async function (documentId, title) {
   if (!confirm(`Are you sure you want to delete "${title}"? This will permanently delete the document and its file from storage. This action CANNOT be undone!`)) return;
   try {
     const result = await api.delete(`/data/documents?id=${documentId}`);
@@ -1441,45 +1463,40 @@ window.deleteDocument = async function(documentId, title) {
   } catch (error) { alert('Error deleting document: ' + error.message); }
 };
 
-// FIXED: Uses POST with ?action=archive as required by your backend
-window.archiveDocument = async function(documentId) {
+// Uses POST with ?action=archive
+window.archiveDocument = async function (documentId) {
   if (!confirm(`Archive this document?`)) return;
   try {
-    // Backend expects POST to /data/documents?action=archive
     const result = await api.post(`/data/documents?action=archive`, { document_id: documentId });
     alert(result.message || 'Document archived');
     router.handleRoute();
   } catch (error) { alert('Error archiving document: ' + error.message); }
 };
 
-// FIXED: Uses POST with ?action=restore as required by your backend
-window.restoreDocument = async function(documentId) {
+// Uses POST with ?action=restore
+window.restoreDocument = async function (documentId) {
   if (!confirm(`Restore this document from archives?`)) return;
   try {
-    // Backend expects POST to /data/documents?action=restore
     const result = await api.post(`/data/documents?action=restore`, { document_id: documentId });
     alert(result.message || 'Document restored');
     router.handleRoute();
   } catch (error) { alert('Error restoring document: ' + error.message); }
 };
 
-window.openDocumentFormModal = function() {
-    const modalHtml = `
+// --- FIXED Upload Document Modal ---
+window.openDocumentFormModal = function () {
+  const modalHtml = `
       <div id="uploadModalOverlay" class="modal-overlay">
         <div class="modal">
-          <!-- Header (Fixed at top) -->
           <div class="modal-header">
             <h2>Upload Document</h2>
           </div>
           
-          <!-- FIXED: Changed 'height: 100%' to 'flex: 1; min-height: 0;' -->
-          <!-- This ensures the form fits INSIDE the modal without getting cut off -->
           <form id="uploadDocumentForm" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
             
             <div class="modal-body">
-                <!-- Manual Document Number -->
                 <div class="form-group">
-                  <label class="form-label">Document Number <span style="color:red">*</span></label>
+                  <label class="form-label">Document Number</label>
                   <input type="text" name="document_number" class="form-control" placeholder="e.g. 2024-001">
                 </div>
 
@@ -1495,11 +1512,9 @@ window.openDocumentFormModal = function() {
 
                 <div class="form-group">
                   <label class="form-label">Document Type <span style="color:red">*</span></label>
-                  <!-- FIXED: Changed name="documentType" to name="document_type" to match backend expectation -->
                   <input type="text" name="document_type" class="form-control" required placeholder="e.g. Memo, Invoice, Report">
                 </div>
                 
-                 <!-- ADDED: Signatory Field -->
                 <div class="form-group">
                   <label class="form-label">Signatory</label>
                   <input type="text" name="signatory" class="form-control" placeholder="e.g. John Doe">
@@ -1507,7 +1522,6 @@ window.openDocumentFormModal = function() {
 
                 <div class="form-group">
                   <label class="form-label">Priority <span style="color:red">*</span></label>
-                  <!-- NEW: Simplified Priority Options -->
                   <select name="priority" class="form-control" required>
                     <option value="not_rush">Not Rush</option>
                     <option value="rush">RUSH</option>
@@ -1529,76 +1543,76 @@ window.openDocumentFormModal = function() {
       </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    const overlay = document.getElementById('uploadModalOverlay');
-    const form = document.getElementById('uploadDocumentForm');
-    const cancelBtn = document.getElementById('uploadCancelBtn');
-    const submitBtn = document.getElementById('uploadSubmitBtn');
+  const overlay = document.getElementById('uploadModalOverlay');
+  const form = document.getElementById('uploadDocumentForm');
+  const cancelBtn = document.getElementById('uploadCancelBtn');
+  const submitBtn = document.getElementById('uploadSubmitBtn');
 
-    const close = () => overlay.remove();
+  const close = () => overlay.remove();
 
-    cancelBtn.addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      submitBtn.disabled = true;
-      submitBtn.classList.add('loading');
-      submitBtn.textContent = 'Uploading...';
-      
-      const formData = new FormData(e.target);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = 'Uploading...';
 
-      try {
-        const result = await api.uploadFile('/data/documents', formData);
-        alert(result.message || 'Upload successful!');
-        close();
-        router.handleRoute(); 
-      } catch (error) {
-        alert('Error uploading: ' + error.message);
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('loading');
-        submitBtn.textContent = 'Upload';
-      }
-    });
+    const formData = new FormData(e.target);
+
+    try {
+      // IMPORTANT FIX: Uploading a NEW document goes to /data/documents (no action)
+      const result = await api.uploadFile(`/data/documents`, formData);
+
+      alert(result.message || 'Upload successful!');
+      close();
+      router.handleRoute();
+    } catch (error) {
+      alert('Error uploading: ' + error.message);
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      submitBtn.textContent = 'Upload';
+    }
+  });
 };
 
-window.logout = function() {
+window.logout = function () {
   auth.removeToken();
   router.navigate('/login');
 };
 
 // --- Export to Excel Function ---
-window.downloadTableToExcel = function(tableId, filename = 'export.xlsx'){
-    const table = document.getElementById(tableId);
-    if (!table) {
-        alert('Table not found');
-        return;
-    }
-    
-    // Clone table to modify for export (remove Actions column)
-    const clone = table.cloneNode(true);
-    const rows = clone.querySelectorAll('tr');
-    
-    rows.forEach(row => {
-        if (row.cells.length > 0) {
-            row.deleteCell(-1); // Remove last column (Actions)
-        }
-    });
+window.downloadTableToExcel = function (tableId, filename = 'export.xlsx') {
+  const table = document.getElementById(tableId);
+  if (!table) {
+    alert('Table not found');
+    return;
+  }
 
-    // Use SheetJS to generate Excel
-    if (typeof XLSX === 'undefined') {
-        alert('SheetJS library not found. Please ensure xlsx.full.min.js is included in your HTML.');
-        return;
-    }
+  const clone = table.cloneNode(true);
+  const rows = clone.querySelectorAll('tr');
 
-    const wb = XLSX.utils.table_to_book(clone, {sheet: "Sheet1"});
-    XLSX.writeFile(wb, filename);
+  rows.forEach(row => {
+    if (row.cells.length > 0) {
+      row.deleteCell(-1);
+    }
+  });
+
+  if (typeof XLSX === 'undefined') {
+    alert('SheetJS library not found. Please ensure xlsx.full.min.js is included in your HTML.');
+    return;
+  }
+
+  const wb = XLSX.utils.table_to_book(clone, { sheet: "Sheet1" });
+  XLSX.writeFile(wb, filename);
 };
 
-window.completeDocument = async function(documentId, documentTitle) {
+window.completeDocument = async function (documentId, documentTitle) {
   if (!confirm(`Mark "${documentTitle}" as COMPLETED?`)) {
     return;
   }
@@ -1606,19 +1620,15 @@ window.completeDocument = async function(documentId, documentTitle) {
   try {
     const result = await api.request('/data/documents?action=complete', {
       method: 'POST',
-      body: JSON.stringify({ document_id: documentId })  // ✅ CORRECT - with underscore
+      body: JSON.stringify({ document_id: documentId })
     });
-    
+
     alert(result.message || 'Document marked as completed!');
     router.handleRoute();
   } catch (error) {
     alert('Failed to complete document: ' + error.message);
   }
 };
-
-
-
-
 
 // Initialize App
 router.init();
@@ -1627,7 +1637,6 @@ router.init();
 window.router = router;
 window.api = api;
 window.auth = auth;
-window.openDocumentFormModal = openDocumentFormModal;
 window.logout = logout;
 window.approveUser = approveUser;
 window.rejectUser = rejectUser;
@@ -1645,3 +1654,4 @@ window.routeDocument = routeDocument;
 window.viewDocumentHistory = viewDocumentHistory;
 window.openDocumentFormModal = openDocumentFormModal;
 window.downloadTableToExcel = downloadTableToExcel;
+window.openReplaceFile = openReplaceFile;
