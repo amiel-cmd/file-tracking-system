@@ -208,18 +208,35 @@ module.exports = async function handler(req, res) {
   const urlPath = req.url.split('?')[0]; // Get clean URL path
 
   // Auth: decode JWT from Authorization header
-  let user;
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error('No token provided');
-    const token = authHeader.split(' ')[1];
-    user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
-  } catch (error) {
-    // For local dev you can fall back to userId=1; remove this in production
-    user = { userId: 1, role: 'user' };
+  // ✅ FIXED - Proper auth with clear error responses
+let user;
+try {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No token provided. Please log in.' });
   }
-  const userId = user.userId || 1;
-  const userRole = user.role || 'user';
+
+  const token = authHeader.split(' ')[1];
+
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ success: false, error: 'Server misconfiguration: JWT secret not set.' });
+  }
+
+  user = jwt.verify(token, process.env.JWT_SECRET);
+
+} catch (error) {
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({ success: false, error: 'Token expired. Please log in again.' });
+  }
+  if (error.name === 'JsonWebTokenError') {
+    return res.status(401).json({ success: false, error: 'Invalid token. Please log in again.' });
+  }
+  return res.status(401).json({ success: false, error: 'Authentication failed. Please log in again.' });
+}
+
+const userId = user.userId;
+const userRole = user.role || 'user';
+
 
   // STEP 5: Check Rate Limit
   if (!checkRateLimit(userId)) {
